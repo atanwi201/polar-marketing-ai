@@ -1,0 +1,401 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Isla Autopilot - Mi espacio</title>
+<meta name="robots" content="noindex">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#faf6ef; --card:#fffdf9; --ink:#1d2a30; --muted:#5d6a70; --line:#e4dccd;
+  --accent:#0a6a86; --accent-dark:#075369; --accent-soft:#e0f0f4; --sand:#f1e8d7;
+  --ok:#1f7a4d; --ok-soft:#e2f3ea; --warn:#8a5a00; --warn-soft:#fdf0d5; --danger:#b3261e; --danger-soft:#fbe9e7;
+  --radius:16px;
+  --sans:"Inter",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --serif:"Fraunces",Georgia,serif;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 var(--sans);
+  background-image:radial-gradient(900px 340px at 85% -140px,#d6ebf0 0,transparent 70%)}
+.wrap{max-width:640px;margin:0 auto;padding:0 16px 72px}
+.top{display:flex;align-items:center;justify-content:space-between;padding:16px 0 4px;gap:12px}
+.brand{font-family:var(--serif);font-weight:600;font-size:17px;color:var(--accent-dark)}
+.lang{display:inline-flex;border:1px solid var(--line);border-radius:999px;background:var(--card);overflow:hidden}
+.lang button{border:0;background:none;padding:7px 14px;font:600 13px var(--sans);color:var(--muted);cursor:pointer;min-height:36px}
+.lang button[aria-pressed=true]{background:var(--accent);color:#fff}
+h1{font-family:var(--serif);font-weight:600;font-size:clamp(26px,7vw,36px);line-height:1.15;margin:14px 0 2px;overflow-wrap:anywhere}
+.sub{color:var(--muted);margin:0 0 20px;font-size:15px}
+h2{font-size:17px;margin:0 0 4px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:16px;margin-bottom:16px;box-shadow:0 10px 28px -20px rgba(10,60,80,.4)}
+@media(min-width:600px){.card{padding:22px}}
+.muted{color:var(--muted);font-size:14px;margin:0}
+button:focus-visible,a:focus-visible,textarea:focus-visible,input:focus-visible,[role=tab]:focus-visible{outline:3px solid #5bb5cc;outline-offset:2px}
+.site{display:flex;gap:14px;align-items:center;flex-wrap:wrap;justify-content:space-between}
+.site .txt{flex:1 1 220px;min-width:0}
+.dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:8px;background:var(--muted)}
+.dot.ready{background:var(--ok)} .dot.failed{background:var(--danger)} .dot.building{background:var(--accent)}
+.spin{display:inline-block;width:16px;height:16px;border:3px solid var(--accent-soft);border-top-color:var(--accent);border-radius:50%;animation:sp .8s linear infinite;vertical-align:-3px;margin-right:8px}
+@keyframes sp{to{transform:rotate(360deg)}}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:46px;padding:0 18px;border-radius:12px;border:0;background:var(--accent);color:#fff;font:600 15px var(--sans);cursor:pointer;text-decoration:none;transition:background .15s}
+.btn:hover{background:var(--accent-dark)}
+.btn[disabled]{opacity:.7;cursor:progress}
+.btn.sec{background:var(--accent-soft);color:var(--accent-dark)}
+.btn.sec:hover{background:#cde6ed}
+.btn.small{min-height:40px;padding:0 14px;font-size:14px}
+label.lbl{display:block;font-weight:600;font-size:15px;margin-bottom:6px}
+textarea{width:100%;min-height:110px;resize:vertical;font:16px var(--sans);color:var(--ink);background:#fff;border:1.5px solid var(--line);border-radius:10px;padding:11px 12px}
+textarea:focus{border-color:var(--accent)}
+.composer .bar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:12px}
+.composer .bar .go{margin-left:auto}
+.file input{position:absolute;width:1px;height:1px;opacity:0;overflow:hidden}
+.file input:focus-visible+label{outline:3px solid #5bb5cc;outline-offset:2px}
+.thumb{display:none;align-items:center;gap:8px}
+.thumb.on{display:inline-flex}
+.thumb img{width:44px;height:44px;border-radius:8px;object-fit:cover;border:1px solid var(--line)}
+.link{background:none;border:0;color:var(--accent-dark);text-decoration:underline;font:inherit;font-size:14px;cursor:pointer;padding:8px}
+.note{font-size:13.5px;color:var(--muted);margin:10px 0 0}
+.err{background:var(--danger-soft);color:var(--danger);border:1px solid #f0b8b2;border-radius:10px;padding:10px 12px;margin-top:12px;font-size:14.5px}
+.err[hidden]{display:none}
+.post{padding:0;overflow:hidden}
+.pimg{aspect-ratio:1/1;background:var(--sand);position:relative;overflow:hidden}
+.pimg img{width:100%;height:100%;object-fit:cover;display:block}
+.pimg .noimg{position:absolute;inset:0;display:grid;place-items:center;color:var(--muted);font-size:14px;padding:20px;text-align:center}
+.skel{background:linear-gradient(100deg,var(--sand) 30%,#f8f1e3 50%,var(--sand) 70%);background-size:200% 100%;animation:sh 1.6s linear infinite}
+@keyframes sh{to{background-position:-200% 0}}
+.skel-lines{padding:16px;display:grid;gap:10px}
+.skel-lines i{display:block;height:12px;border-radius:6px}
+.skel-lines i:nth-child(2){width:80%} .skel-lines i:nth-child(3){width:55%}
+.creating{position:absolute;inset:auto 0 0 0;padding:12px 14px;background:rgba(255,253,249,.88);font-weight:600;font-size:14px;color:var(--accent-dark)}
+.pbody{padding:16px}
+@media(min-width:600px){.pbody{padding:20px 22px 22px}}
+.meta{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px}
+.chip{display:inline-block;font-size:12.5px;font-weight:600;padding:3px 10px;border-radius:999px;background:var(--accent-soft);color:var(--accent-dark)}
+.chip.ready{background:var(--ok-soft);color:var(--ok)}
+.chip.published{background:var(--accent);color:#fff}
+.chip.generating{background:var(--warn-soft);color:var(--warn)}
+.chip.failed{background:var(--danger-soft);color:var(--danger)}
+.when{font-size:13px;color:var(--muted)}
+.concept{font-family:var(--serif);font-weight:600;font-size:19px;line-height:1.3;margin:0 0 12px}
+.tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+.tabs button{border:1.5px solid var(--line);background:#fff;border-radius:999px;padding:0 14px;min-height:38px;font:600 13px var(--sans);color:var(--muted);cursor:pointer}
+.tabs button[aria-selected=true]{background:var(--accent);border-color:var(--accent);color:#fff}
+.cap{white-space:pre-wrap;overflow-wrap:anywhere;background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin:0 0 10px;font-size:15.5px}
+.tags{color:var(--accent-dark);font-weight:500;font-size:14.5px;overflow-wrap:anywhere;margin:0 0 6px}
+.cta{font-size:14px;color:var(--muted);margin:0 0 6px}
+.acts{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.empty{text-align:center;color:var(--muted);padding:28px 16px;font-size:15px}
+.big{padding:40px 8px;text-align:center}
+.big h1{margin-top:8px}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+.toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:var(--ink);color:#fff;padding:10px 16px;border-radius:999px;font-size:14px;opacity:0;pointer-events:none;transition:opacity .2s;z-index:9}
+.toast.on{opacity:1}
+[hidden]{display:none!important}
+@media(prefers-reduced-motion:reduce){.spin,.skel{animation:none!important}.toast{transition:none}.btn{transition:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <div class="brand">Isla Autopilot</div>
+    <div class="lang" role="group" aria-label="Idioma / Language">
+      <button type="button" data-lang="es" aria-pressed="true">ES</button>
+      <button type="button" data-lang="en" aria-pressed="false">EN</button>
+    </div>
+  </div>
+
+  <div id="bad" class="big" hidden>
+    <h1 id="badT"></h1>
+    <p class="muted" id="badP"></p>
+  </div>
+
+  <main id="app" hidden>
+    <h1 id="biz"></h1>
+    <p class="sub" id="town"></p>
+
+    <section class="card" aria-labelledby="siteH">
+      <div class="site" id="site"></div>
+    </section>
+
+    <section class="card composer" aria-labelledby="compH">
+      <form id="f">
+        <label class="lbl" for="txt" id="compH"></label>
+        <textarea id="txt" maxlength="2000"></textarea>
+        <div class="bar">
+          <div class="file">
+            <input type="file" id="photo" accept="image/jpeg,image/png,image/webp">
+            <label class="btn sec small" for="photo" id="photoLbl"></label>
+          </div>
+          <div class="thumb" id="thumb"><img id="thumbImg" alt=""><button type="button" class="link" id="thumbRm"></button></div>
+          <button class="btn go" id="go" type="submit"></button>
+        </div>
+        <p class="note" id="note"></p>
+        <div class="err" id="err" role="alert" hidden></div>
+      </form>
+    </section>
+
+    <h2 id="feedH"></h2>
+    <div id="feed" aria-live="polite"></div>
+  </main>
+</div>
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+(() => {
+"use strict";
+const T={
+  es:{
+    tag_town:"", siteH:"Tu página web",
+    building:"Estamos creando tu web", buildingS:"Esto tarda un par de minutos. Puedes quedarte aquí o volver luego.",
+    ready:"Tu web está lista", readyS:"Ya está publicada.", open:"Abrir mi web",
+    failed:"No hemos podido crear tu web", failedS:"Lo revisaremos. Si quieres, escríbenos.",
+    nosite:"Tu web todavía no está creada.",
+    comp:"¿Qué quieres promocionar?", ph:"Ej.: Oferta de verano: excursión en barco con bebida incluida, 25 EUR hasta el 30 de septiembre.",
+    photo:"Añadir foto (opcional)", rm:"Quitar", go:"Crear publicaciones", sending:"Enviando…",
+    note:"Cada publicación lleva una imagen nueva creada por IA.",
+    feed:"Tus publicaciones", empty:"Todavía no hay publicaciones. Escribe arriba qué quieres promocionar.",
+    creating:"Creando texto e imagen…", copy:"Copiar texto", copyTags:"Copiar hashtags", copied:"Copiado", again:"Hacer otra versión", retry:"Intentar de nuevo",
+    st_generating:"Creando", st_ready:"Lista", st_published:"Publicada", st_failed:"Ha fallado",
+    failedPost:"No se ha podido crear esta publicación.", needText:"Escribe qué quieres promocionar.",
+    net:"No hemos podido conectar. Inténtalo de nuevo.", generic:"Algo ha fallado. Inténtalo de nuevo.",
+    badT:"Este enlace no es válido", badP:"Revisa que lo hayas copiado entero. Si sigue sin funcionar, pide un enlace nuevo a quien te lo dio.",
+    loading:"Cargando…", offline:"Sin conexión. Reintentando…", imgFail:"Sin imagen",
+    now:"ahora", min:"hace {n} min", hr:"hace {n} h", day:"hace {n} d", lang:"Idioma del texto", locale:"es-ES"
+  },
+  en:{
+    siteH:"Your website",
+    building:"We are building your website", buildingS:"This takes a couple of minutes. Stay here or come back later.",
+    ready:"Your website is ready", readyS:"It is live now.", open:"Open your website",
+    failed:"We could not build your website", failedS:"We will look into it. Get in touch if you like.",
+    nosite:"Your website has not been created yet.",
+    comp:"What do you want to market?", ph:"E.g. Summer offer: boat trip with a drink included, 25 EUR until 30 September.",
+    photo:"Add photo (optional)", rm:"Remove", go:"Create posts", sending:"Sending…",
+    note:"Every post gets a brand-new AI image.",
+    feed:"Your posts", empty:"No posts yet. Write above what you want to market.",
+    creating:"Creating text and image…", copy:"Copy text", copyTags:"Copy hashtags", copied:"Copied", again:"Make another version", retry:"Try again",
+    st_generating:"Creating", st_ready:"Ready", st_published:"Published", st_failed:"Failed",
+    failedPost:"This post could not be created.", needText:"Write what you want to market.",
+    net:"Could not connect. Please try again.", generic:"Something went wrong. Please try again.",
+    badT:"This link is not valid", badP:"Check that you copied all of it. If it still fails, ask whoever sent it for a new link.",
+    loading:"Loading…", offline:"Offline. Retrying…", imgFail:"No image",
+    now:"just now", min:"{n} min ago", hr:"{n} h ago", day:"{n} d ago", lang:"Text language", locale:"en-GB"
+  }
+};
+const LN={es:"Español",en:"English",de:"Deutsch",it:"Italiano",nl:"Nederlands",sv:"Svenska",fr:"Français"};
+const $=s=>document.querySelector(s);
+let lang="es"; try{const s=localStorage.getItem("isla:lang"); if(s==="es"||s==="en") lang=s;}catch(e){}
+const t=k=>T[lang][k]||k;
+const esc=s=>String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const token=decodeURIComponent(location.pathname.split("/").filter(Boolean).pop()||"");
+const API="/api/portal/"+encodeURIComponent(token);
+
+let data=null, timer=null, image=null, sending=false;
+const tabSel={};      // postId -> lang
+const pending=new Set(); // postIds with an "again" request in flight
+
+function ago(iso){
+  const d=(Date.now()-new Date(iso).getTime())/1000;
+  if(!isFinite(d)) return "";
+  if(d<60) return t("now");
+  if(d<3600) return t("min").replace("{n}",Math.floor(d/60));
+  if(d<86400) return t("hr").replace("{n}",Math.floor(d/3600));
+  if(d<86400*14) return t("day").replace("{n}",Math.floor(d/86400));
+  return new Date(iso).toLocaleDateString(T[lang].locale,{day:"numeric",month:"short"});
+}
+function toast(m){const e=$("#toast");e.textContent=m;e.classList.add("on");clearTimeout(toast.t);toast.t=setTimeout(()=>e.classList.remove("on"),1600);}
+
+// ---------- static text ----------
+function staticText(){
+  document.documentElement.lang=lang;
+  document.querySelectorAll(".lang button").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.lang===lang)));
+  $("#compH").textContent=t("comp"); $("#txt").placeholder=t("ph");
+  $("#photoLbl").textContent=t("photo"); $("#thumbRm").textContent=t("rm");
+  $("#go").textContent=sending?t("sending"):t("go"); $("#note").textContent=t("note");
+  $("#feedH").textContent=t("feed"); $("#badT").textContent=t("badT"); $("#badP").textContent=t("badP");
+}
+document.querySelectorAll(".lang button").forEach(b=>b.addEventListener("click",()=>{
+  lang=b.dataset.lang; try{localStorage.setItem("isla:lang",lang);}catch(e){}
+  staticText(); if(data) render(true);
+}));
+
+// ---------- rendering ----------
+function renderSite(c){
+  const s=c.site, el=$("#site"); let h;
+  if(!s) h=`<div class="txt"><h2 id="siteH"><span class="dot"></span>${esc(t("siteH"))}</h2><p class="muted">${esc(t("nosite"))}</p></div>`;
+  else if(s.status==="building") h=`<div class="txt"><h2 id="siteH"><span class="spin" aria-hidden="true"></span>${esc(t("building"))}</h2><p class="muted">${esc(t("buildingS"))}</p></div>`;
+  else if(s.status==="ready") h=`<div class="txt"><h2 id="siteH"><span class="dot ready"></span>${esc(t("ready"))}</h2><p class="muted">${esc(s.url||t("readyS"))}</p></div>${s.url?`<a class="btn" href="${esc(s.url)}" target="_blank" rel="noopener">${esc(t("open"))}</a>`:""}`;
+  else h=`<div class="txt"><h2 id="siteH"><span class="dot failed"></span>${esc(t("failed"))}</h2><p class="muted">${esc(s.error||t("failedS"))}</p></div>`;
+  if(el.dataset.sig!==h){el.innerHTML=h;el.dataset.sig=h;}
+}
+function chip(st){return `<span class="chip ${esc(st)}">${esc(t("st_"+st))}</span>`;}
+function postHtml(p,langs){
+  const img=p.imageFile?`<img src="/media/${encodeURI(p.imageFile)}" alt="${esc(p.concept||"")}" loading="lazy">`:"";
+  const busy=pending.has(p.id);
+  let h=`<article class="card post" data-id="${esc(p.id)}">`;
+  if(p.status==="generating"){
+    h+=`<div class="pimg skel"><div class="creating"><span class="spin" aria-hidden="true"></span>${esc(t("creating"))}</div></div>
+    <div class="skel-lines" aria-hidden="true"><i class="skel"></i><i class="skel"></i><i class="skel"></i></div>
+    <div class="pbody" style="padding-top:0"><div class="meta">${chip("generating")}<span class="when">${esc(ago(p.createdAt))}</span></div></div>`;
+  } else {
+    h+=(img||p.status!=="failed"?`<div class="pimg">${img||`<div class="noimg">${esc(t("imgFail"))}</div>`}</div>`:"")+`<div class="pbody">
+    <div class="meta">${chip(p.status)}<span class="when">${esc(ago(p.createdAt))}</span></div>`;
+    if(p.status==="failed"){
+      h+=`<p class="concept" style="font-size:16px;font-family:var(--sans);font-weight:500">${esc(p.error||t("failedPost"))}</p>
+      <div class="acts"><button class="btn" data-act="again" ${busy?"disabled":""}>${esc(t("retry"))}</button></div>`;
+    } else {
+      const caps=p.captions||{}, keys=[...langs.filter(l=>caps[l]!=null),...Object.keys(caps).filter(l=>!langs.includes(l))];
+      let cur=tabSel[p.id]; if(!keys.includes(cur)) cur=keys[0];
+      if(p.concept) h+=`<p class="concept">${esc(p.concept)}</p>`;
+      if(keys.length){
+        if(keys.length>1) h+=`<div class="tabs" role="tablist" aria-label="${esc(t("lang"))}">${keys.map(k=>`<button role="tab" type="button" data-act="tab" data-l="${esc(k)}" aria-selected="${k===cur}">${esc(LN[k]||k.toUpperCase())}</button>`).join("")}</div>`;
+        h+=`<p class="cap" role="tabpanel" lang="${esc(cur)}">${esc(caps[cur])}</p>`;
+      }
+      if(p.cta) h+=`<p class="cta">${esc(p.cta)}</p>`;
+      const tags=(p.hashtags||[]).map(x=>"#"+String(x).replace(/^#+/,"").replace(/\s+/g,""));
+      if(tags.length) h+=`<p class="tags">${esc(tags.join(" "))}</p>`;
+      h+=`<div class="acts">`;
+      if(keys.length) h+=`<button class="btn sec small" data-act="copy">${esc(t("copy"))}</button>`;
+      if(tags.length) h+=`<button class="btn sec small" data-act="copytags">${esc(t("copyTags"))}</button>`;
+      h+=`<button class="btn sec small" data-act="again" ${busy?"disabled":""}>${esc(t("again"))}</button></div>`;
+    }
+    h+=`</div>`;
+  }
+  return h+`</article>`;
+}
+function render(force){
+  const c=data.client;
+  $("#biz").textContent=c.name||""; $("#town").textContent=c.town||"";
+  document.title=(c.name?c.name+" - ":"")+"Isla Autopilot";
+  renderSite(c);
+  const posts=[...data.posts].sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt));
+  const feed=$("#feed");
+  if(!posts.length){ feed.innerHTML=`<div class="card empty">${esc(t("empty"))}</div>`; feed.dataset.sig="e"+lang; return; }
+  // keep DOM stable: rebuild per post only if its signature changed
+  const existing=new Map([...feed.querySelectorAll("article")].map(a=>[a.dataset.id,a]));
+  if(feed.querySelector(".empty")) feed.innerHTML="";
+  let prev=null;
+  posts.forEach(p=>{
+    const sig=lang+"|"+JSON.stringify(p)+"|"+(tabSel[p.id]||"")+"|"+pending.has(p.id)+"|"+(p.status==="generating"||Math.floor(Date.now()/60000));
+    let el=existing.get(p.id);
+    if(!el||el.dataset.sig!==sig||force){
+      const tmp=document.createElement("div"); tmp.innerHTML=postHtml(p,c.languages||[]);
+      const n=tmp.firstElementChild; n.dataset.sig=sig;
+      if(el) el.replaceWith(n); el=n;
+      const act=document.activeElement; // focus restore not needed: buttons keep identity via replace only on change
+    }
+    existing.delete(p.id);
+    const want=prev?prev.nextElementSibling:feed.firstElementChild;
+    if(el!==want) feed.insertBefore(el,want);
+    prev=el;
+  });
+  existing.forEach(a=>a.remove());
+}
+
+// ---------- polling ----------
+function busyNow(){
+  if(!data) return true;
+  const s=data.client.site;
+  return (s&&s.status==="building")||data.posts.some(p=>p.status==="generating");
+}
+async function load(){
+  clearTimeout(timer);
+  try{
+    const r=await fetch(API,{cache:"no-store"});
+    if(r.status===404||r.status===400){ $("#app").hidden=true; $("#bad").hidden=false; return; }
+    if(!r.ok) throw new Error("http");
+    data=await r.json();
+    $("#bad").hidden=true; $("#app").hidden=false;
+    render(false);
+  }catch(_){ /* keep last data; retry */ }
+  timer=setTimeout(load,busyNow()?4000:30000);
+}
+document.addEventListener("visibilitychange",()=>{ if(!document.hidden && data) load(); });
+
+// ---------- image ----------
+function downscale(file,max=1600,q=0.85){
+  return new Promise((res,rej)=>{
+    const url=URL.createObjectURL(file), img=new Image();
+    img.onload=()=>{
+      let w=img.naturalWidth,h=img.naturalHeight; const k=Math.min(1,max/Math.max(w,h));
+      w=Math.round(w*k);h=Math.round(h*k);
+      const c=document.createElement("canvas");c.width=w;c.height=h;
+      const x=c.getContext("2d");x.fillStyle="#fff";x.fillRect(0,0,w,h);x.drawImage(img,0,0,w,h);
+      URL.revokeObjectURL(url);res(c.toDataURL("image/jpeg",q));
+    };
+    img.onerror=()=>{URL.revokeObjectURL(url);rej(new Error("img"));};
+    img.src=url;
+  });
+}
+$("#photo").addEventListener("change",async e=>{
+  const f=e.target.files[0]; if(!f) return;
+  try{image=await downscale(f);$("#thumbImg").src=image;$("#thumb").classList.add("on");}
+  catch(_){image=null;e.target.value="";$("#thumb").classList.remove("on");}
+});
+$("#thumbRm").addEventListener("click",()=>{image=null;$("#photo").value="";$("#thumb").classList.remove("on");$("#photo").focus();});
+
+// ---------- actions ----------
+function showErr(m){const e=$("#err");e.textContent=m;e.hidden=!m;}
+async function post(path,body){
+  const r=await fetch(API+path,{method:"POST",headers:{"content-type":"application/json"},body:body?JSON.stringify(body):undefined});
+  let d={};try{d=await r.json();}catch(_){}
+  if(!r.ok) throw new Error(d.error||t("generic"));
+  return d;
+}
+$("#f").addEventListener("submit",async e=>{
+  e.preventDefault(); if(sending) return; showErr("");
+  const text=$("#txt").value.trim();
+  if(!text){showErr(t("needText"));$("#txt").focus();return;}
+  sending=true;$("#go").disabled=true;$("#go").textContent=t("sending");
+  try{
+    await post("/briefs",image?{text,image}:{text});
+    $("#txt").value="";image=null;$("#photo").value="";$("#thumb").classList.remove("on");
+    await load();
+  }catch(err){ showErr(err instanceof TypeError?t("net"):err.message); }
+  sending=false;$("#go").disabled=false;$("#go").textContent=t("go");
+});
+
+function legacyCopy(text){
+  const ta=document.createElement("textarea");ta.value=text;ta.setAttribute("readonly","");
+  ta.style.cssText="position:fixed;top:0;left:0;opacity:0";document.body.appendChild(ta);
+  ta.focus();ta.select();ta.setSelectionRange(0,text.length);
+  let ok=false;try{ok=document.execCommand("copy");}catch(_){}
+  ta.remove();return ok;
+}
+async function copy(text){
+  let ok=false;
+  try{ if(navigator.clipboard&&window.isSecureContext){await navigator.clipboard.writeText(text);ok=true;} }catch(_){}
+  if(!ok) ok=legacyCopy(text);
+  toast(ok?t("copied"):text.slice(0,40));
+}
+$("#feed").addEventListener("click",async e=>{
+  const b=e.target.closest("button[data-act]"); if(!b) return;
+  const art=b.closest("article"), id=art.dataset.id, p=data.posts.find(x=>x.id===id); if(!p) return;
+  const act=b.dataset.act;
+  if(act==="tab"){ tabSel[id]=b.dataset.l; render(false); const nb=$(`article[data-id="${CSS.escape(id)}"] [data-l="${CSS.escape(b.dataset.l)}"]`); if(nb) nb.focus(); }
+  else if(act==="copy"){
+    const keys=Object.keys(p.captions||{}), cur=tabSel[id]&&p.captions[tabSel[id]]!=null?tabSel[id]:((data.client.languages||[]).find(l=>p.captions[l]!=null)||keys[0]);
+    const tags=(p.hashtags||[]).map(x=>"#"+String(x).replace(/^#+/,"").replace(/\s+/g,"")).join(" ");
+    copy((p.captions[cur]||"")+(tags?"\n\n"+tags:""));
+  }
+  else if(act==="copytags") copy((p.hashtags||[]).map(x=>"#"+String(x).replace(/^#+/,"").replace(/\s+/g,"")).join(" "));
+  else if(act==="again"){
+    pending.add(id); b.disabled=true;
+    try{ await post("/posts/"+encodeURIComponent(id)+"/again"); }
+    catch(err){ toast(err instanceof TypeError?t("net"):err.message); }
+    pending.delete(id); await load();
+  }
+});
+// broken image -> placeholder
+document.addEventListener("error",e=>{
+  const i=e.target; if(i.tagName==="IMG"&&i.closest(".pimg")){ const d=document.createElement("div");d.className="noimg";d.textContent=t("imgFail");i.replaceWith(d); }
+},true);
+
+staticText();
+if(!token){ $("#bad").hidden=false; } else load();
+})();
+</script>
+</body>
+</html>
