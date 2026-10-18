@@ -586,7 +586,7 @@ async function route(req, res, url) {
       } catch (e) { return send(res, 502, { error: e.message }); }
     }
     if (kind === "settings" && oid === "ai" && action === "models" && req.method === "GET") {
-      try { return send(res, 200, { models: await listModels(url.searchParams.get("p") ?? "") }); }
+      try { return send(res, 200, { models: await listModels(url.searchParams.get("p") ?? "", fetch, url.searchParams.get("kind") === "image" ? "image" : "chat") }); }
       catch (e) { return send(res, 502, { error: e.message }); }
     }
     if (kind === "settings" && oid === "ai" && req.method === "GET") return send(res, 200, aiSettingsView());

@@ -270,11 +270,18 @@ const envKey = (name) => (name === "openrouter" ? process.env.OPENROUTER_API_KEY
 const compatKey = (name) => saved(name) || envKey(name);
 /** Providers the dashboard can set up: id, label, where the key comes from, and the field name saved in settings. */
 /** Model ids a provider offers (its /models endpoint), for the dashboard's model picker. */
-export async function listModels(name, fetchImpl = fetch) {
+export async function listModels(name, fetchImpl = fetch, kind = "chat") {
   if (!COMPAT[name] || !compatKey(name)) throw new Error("Add this provider's API key first");
   if (name === "puter") {
-    const list = await (await puterApi()).ai.listModels();
-    return (Array.isArray(list) ? list : []).map((m) => String(m.id ?? m)).filter(Boolean).sort();
+    const puter = await puterApi();
+    if (kind === "image") {
+      const r = await puter.drivers.call("puter-image-generation", "models", {});
+      const list = r?.result ?? r;
+      return [...new Set((Array.isArray(list) ? list : []).map((m) => String(m.id ?? m)).filter(Boolean))].sort();
+    }
+    const list = await puter.ai.listModels();
+    const arr = Array.isArray(list) ? list : list?.models ?? [];
+    return [...new Set(arr.map((m) => String(m.id ?? m)).filter(Boolean))].sort();
   }
   const r = await fetchImpl(`${COMPAT[name].api()}/models`, { headers: { Authorization: `Bearer ${compatKey(name)}` }, signal: AbortSignal.timeout(20e3) });
   if (!r.ok) throw new Error(`${COMPAT[name].label} ${r.status}: ${(await r.text().catch(() => "")).replace(/\s+/g, " ").slice(0, 140)}`);

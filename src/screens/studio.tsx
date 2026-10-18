@@ -634,10 +634,14 @@ export function AiSettingsModal({ s, act, onClose }: { s: AiSettings; act: Act; 
   const [models, setModels] = useState<Record<string, string>>(() => Object.fromEntries(s.list.map((p) => [p.id, p.model])));
   const [puter, setPuter] = useState(s.puter);
   const [avail, setAvail] = useState<Record<string, string[]>>({});
-  const loadModels = async (id: string) => {
-    if (avail[id]) return;
-    const r = await call<{ models: string[] }>("GET", `/settings/ai/models?p=${id}`);
-    setAvail((a) => ({ ...a, [id]: r.kind === "ok" ? r.data.models : [] }));
+  const [availErr, setAvailErr] = useState<Record<string, string>>({});
+  // Loads the model list a provider offers for the key typed or saved above (Puter also has an image list).
+  const loadModels = async (id: string, kind = "chat") => {
+    const k = kind === "image" ? `${id}:image` : id;
+    if (avail[k]?.length) return;
+    const r = await call<{ models: string[] }>("GET", `/settings/ai/models?p=${id}&kind=${kind}`);
+    setAvail((a) => ({ ...a, [k]: r.kind === "ok" ? r.data.models : [] }));
+    setAvailErr((e) => ({ ...e, [k]: r.kind === "ok" ? (r.data.models.length ? "" : "No models came back.") : r.kind === "error" ? r.message : r.kind === "auth" ? "Sign in first." : "The server is not reachable." }));
   };
   const [busy, setBusy] = useState(false);
   return (
@@ -658,10 +662,12 @@ export function AiSettingsModal({ s, act, onClose }: { s: AiSettings; act: Act; 
               onFocus={() => void loadModels(p.id)} onChange={(e) => setModels({ ...models, [p.id]: e.target.value })}
               placeholder="Model (empty = automatic). Click to list this provider's models" aria-label={`${p.label} model`} />
             <datalist id={`ai-models-${p.id}`}>{(avail[p.id] ?? []).map((m) => <option key={m} value={m} />)}</datalist>
+            {availErr[p.id] && <span className="small" style={{ color: "var(--bad)" }}>Could not load models: {availErr[p.id]} (save the key first, then try again)</span>}
           </Field>
         ))}
         <div className="box stack-sm">
           <span className="strong">Puter: pictures, voice and speech recognition</span>
+          <span className="small muted">The Puter text model is the Model box in the Puter key field above. Click it to list every model Puter offers.</span>
           <div className="row wrap">
             <Button small busy={busy} onClick={async () => {
               setBusy(true);
@@ -674,7 +680,11 @@ export function AiSettingsModal({ s, act, onClose }: { s: AiSettings; act: Act; 
           </div>
           <span className="small muted">Once signed in, Puter can also draw post pictures (choose Puter under Images), speak video voice-overs in any language, and turn voice notes from clients into text.</span>
           <div className="form-grid">
-            <Field label="Image model" hint="Empty = Puter's default"><Input id="puter-img" value={puter.imageModel} onChange={(v) => setPuter({ ...puter, imageModel: v })} placeholder="gpt-image-2" /></Field>
+            <Field label="Image model" hint="Click to list Puter's image models. Empty = Puter's default">
+              <input id="puter-img" className="input" list="puter-image-models" value={puter.imageModel} onFocus={() => void loadModels("puter", "image")} onChange={(e) => setPuter({ ...puter, imageModel: e.target.value })} placeholder="gpt-image-2" />
+              <datalist id="puter-image-models">{(avail["puter:image"] ?? []).map((m) => <option key={m} value={m} />)}</datalist>
+              {availErr["puter:image"] && <span className="small" style={{ color: "var(--bad)" }}>{availErr["puter:image"]}</span>}
+            </Field>
             <Field label="Voice provider" hint="openai (default), elevenlabs, gemini, aws-polly"><Input id="puter-vp" value={puter.voiceProvider} onChange={(v) => setPuter({ ...puter, voiceProvider: v })} placeholder="openai" /></Field>
             <Field label="Voice" hint="Provider's voice id, empty = default"><Input id="puter-voice" value={puter.voice} onChange={(v) => setPuter({ ...puter, voice: v })} placeholder="alloy" /></Field>
           </div>
