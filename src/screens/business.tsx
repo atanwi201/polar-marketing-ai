@@ -9,7 +9,7 @@ import { STAGE_LABEL, planLabel, clientMonthly, trialDaysLeft, withIgic } from "
 import { eur, TOWNS } from "../core/plans";
 import { syncFromStudio, pushPlanToStudio } from "../core/studio-sync";
 import { call, apiOrigin, mediaUrl, siteUrl, downscale, type StudioData, type SClient, type Message, type Act, type Profile, type Service } from "./studio-api";
-import { FeedTab, AccountsEditor } from "./studio";
+import { FeedTab, AccountsEditor, SiteQrCard } from "./studio";
 import { VideosTab } from "./studio-videos";
 import { PlanPicker, ConsentEditor, STAGE_TONE } from "./clients";
 import { invTotal } from "./billing";
@@ -491,6 +491,7 @@ function Website({ sc, act }: { sc: SClient; act: Act }) {
             </span>
           )}
         </div>
+        {site?.status === "ready" && site.url && <SiteQrCard client={sc} />}
         {site?.design && <span className="small faint">Design: {site.directionName ? <strong>{site.directionName}</strong> : null}{site.directionName ? " · " : ""}{site.design}</span>}
         {site?.note && <span className="small" style={{ color: "var(--warn)" }}>{site.note}</span>}
         {site?.error && <span className="small" style={{ color: "var(--bad)" }}>{site.error}</span>}

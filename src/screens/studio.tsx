@@ -214,7 +214,7 @@ function ClientsTab({ data, onEdit }: { data: StudioData; onEdit: (c: SClient) =
 
 // ---- Client editor ----
 /** QR code of the client's website, to print or share. Points at their own domain when they have one. */
-function SiteQrCard({ client }: { client: SClient }) {
+export function SiteQrCard({ client }: { client: SClient }) {
   const [where, setWhere] = useState<"domain" | "studio">("domain");
   const [qr, setQr] = useState<SiteQr | null>(null);
   useEffect(() => {
