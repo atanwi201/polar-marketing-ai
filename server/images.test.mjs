@@ -106,3 +106,14 @@ test("OpenRouter images use the /images endpoint with the OpenRouter key", async
   delete process.env.OPENROUTER_API_KEY;
   configureImages(() => ({}));
 });
+
+test("forceFree uses Pollinations even when a paid engine is chosen", async () => {
+  configureImages(() => ({ provider: "google", googleKey: "AIza-test" }));
+  const urls = [];
+  const fetchImpl = async (url) => { urls.push(String(url)); return new Response(jpeg(64, 70), { headers: { "content-type": "image/jpeg" } }); };
+  const file = join(mkdtempSync(join(tmpdir(), "img-")), "f.jpg");
+  const out = await generateImage("bananas", file, { size: [64, 64], fetchImpl, forceFree: true });
+  assert.equal(out.engine, "free");
+  assert.ok(urls.every((u) => !u.includes("/v1beta/")));
+  configureImages(() => ({}));
+});

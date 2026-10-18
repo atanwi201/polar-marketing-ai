@@ -296,10 +296,11 @@ export async function checkEngine(fetchImpl = fetch) {
 /**
  * Generate and save a new image with the chosen engine. Paid engines also get the client's photo as
  * a reference, when there is one; if they fail, the free service takes over (unless switched off).
+ * forceFree: only the free Pollinations service, whatever engine the owner chose.
  * Returns { engine, note? }.
  */
-export async function generateImage(prompt, file, { size = [1080, 1080], reference, fetchImpl = fetch, attempts = 3 } = {}) {
-  const eng = imageEngine();
+export async function generateImage(prompt, file, { size = [1080, 1080], reference, fetchImpl = fetch, attempts = 3, forceFree = false } = {}) {
+  const eng = forceFree ? { provider: "free" } : imageEngine();
   let note;
   if (eng.provider !== "free") {
     try {
