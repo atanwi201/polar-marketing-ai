@@ -10,7 +10,7 @@ const JSQR = () => readFileSync(join(import.meta.dirname, "vendor", "jsqr.cjs"))
 
 // Pages come from loyalty-pages.mjs (another module); a plain fallback keeps things working without it.
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
-const shell = (title, body) => `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(title)}</title><link rel="stylesheet" href="/brand/tokens.css"><link rel="stylesheet" href="/brand/components.css"></head><body style="font-family:var(--font-body,system-ui);max-width:480px;margin:0 auto;padding:24px">${body}</body></html>`;
+const shell = (title, body) => `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(title)}</title><link rel="icon" href="/brand/logo/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/brand/tokens.css"><link rel="stylesheet" href="/brand/components.css"></head><body style="font-family:var(--font-body,system-ui);max-width:480px;margin:0 auto;padding:24px">${body}</body></html>`;
 const fallbackPages = {
   joinPage: ({ program }) => shell(program.name, `<h1>${esc(program.name)}</h1><p>Join from the page this link was made for.</p>`),
   cardPage: ({ view }) => shell(view.program.name, `<h1>${esc(view.business.name)}</h1><p>${esc(view.customer.name)}: ${view.customer.stamps} stamps, ${view.customer.points} points</p><img alt="Your code" width="220" src="${esc(view.installUrl)}/qr.svg">`),

@@ -88,11 +88,17 @@ const PORT = Number(process.env.PORT ?? 8787);
 const ADMIN = process.env.ADMIN_TOKEN ?? "";
 const BRAND_DIR = join(import.meta.dirname, "..", "brand");
 const BRAND = JSON.parse(readFileSync(join(BRAND_DIR, "brand.json"), "utf8")).name; // working name, swap it in brand/brand.json
-const page = (name) => () => readFileSync(join(import.meta.dirname, name), "utf8").replaceAll("{{BRAND}}", BRAND);
+const ICONS = `<link rel="icon" href="/brand/logo/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/brand/logo/favicon.ico" sizes="48x48">
+<link rel="apple-touch-icon" href="/brand/logo/apple-touch-icon.png">
+<link rel="manifest" href="/brand/site.webmanifest">
+<meta name="theme-color" content="#0e1316">
+<meta property="og:image" content="/brand/logo/og-image.png">`;
+const page = (name) => () => readFileSync(join(import.meta.dirname, name), "utf8").replaceAll("{{BRAND}}", BRAND).replaceAll("{{ICONS}}", ICONS);
 const PORTAL_HTML = page("portal.html");
 const SIGNUP_HTML = page("signup.html");
 const LANDING_HTML = page("landing.html");
-const PUTER_CALLBACK_HTML = `<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Puter</title>
+const PUTER_CALLBACK_HTML = `<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Puter</title><link rel="icon" href="/brand/logo/favicon.svg" type="image/svg+xml">
 <style>body{font:16px system-ui;background:#0f1417;color:#e8eef0;display:grid;place-items:center;min-height:100vh;margin:0}main{max-width:380px;padding:24px;text-align:center}</style>
 <main><h1 id="t">Connecting Puter…</h1><p id="m">One moment.</p></main>
 <script>
@@ -779,11 +785,13 @@ async function route(req, res, url) {
   }
 
 
-  // --- Brand design system (tokens.css, components.css) ---
-  if (seg[0] === "brand" && seg.length === 2 && /\.(css|json)$/.test(seg[1])) {
-    const file = normalize(join(BRAND_DIR, seg[1]));
+  // --- Brand: design tokens, logo and favicon set (also at the root paths browsers probe by default) ---
+  const ROOT_ICONS = { "/favicon.ico": "logo/favicon.ico", "/apple-touch-icon.png": "logo/apple-touch-icon.png", "/apple-touch-icon-precomposed.png": "logo/apple-touch-icon.png", "/site.webmanifest": "site.webmanifest" };
+  const brandRel = ROOT_ICONS[p] ?? (seg[0] === "brand" && seg.length >= 2 && seg.length <= 3 && /^[\w.-]+(\/[\w.-]+)?$/.test(seg.slice(1).join("/")) && /\.(css|json|svg|png|ico|webmanifest)$/.test(p) ? seg.slice(1).join("/") : null);
+  if (brandRel && req.method === "GET") {
+    const file = normalize(join(BRAND_DIR, brandRel));
     if (!file.startsWith(BRAND_DIR) || !existsSync(file)) return send(res, 404, { error: "not found" });
-    res.writeHead(200, { "Content-Type": MIME[file.split(".").pop()], "Cache-Control": "no-cache" });
+    res.writeHead(200, { "Content-Type": file.endsWith(".webmanifest") ? "application/manifest+json" : MIME[file.split(".").pop()], "Cache-Control": "no-cache" });
     return res.end(readFileSync(file));
   }
 

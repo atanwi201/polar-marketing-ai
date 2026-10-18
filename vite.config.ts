@@ -10,6 +10,6 @@ export default defineConfig(({ command }) => ({
   // the client portal, sign-up, sites and the API) comes from the local server (server/index.mjs).
   base: command === "serve" ? "/admin/" : "/",
   server: {
-    proxy: Object.fromEntries(["^/$", "^/login$", "/api", "/media", "/sites", "/portal", "/join/", "/card/", "/staff/", "/wallet/", "/signup", "/puter-callback", "/p/", "/assets/profile-form.js"].map((p) => [p, api])),
+    proxy: Object.fromEntries(["^/$", "^/login$", "/api", "/brand", "/favicon.ico", "/media", "/sites", "/portal", "/join/", "/card/", "/staff/", "/wallet/", "/signup", "/puter-callback", "/p/", "/assets/profile-form.js"].map((p) => [p, api])),
   },
 }));

@@ -22,6 +22,7 @@ export function sharePage({ item, kind, client, base, lang }) {
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${esc(title)}</title>
+<link rel="icon" href="/brand/logo/favicon.svg" type="image/svg+xml">
 <meta name="description" content="${esc(desc)}">
 <meta property="og:type" content="${video ? "video.other" : "article"}">
 <meta property="og:title" content="${esc(title)}">

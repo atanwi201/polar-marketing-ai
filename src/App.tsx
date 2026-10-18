@@ -13,12 +13,15 @@ const GROUPS = [
 ] as const;
 
 function Mark() {
-  // Teide over the Atlantic: one peak, two swell lines.
+  // Crier mark (brand/logo/crier-mark-dark.svg): two signal arcs forming a C around a sun dot.
   return (
-    <svg className="brand-mark" viewBox="0 0 32 32" aria-hidden>
-      <rect className="m-bg" width="32" height="32" rx="10" />
-      <path className="m-peak" d="M5 21 L13.5 9.5 L16 12 L18 10 L27 21 Z" />
-      <path className="m-swell" d="M5 24.5 q3.5 -2 7 0 t7 0 t7 0" strokeWidth="1.8" fill="none" strokeLinecap="round" />
+    <svg className="brand-mark" viewBox="0 0 64 64" aria-hidden>
+      <rect width="64" height="64" rx="15" fill="#1c2a2e" />
+      <g fill="none" stroke="#3dd6d0" strokeWidth="5.6" strokeLinecap="round">
+        <path d="M44.77 23.33A11 11 0 1 0 44.77 40.67" />
+        <path d="M53.11 17.41A21 21 0 1 0 53.11 46.59" />
+      </g>
+      <circle cx="38" cy="32" r="5.2" fill="#ffc53d" />
     </svg>
   );
 }
