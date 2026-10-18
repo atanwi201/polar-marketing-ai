@@ -3,6 +3,7 @@
 import { db, save } from "./store.mjs";
 import { limiter } from "./auth.mjs";
 import * as B from "./bookings.mjs";
+import { qrSvg, qrPng } from "./qr.mjs";
 
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
 const shell = (title, body) => `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(title)}</title><link rel="icon" href="/brand/logo/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/brand/tokens.css"><link rel="stylesheet" href="/brand/components.css"></head><body style="font-family:var(--font-body,system-ui);max-width:480px;margin:0 auto;padding:24px">${body}</body></html>`;
@@ -120,6 +121,12 @@ async function manage(req, res, url, rest, scope, ctx) {
   const c = clientFor();
   if (!c) return out(owner ? 400 : 404, { error: "Choose a business first." });
   const cfg = B.ensureConfig(c);
+  // GET /qr -> {url, svg}   GET /qr.png -> print-ready PNG of the public booking link
+  if (rest[0] === "qr" && rest.length === 1 && m === "GET") { const u = B.bookingUrl(cfg, base); return out(200, { url: u, svg: await qrSvg(u) }); }
+  if (rest[0] === "qr.png" && rest.length === 1 && m === "GET") {
+    res.writeHead(200, { "Content-Type": "image/png", "Cache-Control": "no-store", "Content-Disposition": `inline; filename="book-${cfg.code}.png"` });
+    return res.end(await qrPng(B.bookingUrl(cfg, base))), true;
+  }
   // PUT /config
   if (rest[0] === "config" && rest.length === 1 && (m === "PUT" || m === "PATCH")) {
     const b = await ctx.readBody(req, 100e3);

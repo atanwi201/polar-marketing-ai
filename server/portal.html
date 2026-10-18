@@ -170,7 +170,7 @@ textarea:focus{outline:none;box-shadow:0 0 0 3px var(--brand-soft);background:va
 
 /* bottom navigation */
 .nav{position:fixed;left:0;right:0;bottom:0;z-index:5;display:flex;justify-content:center;padding:8px 12px calc(8px + env(safe-area-inset-bottom));background:var(--nav);border-top:1px solid var(--line)}
-.nav div{display:grid;grid-template-columns:repeat(5,1fr);width:100%;max-width:560px}
+.nav div{display:grid;grid-template-columns:repeat(6,1fr);width:100%;max-width:560px}
 .nav button{border:0;background:none;display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px 0;font-size:11.5px;font-weight:600;color:var(--faint)}
 .nav button svg{width:24px;height:24px;display:block}
 .nav button[aria-current=page]{color:var(--ink)}
@@ -380,6 +380,27 @@ input[type=color].inp{padding:4px;height:46px;cursor:pointer}
 .ltiles b{display:block;font:800 22px/1 var(--display)}
 .ltiles span{font-size:12px;color:var(--muted);font-weight:600}
 .nav button{font-size:11px}
+/* bookings */
+.st.bk-pending{background:color-mix(in srgb,var(--sun) 25%,transparent);color:var(--ink)}
+.st.bk-confirmed{background:var(--ok-soft);color:var(--ok)}
+.st.bk-completed{background:var(--accent-soft);color:var(--accent-text)}
+.st.bk-cancelled{background:var(--fill-2);color:var(--muted)}
+.st.bk-no_show{background:var(--bad-soft);color:var(--bad)}
+.card.bk{padding:16px}
+.bk-top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+.bk-when{font:700 17px/1.25 var(--display);letter-spacing:-.01em;min-width:0}
+.bk-name{font-weight:600;margin-top:6px;overflow-wrap:anywhere}
+.bk-meta{color:var(--muted);font-size:14px;margin-top:2px}
+.bk-contact{display:flex;gap:4px 16px;flex-wrap:wrap;margin-top:8px;font-size:14px}
+.bk-contact a{overflow-wrap:anywhere}
+.bk-note{margin-top:8px;background:var(--fill);border-radius:var(--r-md);padding:8px 12px;font-size:14px;overflow-wrap:anywhere}
+.bk-act{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.bk-act .btn{flex:1 1 auto;min-height:44px}
+.btn.bad{color:var(--bad)}
+.bk-rng{display:flex;align-items:center;gap:8px;margin:0 0 8px}
+.bk-rng .inp{min-width:0;flex:1}
+.bk-x{flex:none;width:44px;height:44px;border:0;border-radius:50%;background:var(--fill);font-size:22px;line-height:1;color:var(--muted)}
+.bk-rbtns{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 10px}
 /* invalid link / loading */
 .state{padding:56px 12px;text-align:center}
 .state h1{font:800 28px/1.15 var(--display);letter-spacing:-.02em;margin:14px 0 8px}
@@ -414,6 +435,7 @@ input[type=color].inp{padding:4px;height:46px;cursor:pointer}
   <symbol id="i-open" viewBox="0 0 24 24"><path d="M14 4h6v6M20 4l-9 9M18 14v4a2 2 0 01-2 2H6a2 2 0 01-2-2V8a2 2 0 012-2h4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
   <symbol id="i-card" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="3.5" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="8.5" cy="12" r="1.6" fill="currentColor"/><circle cx="13" cy="12" r="1.6" fill="currentColor"/><circle cx="17.5" cy="12" r="1.6" fill="none" stroke="currentColor" stroke-width="1.6"/></symbol>
   <symbol id="i-wa" viewBox="0 0 24 24"><path d="M4 20l1.2-4.1A8 8 0 1112 20a8 8 0 01-3.9-1z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M9.2 8.6c.3 2.8 2.6 5 5.4 5.3l1-1.3-1.8-.9-.8.6a3.7 3.7 0 01-1.8-1.8l.6-.8-.9-1.8z" fill="currentColor"/></symbol>
+  <symbol id="i-cal" viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="15" rx="3.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M3.5 10h17M8 3v4M16 3v4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
   <symbol id="i-scan" viewBox="0 0 24 24"><path d="M4 8V6a2 2 0 012-2h2M16 4h2a2 2 0 012 2v2M20 16v2a2 2 0 01-2 2h-2M8 20H6a2 2 0 01-2-2v-2M4 12h16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
 </svg>
 
@@ -468,6 +490,12 @@ input[type=color].inp{padding:4px;height:46px;cursor:pointer}
       <h1 class="page-h" id="loyH"></h1>
       <div id="loy" aria-live="polite"></div>
     </section>
+
+    <!-- Bookings -->
+    <section data-view="bookings" hidden>
+      <h1 class="page-h" id="bkH"></h1>
+      <div id="bk" aria-live="polite"></div>
+    </section>
   </main>
 </div>
 
@@ -493,6 +521,7 @@ input[type=color].inp{padding:4px;height:46px;cursor:pointer}
     <button type="button" data-view-go="videos"><span class="dot"><svg aria-hidden="true"><use href="#i-video"/></svg><b id="nVideosBadge" hidden></b></span><span id="nVideos"></span></button>
     <button type="button" data-view-go="web"><svg aria-hidden="true"><use href="#i-globe"/></svg><span id="nWeb"></span></button>
     <button type="button" data-view-go="loyalty"><svg aria-hidden="true"><use href="#i-card"/></svg><span id="nLoy"></span></button>
+    <button type="button" data-view-go="bookings"><span class="dot"><svg aria-hidden="true"><use href="#i-cal"/></svg><b id="nBkBadge" hidden></b></span><span id="nBk"></span></button>
   </div>
 </nav>
 
@@ -514,6 +543,12 @@ input[type=color].inp{padding:4px;height:46px;cursor:pointer}
   <div class="lshead"><b id="lsT" tabindex="-1" style="outline:none"></b><button type="button" class="pfclose" id="lsX"></button></div>
   <div class="lsbody" id="lsBody"></div>
   <div class="lsfoot"><div class="err" id="lsErr" role="alert" hidden></div><button type="button" class="primary" id="lsGo"></button></div>
+</div>
+<div class="back" id="bback" hidden></div>
+<div class="lsheet" id="bsheet" role="dialog" aria-modal="true" aria-labelledby="bsT" hidden>
+  <div class="lshead"><b id="bsT" tabindex="-1" style="outline:none"></b><button type="button" class="pfclose" id="bsX"></button></div>
+  <div class="lsbody" id="bsBody"></div>
+  <div class="lsfoot"><div class="err" id="bsErr" role="alert" hidden></div><button type="button" class="primary" id="bsGo"></button></div>
 </div>
 <div class="toast" id="toast" role="status"></div>
 
@@ -635,7 +670,7 @@ const API="/api/portal/"+encodeURIComponent(token);
 let data=null, timer=null;
 const tabSel={};          // item id -> caption language
 const pending=new Set();  // post ids with an "again" request in flight
-const VIEWS=["home","posts","videos","web","loyalty"];
+const VIEWS=["home","posts","videos","web","loyalty","bookings"];
 // Views live in the hash as "#/posts" (not "#posts", which would jump to the element with that id).
 const hashView=()=>location.hash.replace(/^#\/?/,"");
 let view=VIEWS.includes(hashView())?hashView():"home";
@@ -681,6 +716,7 @@ function showView(v,scrollTo){
   if(location.hash!=="#/"+v) history.replaceState(null,"","#/"+v);
   if(scrollTo){ const el=document.querySelector(`[data-view="${v}"] [data-id="${CSS.escape(scrollTo)}"]`); if(el){ el.scrollIntoView({block:"start"}); window.scrollBy(0,-12); return; } }
   if(v==="loyalty"&&typeof loadLoyalty==="function") loadLoyalty();
+  if(v==="bookings"&&typeof loadBookings==="function") loadBookings(BK.loaded&&Date.now()-BK.at>20000,BK.loaded);
   window.scrollTo(0,0);
 }
 document.addEventListener("click",e=>{
@@ -897,6 +933,7 @@ async function load(){
     data=await r.json();
     $("#bad").hidden=true; $("#loading").hidden=true; $("#app").hidden=false; $("#nav").hidden=false;
     render(false);
+    if(first||(BK.loaded&&Date.now()-BK.at>60000)) loadBookings(true,true); // keeps the nav badge for pending bookings fresh
     if(first){ showView(view); if(view==="home") requestAnimationFrame(()=>window.scrollTo(0,document.documentElement.scrollHeight)); }
   }catch(_){ /* keep last data; retry */ }
   timer=setTimeout(load,busyNow()?4000:30000);
@@ -1380,7 +1417,7 @@ function renderLoyalty(){
   el.innerHTML=h; el.dataset.sig=sig;
   if(had){ const n=el.querySelector("#lcq"); n.focus(); n.setSelectionRange(n.value.length,n.value.length); }
 }
-function langChanged(){ $("#loy").dataset.sig=""; staticLoy(); renderLoyalty(); if(LS.sheet) drawSheet(); }
+function langChanged(){ $("#loy").dataset.sig=""; staticLoy(); renderLoyalty(); if(LS.sheet) drawSheet(); bkLang(); }
 function staticLoy(){ const a=$("#loyH"),b=$("#nLoy"); if(a) a.textContent=tl("l_h"); if(b) b.textContent=tl("nav_loy"); $("#lsX").textContent=tl("l_close"); }
 
 // ----- sheets (create, design, rules, customer) -----
@@ -1613,6 +1650,318 @@ document.addEventListener("click",async e=>{
 });
 document.addEventListener("input",e=>{ if(e.target.id==="lcq"){ LS.q=e.target.value; const p=prog(); if(p){ $("#lclist").innerHTML=custListHtml(p); $("#loy").dataset.sig=""; } } });
 staticLoy();
+
+// ---------- bookings ----------
+Object.assign(T.es,{
+  nav_bk:"Reservas", bk_h:"Reservas", bk_loading:"Cargando tus reservas…", bk_err:"No hemos podido cargar tus reservas.",
+  bk_on_t:"Reservas online", bk_on_yes:"Activadas: tus clientes pueden reservar con tu enlace.", bk_on_no:"Desactivadas: el enlace no admite reservas nuevas. Tú puedes seguir añadiendo reservas a mano.",
+  bk_link_h:"Tu enlace de reservas", bk_link_p:"Ponlo en tu Instagram, en WhatsApp o en tu web. Quien lo abra reserva en menos de un minuto.",
+  bk_open:"Abrir", bk_wa:"Enviar por WhatsApp", bk_wa_t:"Reserva tu mesa en {biz}: {url}", bk_wa_r:"Reserva tu estancia en {biz}: {url}",
+  bk_s_today:"Hoy", bk_s_pend:"Pendientes", bk_s_up:"Próximas", bk_add:"Añadir reserva", bk_setup:"Ajustes",
+  bk_f_up:"Próximas", bk_f_pend:"Pendientes", bk_f_past:"Pasadas",
+  bk_none_up:"No hay reservas próximas. Comparte tu enlace para empezar a recibirlas.", bk_none_pend:"No hay nada pendiente.", bk_none_past:"Todavía no hay reservas pasadas.",
+  bk_st_pending:"Pendiente", bk_st_confirmed:"Confirmada", bk_st_cancelled:"Cancelada", bk_st_no_show:"No vino", bk_st_completed:"Completada",
+  bk_a_confirm:"Confirmar", bk_a_reconfirm:"Volver a confirmar", bk_a_cancel:"Cancelar", bk_a_no_show:"No vino", bk_a_completed:"Completada",
+  bk_cancel_c:"¿Cancelar la reserva de {name}? Le avisaremos por email.",
+  bk_t_confirmed:"Reserva confirmada", bk_t_cancelled:"Reserva cancelada", bk_t_no_show:"Marcada como «no vino»", bk_t_completed:"Marcada como completada",
+  bk_t_on:"Reservas activadas", bk_t_off:"Reservas desactivadas",
+  bk_n_guests:"{n} personas", bk_n_guest1:"1 persona", bk_n_nights:"{n} noches", bk_n_night1:"1 noche", bk_by_hand:"Añadida a mano",
+  bk_set_t:"Ajustes de reservas", bk_k_h:"¿Qué reservan tus clientes?", bk_k_table:"Mesa", bk_k_table_d:"Restaurante, bar o cafetería", bk_k_room:"Habitación", bk_k_room_d:"Hotel, hostal o casa rural",
+  bk_auto:"Confirmar automáticamente", bk_auto_p:"Si lo apagas, tú aceptas cada reserva a mano.",
+  bk_notice:"Mensaje para tus clientes (opcional)", bk_notice_ph:"Ej.: Las mesas de terraza dependen del tiempo.",
+  bk_hours:"Horario de apertura", bk_hours_p:"Hasta 2 tramos por día, por ejemplo comidas y cenas.", bk_closed:"Cerrado", bk_addhrs:"Añadir horario", bk_copyall:"Copiar a todos los días", bk_rm:"Quitar",
+  bk_tbl_h:"Mesas", bk_seats:"Plazas en total", bk_seats_h:"Personas que caben a la vez", bk_maxparty:"Máximo por reserva", bk_slot:"Cada cuánto se reserva", bk_slot_o:"{n} min", bk_dur:"Duración de una mesa (min)",
+  bk_rooms:"Tipos de habitación", bk_r_name:"Nombre", bk_r_count:"Habitaciones", bk_r_guests:"Máx. personas", bk_r_price:"Precio por noche (€)", bk_r_add:"Añadir tipo de habitación", bk_r_new:"Habitación doble",
+  bk_stay_h:"Estancia", bk_minn:"Mínimo de noches", bk_maxn:"Máximo de noches", bk_cin:"Entrada desde", bk_cout:"Salida hasta",
+  bk_save:"Guardar ajustes", bk_saved:"Ajustes guardados",
+  bk_e_hours:"Revisa el horario: la hora de cierre debe ser posterior a la de apertura.", bk_e_rooms:"Añade al menos un tipo de habitación con nombre.",
+  bk_add_t:"Nueva reserva", bk_f_name:"Nombre", bk_f_email:"Email", bk_f_email_h:"Aquí se envía la confirmación.", bk_f_phone:"Teléfono (opcional)",
+  bk_f_date:"Fecha", bk_f_time:"Hora", bk_f_party:"Personas", bk_f_notes:"Notas (opcional)", bk_f_in:"Llegada", bk_f_out:"Salida", bk_f_room:"Habitación", bk_f_guests:"Huéspedes",
+  bk_no_slots:"Ese día no hay horario de apertura. Cámbialo en Ajustes.", bk_no_rooms:"Primero añade un tipo de habitación en Ajustes.", bk_add_go:"Guardar reserva", bk_added:"Reserva añadida", bk_e_need:"Escribe el nombre y el email.",
+  bk_days:["Domingo","Lunes","Martes","Miércoles","Jueves","Viernes","Sábado"]
+});
+Object.assign(T.en,{
+  nav_bk:"Bookings", bk_h:"Bookings", bk_loading:"Loading your bookings…", bk_err:"We could not load your bookings.",
+  bk_on_t:"Online bookings", bk_on_yes:"On: your customers can book with your link.", bk_on_no:"Off: the link does not take new bookings. You can still add bookings by hand.",
+  bk_link_h:"Your booking link", bk_link_p:"Put it on your Instagram, WhatsApp or website. Anyone who opens it can book in under a minute.",
+  bk_open:"Open", bk_wa:"Send on WhatsApp", bk_wa_t:"Book a table at {biz}: {url}", bk_wa_r:"Book your stay at {biz}: {url}",
+  bk_s_today:"Today", bk_s_pend:"Pending", bk_s_up:"Upcoming", bk_add:"Add booking", bk_setup:"Settings",
+  bk_f_up:"Upcoming", bk_f_pend:"Pending", bk_f_past:"Past",
+  bk_none_up:"No upcoming bookings. Share your link to start getting them.", bk_none_pend:"Nothing is waiting for you.", bk_none_past:"No past bookings yet.",
+  bk_st_pending:"Pending", bk_st_confirmed:"Confirmed", bk_st_cancelled:"Cancelled", bk_st_no_show:"No-show", bk_st_completed:"Completed",
+  bk_a_confirm:"Confirm", bk_a_reconfirm:"Confirm again", bk_a_cancel:"Cancel", bk_a_no_show:"No-show", bk_a_completed:"Completed",
+  bk_cancel_c:"Cancel the booking for {name}? We will let them know by email.",
+  bk_t_confirmed:"Booking confirmed", bk_t_cancelled:"Booking cancelled", bk_t_no_show:"Marked as no-show", bk_t_completed:"Marked as completed",
+  bk_t_on:"Bookings are on", bk_t_off:"Bookings are off",
+  bk_n_guests:"{n} guests", bk_n_guest1:"1 guest", bk_n_nights:"{n} nights", bk_n_night1:"1 night", bk_by_hand:"Added by hand",
+  bk_set_t:"Booking settings", bk_k_h:"What do your customers book?", bk_k_table:"A table", bk_k_table_d:"Restaurant, bar or café", bk_k_room:"A room", bk_k_room_d:"Hotel, hostel or guesthouse",
+  bk_auto:"Confirm automatically", bk_auto_p:"If you turn this off, you accept each booking by hand.",
+  bk_notice:"Message for your customers (optional)", bk_notice_ph:"E.g. Terrace tables depend on the weather.",
+  bk_hours:"Opening hours", bk_hours_p:"Up to 2 ranges per day, for example lunch and dinner.", bk_closed:"Closed", bk_addhrs:"Add hours", bk_copyall:"Copy to all days", bk_rm:"Remove",
+  bk_tbl_h:"Tables", bk_seats:"Total seats", bk_seats_h:"People who fit at the same time", bk_maxparty:"Largest group", bk_slot:"Booking times every", bk_slot_o:"{n} min", bk_dur:"How long a table is held (min)",
+  bk_rooms:"Room types", bk_r_name:"Name", bk_r_count:"Rooms", bk_r_guests:"Max guests", bk_r_price:"Price per night (€)", bk_r_add:"Add a room type", bk_r_new:"Double room",
+  bk_stay_h:"Stay", bk_minn:"Minimum nights", bk_maxn:"Maximum nights", bk_cin:"Check-in from", bk_cout:"Check-out by",
+  bk_save:"Save settings", bk_saved:"Settings saved",
+  bk_e_hours:"Check the hours: closing time must be after opening time.", bk_e_rooms:"Add at least one room type with a name.",
+  bk_add_t:"New booking", bk_f_name:"Name", bk_f_email:"Email", bk_f_email_h:"The confirmation is sent here.", bk_f_phone:"Phone (optional)",
+  bk_f_date:"Date", bk_f_time:"Time", bk_f_party:"Guests", bk_f_notes:"Notes (optional)", bk_f_in:"Check-in", bk_f_out:"Check-out", bk_f_room:"Room", bk_f_guests:"Guests",
+  bk_no_slots:"No opening hours that day. Change them in Settings.", bk_no_rooms:"Add a room type in Settings first.", bk_add_go:"Save booking", bk_added:"Booking added", bk_e_need:"Enter the name and email.",
+  bk_days:["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"]
+});
+const BK={loaded:false,loading:false,err:"",config:null,items:[],filter:"upcoming",sheet:null,at:0,busy:"",toggling:false};
+async function bapi(method,path,body){
+  const r=await fetch(API+"/bookings"+path,{method,headers:body?{"content-type":"application/json"}:undefined,body:body?JSON.stringify(body):undefined});
+  let d={}; try{d=await r.json();}catch(_){}
+  if(!r.ok) throw new Error(d.error||t("generic"));
+  return d;
+}
+const bkMin=s=>+String(s).slice(0,2)*60+ +String(s).slice(3,5);
+function bkNow(){
+  const tz=(BK.config&&BK.config.timezone)||"Europe/Madrid";
+  try{
+    const p=Object.fromEntries(new Intl.DateTimeFormat("en-CA",{timeZone:tz,hour12:false,year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit"}).formatToParts(new Date()).map(x=>[x.type,x.value]));
+    return {date:`${p.year}-${p.month}-${p.day}`,min:(+p.hour%24)*60+ +p.minute};
+  }catch(_){ const d=new Date(), z=n=>String(n).padStart(2,"0"); return {date:`${d.getFullYear()}-${z(d.getMonth()+1)}-${z(d.getDate())}`,min:d.getHours()*60+d.getMinutes()}; }
+}
+const bkAddDays=(d,n)=>{ const x=new Date(d+"T12:00:00Z"); x.setUTCDate(x.getUTCDate()+n); return x.toISOString().slice(0,10); };
+const bkDate=d=>{ const x=new Date(d+"T12:00:00"); return isNaN(x)?String(d||""):x.toLocaleDateString(T[lang].locale,{weekday:"short",day:"numeric",month:"short"}); };
+const bkActive=b=>b.status==="pending"||b.status==="confirmed";
+const bkWhen=b=>b.kind==="room"?b.checkIn:b.date;
+const bkEnd=b=>b.kind==="room"?b.checkOut:b.date;
+function bkStarted(b){
+  const n=bkNow();
+  if(b.kind==="room"){ const ci=(BK.config&&BK.config.room&&BK.config.room.checkIn)||"15:00"; return b.checkIn<n.date||(b.checkIn===n.date&&n.min>=bkMin(ci)); }
+  return b.date<n.date||(b.date===n.date&&n.min>=bkMin(b.time||"00:00"));
+}
+const bkIsUp=(b,n)=>bkActive(b)&&bkEnd(b)>=n.date;
+function bkCounts(){
+  const n=bkNow(), it=BK.items;
+  return {pending:it.filter(b=>b.status==="pending").length, upcoming:it.filter(b=>bkIsUp(b,n)).length, today:it.filter(b=>bkActive(b)&&(b.kind==="room"?b.checkIn<=n.date&&n.date<b.checkOut:b.date===n.date)).length};
+}
+function bkBadge(){ const e=$("#nBkBadge"); if(!e) return; const n=BK.loaded?bkCounts().pending:0; e.hidden=!n; e.textContent=n; }
+function bkSorted(list,dir){ const k=b=>bkWhen(b)+(b.time||""); return [...list].sort((a,b)=>dir*k(a).localeCompare(k(b))); }
+function bkList(){
+  const n=bkNow(), f=BK.filter;
+  if(f==="pending") return bkSorted(BK.items.filter(b=>b.status==="pending"),1);
+  if(f==="past") return bkSorted(BK.items.filter(b=>!bkIsUp(b,n)),-1);
+  return bkSorted(BK.items.filter(b=>bkIsUp(b,n)),1);
+}
+function bkActions(b){
+  const s=b.status, out=[];
+  const btn=(to,label,cls)=>`<button type="button" class="btn ${cls||""}" data-ba="st" data-id="${esc(b.id)}" data-s="${to}"${BK.busy===b.id?" disabled":""}>${esc(tl(label))}</button>`;
+  if(s==="pending") out.push(btn("confirmed","bk_a_confirm","blue"),btn("cancelled","bk_a_cancel","bad"));
+  else if(s==="confirmed"){
+    if(bkStarted(b)) out.push(btn("completed","bk_a_completed","blue"),btn("no_show","bk_a_no_show"));
+    out.push(btn("cancelled","bk_a_cancel","bad"));
+  } else if(s==="no_show"||s==="cancelled") out.push(btn("confirmed","bk_a_reconfirm"));
+  return out.join("");
+}
+function bkCard(b){
+  const room=b.kind==="room";
+  const when=room?`${bkDate(b.checkIn)} → ${bkDate(b.checkOut)}`:`${bkDate(b.date)} · ${b.time||""}`;
+  const nGuests=room?b.guests:b.party;
+  const meta=[room&&b.roomName?b.roomName:"", nGuests===1?tl("bk_n_guest1"):fmt(tl("bk_n_guests"),{n:nGuests||0}), room?(b.nights===1?tl("bk_n_night1"):fmt(tl("bk_n_nights"),{n:b.nights||0})):""].filter(Boolean).join(" · ");
+  const contact=[b.phone?`<a href="tel:${esc(String(b.phone).replace(/[^\d+]/g,""))}">${esc(b.phone)}</a>`:"", b.email?`<a href="mailto:${esc(b.email)}">${esc(b.email)}</a>`:""].filter(Boolean).join("");
+  const acts=bkActions(b);
+  return `<article class="card bk" data-id="${esc(b.id)}"><div class="bk-top"><div class="bk-when">${esc(when)}</div><span class="st bk-${esc(b.status)}">${esc(tl("bk_st_"+b.status))}</span></div>
+    <div class="bk-name">${esc(b.name)}</div><div class="bk-meta">${esc(meta)}${b.source==="owner"?" · "+esc(tl("bk_by_hand")):""}</div>
+    ${contact?`<div class="bk-contact">${contact}</div>`:""}${b.notes?`<div class="bk-note">${esc(b.notes)}</div>`:""}
+    ${acts?`<div class="bk-act">${acts}</div>`:""}</article>`;
+}
+async function loadBookings(force,silent){
+  if(BK.loading) return; if(BK.loaded&&!force) return renderBookings();
+  BK.loading=true; if(!silent){ BK.err=""; renderBookings(); }
+  try{ const d=await bapi("GET",""); BK.config=d.config; BK.items=d.bookings||[]; BK.loaded=true; BK.err=""; BK.at=Date.now(); }
+  catch(e){ if(!silent) BK.err=errMsg(e); }
+  BK.loading=false; renderBookings();
+}
+function renderBookings(){
+  bkBadge();
+  const el=$("#bk"); if(!el) return; let h="";
+  if(BK.err&&!BK.loaded) h=`<div class="card empty">${esc(BK.err)}<div><button type="button" class="btn blue" data-ba="retry" style="margin-top:12px">${esc(tl("l_retry"))}</button></div></div>`;
+  else if(!BK.loaded) h=`<div class="card empty"><span class="spin" aria-hidden="true"></span><div style="margin-top:8px">${esc(tl("bk_loading"))}</div></div>`;
+  else {
+    const c=BK.config, k=bkCounts(), biz=(data&&data.client&&data.client.name)||c.clientName||"";
+    const waText=fmt(tl(c.kind==="room"?"bk_wa_r":"bk_wa_t"),{biz,url:c.bookingUrl});
+    const list=bkList();
+    h=`<div class="card"><label class="switch" style="padding-top:0"><span><b style="display:block;font:700 18px var(--display)">${esc(tl("bk_on_t"))}</b><small class="muted" style="display:block;margin-top:2px">${esc(tl(c.enabled?"bk_on_yes":"bk_on_no"))}</small></span><input type="checkbox" data-bt="toggle" aria-label="${esc(tl("bk_on_t"))}" ${c.enabled?"checked":""}></label></div>
+      <div class="card"><h3 class="lh">${esc(tl("bk_link_h"))}</h3><p class="lsub">${esc(tl("bk_link_p"))}</p>
+        <div class="urlbox"><span>${esc(joinShort(c.bookingUrl))}</span><button type="button" class="btn" data-ba="copy" data-v="${esc(c.bookingUrl)}">${icon("copy")}${esc(tl("l_copy"))}</button></div>
+        <div class="btns"><a class="btn wa" target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent(waText)}">${icon("wa")}${esc(tl("bk_wa"))}</a><a class="btn" target="_blank" rel="noopener" href="${esc(c.bookingUrl)}">${icon("open")}${esc(tl("bk_open"))}</a></div></div>
+      <div class="lgrid"><div><b>${k.today}</b><span>${esc(tl("bk_s_today"))}</span></div><div><b>${k.pending}</b><span>${esc(tl("bk_s_pend"))}</span></div><div><b>${k.upcoming}</b><span>${esc(tl("bk_s_up"))}</span></div></div>
+      <div class="lbtns"><button type="button" class="btn blue" data-ba="add">${icon("plus")}${esc(tl("bk_add"))}</button><button type="button" class="btn" data-ba="setup">${icon("grid")}${esc(tl("bk_setup"))}</button></div>
+      <div class="lpick"><div class="seg" role="group">${[["upcoming","bk_f_up",0],["pending","bk_f_pend",k.pending],["past","bk_f_past",0]].map(([f,l,n])=>`<button type="button" data-ba="filter" data-v="${f}" aria-pressed="${BK.filter===f}">${esc(tl(l))}${n?" ("+n+")":""}</button>`).join("")}</div></div>
+      ${list.length?list.map(bkCard).join(""):`<div class="card empty">${esc(tl(BK.filter==="pending"?"bk_none_pend":BK.filter==="past"?"bk_none_past":"bk_none_up"))}</div>`}`;
+  }
+  const sig=lang+h; if(el.dataset.sig===sig) return;
+  el.innerHTML=h; el.dataset.sig=sig;
+}
+function staticBk(){ const a=$("#bkH"),b=$("#nBk"); if(a) a.textContent=tl("bk_h"); if(b) b.textContent=tl("nav_bk"); $("#bsX").textContent=tl("l_close"); }
+function bkLang(){ staticBk(); $("#bk").dataset.sig=""; renderBookings(); if(BK.sheet) drawBkSheet(); }
+
+// ----- sheets (settings, add booking) -----
+function openBkSheet(sheet){
+  BK.sheet=sheet; sheet.lastFocus=document.activeElement;
+  const b=$("#bback"), s=$("#bsheet"); b.hidden=false; s.hidden=false; document.body.style.overflow="hidden";
+  $("#bsBody").dataset.sig=""; $("#bsBody").scrollTop=0; drawBkSheet();
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{b.classList.add("on");s.classList.add("on");}));
+  setTimeout(()=>$("#bsT").focus(),80);
+}
+function closeBkSheet(force){
+  if(BK.sheet&&BK.sheet.saving&&!force) return;
+  const b=$("#bback"), s=$("#bsheet"); b.classList.remove("on"); s.classList.remove("on"); document.body.style.overflow="";
+  const f=BK.sheet&&BK.sheet.lastFocus; BK.sheet=null;
+  setTimeout(()=>{ if(!BK.sheet){ b.hidden=true; s.hidden=true; } },230); if(f&&f.focus) f.focus();
+}
+function bkErr(m){ const e=$("#bsErr"); e.textContent=m||""; e.hidden=!m; }
+function drawBkSheet(){
+  const S=BK.sheet; if(!S) return; const body=$("#bsBody"), top=body.scrollTop; bkErr(S.err||"");
+  const go=$("#bsGo"); let h, title, label;
+  if(S.kind==="setup"){ title=tl("bk_set_t"); label=tl("bk_save"); h=bkSetupHtml(S); }
+  else { title=tl("bk_add_t"); label=tl("bk_add_go"); h=bkAddHtml(S); }
+  $("#bsT").textContent=title; go.textContent=S.saving?tl("l_saving"):label; go.disabled=!!S.saving;
+  if(body.dataset.sig!==lang+h){ body.innerHTML=h; body.dataset.sig=lang+h; body.scrollTop=top; }
+}
+const bkIn=(path,v,type,att)=>`<input class="inp" data-f="${path}" data-t="${type==="number"?"num":type==="date"?"date":"str"}" type="${type||"text"}" ${type==="number"?'inputmode="numeric" min="0" step="any"':""} value="${esc(v==null?"":v)}" ${att||""}>`;
+function bkSetupHtml(S){
+  const D=S.draft, room=D.kind==="room";
+  let h=`<h3 class="lh2">${esc(tl("bk_k_h"))}</h3><div class="opts">${[["table","☕"],["room","🛏"]].map(([k,ic])=>`<button type="button" class="opt" data-ba="kind" data-v="${k}" aria-pressed="${k===D.kind}"><span class="ic" aria-hidden="true">${ic}</span><span><b>${esc(tl("bk_k_"+k))}</b><small>${esc(tl("bk_k_"+k+"_d"))}</small></span></button>`).join("")}</div>
+    <label class="switch"><span>${esc(tl("bk_auto"))}<small class="muted" style="display:block;font-weight:400">${esc(tl("bk_auto_p"))}</small></span><input type="checkbox" data-f="autoConfirm" data-t="bool" ${D.autoConfirm?"checked":""}></label>
+    <div style="height:12px"></div>${fld(tl("bk_notice"),`<textarea class="inp" data-f="notice" data-t="str" maxlength="300" placeholder="${esc(tl("bk_notice_ph"))}">${esc(D.notice)}</textarea>`)}`;
+  if(!room){
+    const T2=D.table;
+    h+=`<h3 class="lh2">${esc(tl("bk_hours"))}</h3><p class="muted" style="margin:-4px 0 10px">${esc(tl("bk_hours_p"))}</p>`;
+    for(const di of [1,2,3,4,5,6,0]){
+      const wi=T2.week.findIndex(x=>x.day===di), w=T2.week[wi], rs=w.ranges;
+      h+=`<div class="lbox"><b style="display:block;margin-bottom:8px">${esc(tl("bk_days")[di])}</b>
+        ${rs.length?rs.map((r,i)=>`<div class="bk-rng">${bkIn(`table.week.${wi}.ranges.${i}.0`,r[0],"time",'aria-label="'+esc(tl("bk_days")[di])+'"')}<span aria-hidden="true">–</span>${bkIn(`table.week.${wi}.ranges.${i}.1`,r[1],"time")}<button type="button" class="bk-x" data-ba="delrange" data-d="${wi}" data-i="${i}" aria-label="${esc(tl("bk_rm"))}">×</button></div>`).join(""):`<p class="muted" style="margin:0 0 8px">${esc(tl("bk_closed"))}</p>`}
+        <div class="bk-rbtns">${rs.length<2?`<button type="button" class="btn" data-ba="addrange" data-d="${wi}">${icon("plus")}${esc(tl("bk_addhrs"))}</button>`:""}${rs.length?`<button type="button" class="btn ghost" data-ba="copyday" data-d="${wi}">${esc(tl("bk_copyall"))}</button>`:""}</div></div>`;
+    }
+    h+=`<h3 class="lh2">${esc(tl("bk_tbl_h"))}</h3><div class="frow">${fld(tl("bk_seats"),bkIn("table.seats",T2.seats,"number",'min="1"'),tl("bk_seats_h"))}${fld(tl("bk_maxparty"),bkIn("table.maxParty",T2.maxParty,"number",'min="1"'))}</div>
+      <div class="frow">${fld(tl("bk_slot"),`<select class="inp" data-f="table.slotMinutes" data-t="num">${[15,30,60].map(n=>`<option value="${n}"${+T2.slotMinutes===n?" selected":""}>${esc(fmt(tl("bk_slot_o"),{n}))}</option>`).join("")}</select>`)}${fld(tl("bk_dur"),bkIn("table.durationMinutes",T2.durationMinutes,"number",'min="15"'))}</div>`;
+  } else {
+    const R=D.room;
+    h+=`<h3 class="lh2">${esc(tl("bk_rooms"))}</h3>`+R.roomTypes.map((x,i)=>`<div class="lbox"><button type="button" class="linkdanger del" style="margin:0 0 4px" data-ba="delroom" data-i="${i}">${esc(tl("bk_rm"))}</button>
+      ${fld(tl("bk_r_name"),bkIn(`room.roomTypes.${i}.name`,x.name,"text",'maxlength="60"'))}
+      <div class="frow">${fld(tl("bk_r_count"),bkIn(`room.roomTypes.${i}.count`,x.count,"number",'min="1"'))}${fld(tl("bk_r_guests"),bkIn(`room.roomTypes.${i}.maxGuests`,x.maxGuests,"number",'min="1"'))}</div>
+      ${fld(tl("bk_r_price"),bkIn(`room.roomTypes.${i}.priceEur`,x.priceEur,"number"))}</div>`).join("")+
+      `<button type="button" class="btn" data-ba="addroom">${icon("plus")}${esc(tl("bk_r_add"))}</button>
+      <h3 class="lh2">${esc(tl("bk_stay_h"))}</h3><div class="frow">${fld(tl("bk_minn"),bkIn("room.minNights",R.minNights,"number",'min="1"'))}${fld(tl("bk_maxn"),bkIn("room.maxNights",R.maxNights,"number",'min="1"'))}</div>
+      <div class="frow">${fld(tl("bk_cin"),bkIn("room.checkIn",R.checkIn,"time"))}${fld(tl("bk_cout"),bkIn("room.checkOut",R.checkOut,"time"))}</div>`;
+  }
+  return h;
+}
+function bkNewSetup(){
+  const c=BK.config, d=JSON.parse(JSON.stringify({kind:c.kind,autoConfirm:c.autoConfirm,notice:c.notice||"",table:c.table,room:c.room}));
+  d.table.week=[0,1,2,3,4,5,6].map(day=>{ const w=(d.table.week||[]).find(x=>x.day===day); return {day,ranges:w?w.ranges:[]}; });
+  return d;
+}
+// Table times offered for a date: from the opening hours, one slot step apart, none already past today.
+function bkSlots(date){
+  const c=BK.config, T2=c.table, n=bkNow();
+  const dow=new Date(date+"T12:00:00Z").getUTCDay(), w=(T2.week||[]).find(x=>x.day===dow), out=[];
+  for(const [a,b] of (w&&w.ranges)||[]) for(let m=bkMin(a);m+T2.slotMinutes<=bkMin(b);m+=T2.slotMinutes){
+    if(date===n.date&&m<n.min) continue;
+    out.push(String(Math.floor(m/60)).padStart(2,"0")+":"+String(m%60).padStart(2,"0"));
+  }
+  return out;
+}
+function bkAddHtml(S){
+  const D=S.draft, c=BK.config, room=c.kind==="room", n=bkNow();
+  let h=fld(tl("bk_f_name"),bkIn("name",D.name,"text",'maxlength="80" autocomplete="off"'))+fld(tl("bk_f_email"),bkIn("email",D.email,"email",'maxlength="120" autocomplete="off" inputmode="email"'),tl("bk_f_email_h"))+fld(tl("bk_f_phone"),bkIn("phone",D.phone,"tel",'maxlength="30" autocomplete="off"'));
+  if(!room){
+    const slots=bkSlots(D.date);
+    h+=`<div class="frow">${fld(tl("bk_f_date"),bkIn("date",D.date,"date",`min="${n.date}"`))}${fld(tl("bk_f_party"),bkIn("party",D.party,"number",`min="${c.table.minParty||1}" step="1"`))}</div>
+      ${slots.length?fld(tl("bk_f_time"),`<select class="inp" data-f="time" data-t="str">${slots.map(x=>`<option${x===D.time?" selected":""}>${esc(x)}</option>`).join("")}</select>`):`<p class="rnote" style="margin:0 0 12px;background:var(--fill);color:var(--muted)">${icon("alert")}${esc(tl("bk_no_slots"))}</p>`}`;
+  } else if(!c.room.roomTypes.length) h+=`<p class="rnote" style="margin:0 0 12px;background:var(--fill);color:var(--muted)">${icon("alert")}${esc(tl("bk_no_rooms"))}</p>`;
+  else h+=`<div class="frow">${fld(tl("bk_f_in"),bkIn("checkIn",D.checkIn,"date",`min="${n.date}"`))}${fld(tl("bk_f_out"),bkIn("checkOut",D.checkOut,"date",`min="${esc(bkAddDays(D.checkIn||n.date,1))}"`))}</div>
+      ${fld(tl("bk_f_room"),`<select class="inp" data-f="roomTypeId" data-t="str">${c.room.roomTypes.map(x=>`<option value="${esc(x.id)}"${x.id===D.roomTypeId?" selected":""}>${esc(x.name)}</option>`).join("")}</select>`)}
+      ${fld(tl("bk_f_guests"),bkIn("guests",D.guests,"number",'min="1" step="1"'))}`;
+  return h+fld(tl("bk_f_notes"),`<textarea class="inp" data-f="notes" data-t="str" maxlength="400">${esc(D.notes)}</textarea>`);
+}
+function openBkAdd(){
+  const c=BK.config, n=bkNow(), D={name:"",email:"",phone:"",notes:""};
+  if(c.kind==="room"){ Object.assign(D,{checkIn:n.date,checkOut:bkAddDays(n.date,1),guests:2,roomTypeId:(c.room.roomTypes[0]||{}).id||""}); }
+  else { Object.assign(D,{date:n.date,party:2,time:""}); D.time=bkSlots(D.date)[0]||""; }
+  openBkSheet({kind:"add",draft:D});
+}
+function openBkSetup(){ openBkSheet({kind:"setup",draft:bkNewSetup()}); }
+async function bkSaveSetup(){
+  const S=BK.sheet, D=S.draft;
+  if(D.kind==="table"){
+    D.table.week.forEach(w=>{ w.ranges=w.ranges.filter(r=>r[0]||r[1]); });
+    if(D.table.week.some(w=>w.ranges.some(r=>!r[0]||!r[1]||r[0]>=r[1]))){ S.err=tl("bk_e_hours"); return drawBkSheet(); }
+  } else if(!D.room.roomTypes.some(x=>String(x.name||"").trim())){ S.err=tl("bk_e_rooms"); return drawBkSheet(); }
+  S.saving=true; S.err=""; drawBkSheet();
+  try{
+    const v=await bapi("PUT","/config",{kind:D.kind,autoConfirm:D.autoConfirm,notice:D.notice,table:D.table,room:D.room});
+    BK.config=v; S.saving=false; closeBkSheet(true); toast(tl("bk_saved")); BK.loaded=true; $("#bk").dataset.sig=""; renderBookings();
+  }catch(e){ S.saving=false; S.err=errMsg(e); drawBkSheet(); }
+}
+async function bkSaveAdd(){
+  const S=BK.sheet, D=S.draft, c=BK.config;
+  if(!D.name.trim()||!D.email.trim()){ S.err=tl("bk_e_need"); return drawBkSheet(); }
+  const b=c.kind==="room"?{name:D.name,email:D.email,phone:D.phone,notes:D.notes,checkIn:D.checkIn,checkOut:D.checkOut,guests:+D.guests||1,roomTypeId:D.roomTypeId}
+    :{name:D.name,email:D.email,phone:D.phone,notes:D.notes,date:D.date,time:D.time,party:+D.party||1};
+  S.saving=true; S.err=""; drawBkSheet();
+  try{
+    const v=await bapi("POST","/bookings",b);
+    BK.items.push(v); S.saving=false; closeBkSheet(true); toast(tl("bk_added")); BK.filter="upcoming"; renderBookings(); loadBookings(true,true);
+  }catch(e){ S.saving=false; S.err=errMsg(e); drawBkSheet(); }
+}
+async function bkSetStatus(id,status){
+  const b=BK.items.find(x=>x.id===id); if(!b||BK.busy) return;
+  if(status==="cancelled"&&!confirm(fmt(tl("bk_cancel_c"),{name:b.name}))) return;
+  BK.busy=id; renderBookings();
+  try{ const v=await bapi("PATCH","/bookings/"+encodeURIComponent(id),{status}); BK.items=BK.items.map(x=>x.id===id?{...x,...v}:x); toast(tl("bk_t_"+status)); }
+  catch(e){ toast(errMsg(e),true); }
+  BK.busy=""; renderBookings();
+}
+$("#bsBody").addEventListener("input",e=>{
+  const f=e.target.dataset&&e.target.dataset.f, S=BK.sheet; if(!f||!S) return;
+  const ty=e.target.dataset.t; if(ty==="date") return; // dates apply on "change" (the list of times depends on them)
+  let v=e.target.value; if(ty==="num") v=v===""?0:+v; else if(ty==="bool") v=e.target.checked;
+  setP(S.draft,f,v); $("#bsBody").dataset.sig=lang+"x"+Math.random();
+});
+$("#bsBody").addEventListener("change",e=>{
+  const f=e.target.dataset&&e.target.dataset.f, S=BK.sheet; if(!f||!S||e.target.dataset.t!=="date") return;
+  const D=S.draft; D[f]=e.target.value;
+  if(S.kind==="add"){
+    if(f==="date"){ const s=bkSlots(D.date); if(!s.includes(D.time)) D.time=s[0]||""; }
+    if(f==="checkIn"&&(!D.checkOut||D.checkOut<=D.checkIn)) D.checkOut=bkAddDays(D.checkIn,1);
+  }
+  $("#bsBody").dataset.sig=""; drawBkSheet();
+});
+$("#bsX").addEventListener("click",()=>closeBkSheet());
+$("#bback").addEventListener("click",()=>closeBkSheet());
+document.addEventListener("keydown",e=>{ if(e.key==="Escape"&&BK.sheet) closeBkSheet(); });
+$("#bsGo").addEventListener("click",()=>{ const S=BK.sheet; if(!S||S.saving) return; if(S.kind==="setup") bkSaveSetup(); else bkSaveAdd(); });
+document.addEventListener("change",async e=>{
+  if(!e.target.dataset||e.target.dataset.bt!=="toggle") return;
+  const on=e.target.checked; if(BK.toggling){ e.target.checked=!on; return; }
+  BK.toggling=true;
+  try{ const v=await bapi("PUT","/config",{enabled:on}); BK.config=v; toast(tl(on?"bk_t_on":"bk_t_off")); }
+  catch(err){ toast(errMsg(err),true); }
+  BK.toggling=false; $("#bk").dataset.sig=""; renderBookings();
+});
+document.addEventListener("click",async e=>{
+  const b=e.target.closest("[data-ba]"); if(!b) return;
+  const a=b.dataset.ba, S=BK.sheet, redraw=()=>{ $("#bsBody").dataset.sig=""; drawBkSheet(); };
+  if(a==="retry") return loadBookings(true);
+  if(a==="add") return openBkAdd(); if(a==="setup") return openBkSetup();
+  if(a==="filter"){ BK.filter=b.dataset.v; return renderBookings(); }
+  if(a==="copy"){ const ok=await copySilent(b.dataset.v); return toast(ok?tl("l_copied"):b.dataset.v.slice(0,40)); }
+  if(a==="st") return bkSetStatus(b.dataset.id,b.dataset.s);
+  if(!S||S.kind!=="setup") return;
+  const D=S.draft;
+  if(a==="kind"){ D.kind=b.dataset.v; return redraw(); }
+  if(a==="addrange"){ const w=D.table.week[+b.dataset.d]; w.ranges.push(w.ranges.length?["20:00","23:00"]:["13:00","16:00"]); return redraw(); }
+  if(a==="delrange"){ D.table.week[+b.dataset.d].ranges.splice(+b.dataset.i,1); return redraw(); }
+  if(a==="copyday"){ const src=D.table.week[+b.dataset.d].ranges; D.table.week.forEach(w=>{ w.ranges=src.map(r=>[r[0],r[1]]); }); return redraw(); }
+  if(a==="addroom"){ D.room.roomTypes.push({id:"",name:tl("bk_r_new"),count:1,maxGuests:2,priceEur:0,description:""}); return redraw(); }
+  if(a==="delroom"){ D.room.roomTypes.splice(+b.dataset.i,1); return redraw(); }
+});
+staticBk();
 
 staticText(); staticLoy();
 if(!token){ $("#loading").hidden=true; $("#bad").hidden=false; } else load();
