@@ -19,29 +19,29 @@ export const EX = {
 } as const;
 
 export const EXAMPLE_CLIENTS: Client[] = [
-  ex(EX.tasca, { name: "Tasca El Puerto", kind: "Restaurant", town: "Los Cristianos", contact: "Marta Díaz", phone: "+34 922 000 101", stage: "paid",
+  ex(EX.tasca, { name: "Tasca El Puerto", kind: "Restaurant", town: "Los Cristianos", contact: "Marta Díaz", phone: "+34 922 000 101", stage: "paid", plan: "basic", planSince: d(-75),
     subs: [{ plan: "p1", tier: "Plus", price: 169, startedAt: d(-75) }, { plan: "p8", tier: "Add-on", price: 39, startedAt: d(-40) }],
     consents: [], languages: ["es", "en", "de"], notes: "Seafood, terrace on the promenade. Owner approves low ratings on WhatsApp." }),
-  ex(EX.whale, { name: "Atlántico Whale Trips", kind: "Boat excursions", town: "Los Cristianos", contact: "Iván Rodríguez", phone: "+34 922 000 102", stage: "paid",
+  ex(EX.whale, { name: "Atlántico Whale Trips", kind: "Boat excursions", town: "Los Cristianos", contact: "Iván Rodríguez", phone: "+34 922 000 102", stage: "paid", plan: "pro", customPrice: 89, planSince: d(-60),
     subs: [{ plan: "p1", tier: "Basic", price: 99, startedAt: d(-60) }, { plan: "p6", tier: "Pro", price: 249, setup: 290, startedAt: d(-20) }],
     consents: [], languages: ["es", "en", "de", "it"], notes: "2 trips a day, 10:00 and 14:00. 3 h. Adults €45, kids €25. Hotel pickup in the south." }),
-  ex(EX.dive, { name: "Azul Profundo Dive Centre", kind: "Dive school", town: "Puerto de la Cruz", contact: "Lucía Hernández", phone: "+34 922 000 103", stage: "pilot",
+  ex(EX.dive, { name: "Azul Profundo Dive Centre", kind: "Dive school", town: "Puerto de la Cruz", contact: "Lucía Hernández", phone: "+34 922 000 103", stage: "pilot", plan: "pro", trialStart: d(-10),
     subs: [{ plan: "p6", tier: "Starter", price: 149, startedAt: d(-10) }, { plan: "p3", tier: "Starter", price: 99, startedAt: d(-10) }],
     consents: [], languages: ["es", "en", "de", "nl"], notes: "Free 30-day pilot ends soon." }),
-  ex(EX.casa, { name: "Casa Sur Inmobiliaria", kind: "Estate agent", town: "Costa Adeje", contact: "Sven Larsson", phone: "+34 922 000 104", stage: "paid",
+  ex(EX.casa, { name: "Casa Sur Inmobiliaria", kind: "Estate agent", town: "Costa Adeje", contact: "Sven Larsson", phone: "+34 922 000 104", stage: "paid", plan: "pro", planSince: d(-35),
     subs: [{ plan: "p4", tier: "Agent", price: 149, startedAt: d(-35) }],
     consents: [], languages: ["es", "en", "de", "nl", "sv"], notes: "Many Swedish and Dutch buyers." }),
   ex(EX.surf, { name: "Médano Surf School", kind: "Surf school", town: "El Médano", contact: "Dani Pérez", phone: "+34 922 000 105", stage: "lead",
     subs: [], consents: [], languages: ["es", "en", "de"], notes: "Liked the sample reel. Call back next week." }),
   ex(EX.bodega, { name: "Bodega Las Lajas", kind: "Winery", town: "Tacoronte", contact: "Carmen Afonso", phone: "+34 922 000 106", stage: "lead",
     subs: [], consents: [], languages: ["es", "en", "de"], notes: "Wants to sell to the mainland. Already has sanitary registration." }),
-  ex(EX.salon, { name: "Salón Nube", kind: "Beauty salon", town: "La Laguna", contact: "Andrea Mesa", phone: "+34 922 000 107", stage: "paid",
+  ex(EX.salon, { name: "Salón Nube", kind: "Beauty salon", town: "La Laguna", contact: "Andrea Mesa", phone: "+34 922 000 107", stage: "paid", plan: "basic", annual: true, planSince: d(-50),
     subs: [{ plan: "p10", tier: "Local Plus", price: 300, startedAt: d(-50) }],
     consents: [], languages: ["es", "en"], notes: "QR opt-in at the counter since August." }),
-  ex(EX.coach, { name: "Coach Raúl Torres", kind: "Business coach", town: "Santa Cruz", contact: "Raúl Torres", phone: "+34 922 000 108", stage: "paid",
+  ex(EX.coach, { name: "Coach Raúl Torres", kind: "Business coach", town: "Santa Cruz", contact: "Raúl Torres", phone: "+34 922 000 108", stage: "paid", plan: "basic", planSince: d(-30),
     subs: [{ plan: "p7", tier: "Starter", price: 200, startedAt: d(-30) }],
     consents: [], languages: ["es", "en"], notes: "Weekly podcast in Spanish." }),
-  ex(EX.agency, { name: "Nordeste Social Studio", kind: "Agency", town: "Santa Cruz", contact: "Paula Gil", phone: "+34 922 000 109", stage: "pilot",
+  ex(EX.agency, { name: "Nordeste Social Studio", kind: "Agency", town: "Santa Cruz", contact: "Paula Gil", phone: "+34 922 000 109", stage: "pilot", plan: "basic", trialStart: d(-5),
     subs: [{ plan: "p5", tier: "Base", price: 250, startedAt: d(-5) }],
     consents: [], languages: ["es", "en"], notes: "Free first brand month. White-label." }),
 ];
@@ -55,13 +55,13 @@ const visits: Visit[] = [
 ];
 
 const invoices: Invoice[] = [
-  ex("ex-i1", { number: "2026-0011", clientId: EX.tasca, date: d(-16), lines: [{ description: "Maps & Reviews · Plus", amount: 169 }, { description: "AI Visibility · Add-on", amount: 39 }], igicRate: 0.07, status: "paid" }),
-  ex("ex-i2", { number: "2026-0012", clientId: EX.whale, date: d(-16), lines: [{ description: "Maps & Reviews · Basic", amount: 99 }, { description: "WhatsApp Receptionist · Pro", amount: 249 }, { description: "WhatsApp Receptionist setup", amount: 290 }], igicRate: 0.07, status: "sent" }),
-  ex("ex-i3", { number: "2026-0013", clientId: EX.casa, date: d(-16), lines: [{ description: "Listing Kits · Agent", amount: 149 }], igicRate: 0.07, status: "paid" }),
+  ex("ex-i1", { number: "2026-0011", clientId: EX.tasca, date: d(-16), lines: [{ description: "Plan Básico", amount: 49 }], igicRate: 0.07, status: "paid" }),
+  ex("ex-i2", { number: "2026-0012", clientId: EX.whale, date: d(-16), lines: [{ description: "Plan Pro (precio especial)", amount: 89 }], igicRate: 0.07, status: "sent" }),
+  ex("ex-i3", { number: "2026-0013", clientId: EX.casa, date: d(-16), lines: [{ description: "Plan Pro", amount: 99 }], igicRate: 0.07, status: "paid" }),
 ];
 
 const tasks: Task[] = [
-  ex("ex-t1", { title: "Convert Azul Profundo pilot to paid (pilot ends in 20 days)", module: "clients", clientId: EX.dive, due: d(20), done: false }),
+  ex("ex-t1", { title: "Ask Azul Profundo to move from the free trial to Pro", module: "clients", clientId: EX.dive, due: d(4), done: false }),
   ex("ex-t2", { title: "Call back Médano Surf School", module: "visits", clientId: EX.surf, due: d(2), done: false }),
 ];
 

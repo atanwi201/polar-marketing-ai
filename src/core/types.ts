@@ -30,8 +30,14 @@ export interface Client extends Rec {
   contact: string;
   phone: string;
   email?: string;
-  stage: Stage;
-  subs: Subscription[];
+  stage: Stage; // "pilot" is shown as "Free trial"
+  plan?: "basic" | "pro"; // the paid plan they're on (or trying, while on a free trial)
+  customPrice?: number; // monthly price agreed with this business, when it differs from the plan's price
+  annual?: boolean; // billed yearly: 12 months for the price of 10
+  planSince?: string; // ISO date the paid plan started (setup fee is billed that month)
+  trialStart?: string; // ISO date the free trial started
+  studioId?: string; // the same business in the Content Studio (server)
+  subs: Subscription[]; // older per-service subscriptions, used by the extra tools only
   consents: Consent[];
   referredBy?: string;
   notes?: string;

@@ -2,92 +2,97 @@
 <html lang="es">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Isla Autopilot - Empieza gratis</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>{{BRAND}} - Empieza gratis</title>
 <meta name="description" content="Tu web y tus publicaciones para redes sociales, hechas con IA. Para negocios de Tenerife.">
+<meta name="color-scheme" content="light dark">
+<script>
+(function(){try{var m=matchMedia("(prefers-color-scheme: dark)"),r=document.documentElement,f=function(){r.dataset.theme=m.matches?"dark":"light"};f();m.addEventListener("change",f)}catch(e){}})();
+</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;700&family=Figtree:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/brand/tokens.css">
+<link rel="stylesheet" href="/brand/components.css">
 <style>
-:root{
-  --bg:#faf6ef; --card:#fffdf9; --ink:#1d2a30; --muted:#5d6a70; --line:#e4dccd;
-  --accent:#0a6a86; --accent-dark:#075369; --accent-soft:#e0f0f4; --sand:#f1e8d7;
-  --danger:#b3261e; --danger-soft:#fbe9e7; --radius:14px;
-  --sans:"Inter",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
-  --serif:"Fraunces",Georgia,serif;
-}
-*{box-sizing:border-box}
 html{-webkit-text-size-adjust:100%}
-body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 var(--sans);
-  background-image:radial-gradient(900px 380px at 85% -120px,#d6ebf0 0,transparent 70%)}
-.wrap{max-width:680px;margin:0 auto;padding:0 16px 64px}
-header.top{display:flex;align-items:center;justify-content:space-between;padding:18px 0}
-.brand{font-family:var(--serif);font-weight:600;font-size:20px;color:var(--accent-dark);letter-spacing:.2px}
-.brand span{color:var(--ink)}
-.lang{display:inline-flex;border:1px solid var(--line);border-radius:999px;background:var(--card);overflow:hidden}
-.lang button{border:0;background:none;padding:7px 14px;font:600 13px var(--sans);color:var(--muted);cursor:pointer;min-height:36px}
-.lang button[aria-pressed=true]{background:var(--accent);color:#fff}
-h1{font-family:var(--serif);font-weight:600;font-size:clamp(28px,7vw,40px);line-height:1.12;margin:18px 0 10px;color:var(--ink)}
-.lead{font-size:17px;color:var(--muted);margin:0 0 22px;max-width:52ch}
-.steps{list-style:none;margin:0 0 26px;padding:0;display:grid;gap:10px}
-.steps li{display:flex;gap:12px;align-items:flex-start;background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:12px 14px}
-.steps b{flex:none;width:28px;height:28px;border-radius:50%;background:var(--accent);color:#fff;display:grid;place-items:center;font-size:14px}
-.steps p{margin:0;font-size:15px}
-@media(min-width:700px){.steps{grid-template-columns:repeat(3,1fr)}.steps li{flex-direction:column}}
-form{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:20px 16px;box-shadow:0 10px 30px -18px rgba(10,60,80,.35)}
-@media(min-width:600px){form{padding:28px}}
-.field{margin-bottom:18px}
-label,.lbl{display:block;font-weight:600;font-size:14px;margin-bottom:6px}
-.opt{font-weight:400;color:var(--muted)}
-.hint{font-size:13px;color:var(--muted);margin:5px 0 0}
-input[type=text],input[type=email],input[type=tel],select,textarea{
-  width:100%;font:16px var(--sans);color:var(--ink);background:#fff;border:1.5px solid var(--line);
-  border-radius:10px;padding:11px 12px;min-height:46px}
-textarea{min-height:110px;resize:vertical}
-input:focus-visible,select:focus-visible,textarea:focus-visible,button:focus-visible,a:focus-visible,
-.chip input:focus-visible+span,.check input:focus-visible,.file input:focus-visible+span{outline:3px solid #5bb5cc;outline-offset:2px}
-input:focus,select:focus,textarea:focus{border-color:var(--accent)}
-.row{display:grid;gap:0 14px}
+body{margin:0;min-height:100vh}
+.wrap{max-width:640px;margin:0 auto;padding:0 var(--space-4) var(--space-8)}
+header.top{display:flex;align-items:center;justify-content:space-between;gap:var(--space-3);padding:var(--space-4) 0}
+.brand{display:flex;align-items:center;gap:10px;font:700 22px/1 var(--font-display);letter-spacing:-.01em}
+.logo{width:40px;height:40px;border-radius:var(--radius-pill);background:var(--basalt);color:var(--brand);display:grid;place-items:center;flex:none}
+.logo svg{width:22px;height:22px}
+.lang{display:inline-flex;background:var(--surface);border-radius:var(--radius-pill);padding:3px;box-shadow:inset 0 0 0 2px var(--line)}
+.lang button{border:0;background:none;padding:0 var(--space-4);font:700 14px var(--font-sans);color:var(--ink-2);cursor:pointer;min-height:var(--tap);min-width:var(--tap);border-radius:var(--radius-pill)}
+.lang button[aria-pressed=true]{background:var(--ink);color:var(--bg)}
+.lang button:focus-visible,.link:focus-visible{outline:3px solid var(--brand);outline-offset:2px}
+.hero{margin-bottom:var(--space-4);padding:var(--space-6) var(--space-5)}
+.hero h1{margin:0 0 var(--space-3);font-size:clamp(32px,9vw,44px);line-height:1.05;color:var(--on-basalt)}
+.lead{margin:0;max-width:46ch;color:var(--on-basalt);opacity:.88;font-size:17px;line-height:26px}
+.steps{list-style:none;margin:0 0 var(--space-4);padding:0;display:grid;gap:var(--space-2)}
+.steps li{display:flex;gap:14px;align-items:center;padding:var(--space-3) var(--space-4)}
+.steps b{flex:none;width:44px;height:44px;border-radius:var(--radius-pill);background:var(--brand-soft);color:var(--brand-ink);display:grid;place-items:center;font:500 16px var(--font-mono)}
+.steps p{margin:0;font-size:16px;font-weight:500}
+@media(min-width:700px){.steps{grid-template-columns:repeat(3,1fr)}.steps li{flex-direction:column;align-items:flex-start;padding:var(--space-4)}}
+form.cr-card{padding:var(--space-5) var(--space-4)}
+@media(min-width:600px){form.cr-card{padding:var(--space-6)}}
+.field{margin-bottom:var(--space-5)}
+.opt{font-weight:400}
+.row{display:grid;gap:0 var(--space-4)}
 @media(min-width:600px){.row.two{grid-template-columns:1fr 1fr}}
-.chips{display:flex;flex-wrap:wrap;gap:8px}
+.row.two:has(#townOtherWrap[hidden]){grid-template-columns:1fr}
+.selwrap{position:relative}
+.selwrap select.cr-input{appearance:none;-webkit-appearance:none;padding-right:48px}
+.selwrap::after{content:"";position:absolute;right:20px;top:50%;width:9px;height:9px;margin-top:-7px;border-right:2.5px solid var(--ink-2);border-bottom:2.5px solid var(--ink-2);transform:rotate(45deg);pointer-events:none}
+.chips{display:flex;flex-wrap:wrap;gap:var(--space-2)}
 .chip{position:relative}
-.chip input{position:absolute;opacity:0;inset:0;width:100%;height:100%;margin:0;cursor:pointer}
-.chip span{display:inline-flex;align-items:center;gap:6px;border:1.5px solid var(--line);background:#fff;border-radius:999px;padding:8px 14px;min-height:42px;font-weight:500;font-size:15px}
-.chip input:checked+span{background:var(--accent-soft);border-color:var(--accent);color:var(--accent-dark)}
+.chip input{inset:0;width:100%;height:100%;margin:0;cursor:pointer}
+.chip span{border-color:var(--line-strong)}
+.chip input:checked+span{border-color:var(--brand)}
 .chip input:checked+span::before{content:"\2713";font-weight:700}
-.chip small{color:var(--muted);font-weight:400}
-.file{display:flex;gap:14px;align-items:center;flex-wrap:wrap}
-.file label.btn{margin:0}
-.btn-ghost{display:inline-flex;align-items:center;border:1.5px dashed var(--accent);color:var(--accent-dark);background:var(--accent-soft);border-radius:10px;padding:10px 14px;font-weight:600;font-size:14px;cursor:pointer;min-height:44px}
+.chip small{font:500 12px var(--font-mono);opacity:.8}
+.file{display:flex;gap:14px;align-items:center;flex-wrap:wrap;position:relative}
+.file label.cr-btn{margin:0}
+.file label.cr-btn svg{width:18px;height:18px}
 .file input[type=file]{position:absolute;width:1px;height:1px;opacity:0;overflow:hidden}
-.file input:focus-visible+.btn-ghost{outline:3px solid #5bb5cc;outline-offset:2px}
+.file input:focus-visible+.cr-btn{outline:3px solid var(--brand);outline-offset:2px}
 .preview{display:none;align-items:center;gap:10px}
 .preview.on{display:flex}
-.preview img{width:72px;height:72px;object-fit:cover;border-radius:10px;border:1px solid var(--line)}
-.link{background:none;border:0;color:var(--accent-dark);text-decoration:underline;font:inherit;font-size:14px;cursor:pointer;padding:8px}
-.check{display:flex;gap:12px;align-items:flex-start;margin:0 0 12px;font-weight:400;font-size:14.5px;cursor:pointer}
-.check input{flex:none;width:22px;height:22px;margin:1px 0 0;accent-color:var(--accent)}
-.check a{color:var(--accent-dark)}
-.err{background:var(--danger-soft);color:var(--danger);border:1px solid #f0b8b2;border-radius:10px;padding:10px 12px;margin:0 0 14px;font-size:14.5px;display:none}
-.err.on{display:block}
-.fielderr{color:var(--danger);font-size:13px;margin:5px 0 0;display:none}
+.preview img{width:56px;height:56px;object-fit:cover;border-radius:var(--radius-pill)}
+.link{background:none;border:0;color:var(--brand-ink);text-decoration:underline;font:600 15px var(--font-sans);cursor:pointer;padding:0 var(--space-3);min-height:var(--tap);border-radius:var(--radius-sm)}
+.check{display:flex;gap:12px;align-items:flex-start;margin:0 0 var(--space-3);font:400 15px/22px var(--font-sans);color:var(--ink);cursor:pointer;min-height:var(--tap)}
+.check input{flex:none;width:24px;height:24px;margin:0;accent-color:var(--brand)}
+.check input:focus-visible{outline:3px solid var(--brand);outline-offset:2px}
+.err{display:none;align-items:flex-start;gap:var(--space-2);margin:0 0 var(--space-4);padding:var(--space-3) var(--space-4);border-radius:var(--radius-md);font:600 15px/22px var(--font-sans);letter-spacing:0}
+.err.on{display:flex}
+.err svg{flex:none;width:20px;height:20px;margin-top:1px}
+.fielderr{display:none;color:var(--bad);font:600 14px/20px var(--font-sans);margin:var(--space-2) 2px 0}
 .field.bad .fielderr{display:block}
-.field.bad input,.field.bad select,.field.bad textarea{border-color:var(--danger)}
-.submit{width:100%;min-height:52px;border:0;border-radius:12px;background:var(--accent);color:#fff;font:600 17px var(--sans);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;transition:background .15s}
-.submit:hover{background:var(--accent-dark)}
-.submit[disabled]{opacity:.75;cursor:progress}
-.spin{width:18px;height:18px;border:3px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;animation:sp .8s linear infinite;display:none}
-.submit.busy .spin{display:block}
+.field.bad .fielderr::before{content:"\26A0\FE0E ";}
+.field.bad .cr-input{border-color:var(--bad)}
+.spin{width:18px;height:18px;border:3px solid var(--on-brand);border-top-color:transparent;border-radius:50%;animation:sp .8s linear infinite;display:none}
+.cr-btn.busy .spin{display:block}
+.cr-btn[disabled].busy{opacity:.8;cursor:progress}
 @keyframes sp{to{transform:rotate(360deg)}}
-.foot{margin-top:18px;text-align:center;color:var(--muted);font-size:13px}
+.foot{margin:var(--space-4) 0 0;text-align:center;color:var(--ink-2);font-size:14px}
 [hidden]{display:none!important}
-@media(prefers-reduced-motion:reduce){*{animation-duration:2s!important;transition:none!important}.spin{animation-duration:2.4s!important}}
+.wiz-top{margin:0 0 18px}
+.wiz-bar{height:6px;border-radius:3px;background:var(--surface-2);overflow:hidden}
+.wiz-bar i{display:block;height:100%;width:20%;background:var(--brand);border-radius:3px;transition:width .3s}
+.wiz-step{margin:10px 2px 0;font-size:14px;color:var(--ink-2)}
+.wiz-step b{color:var(--ink)}
+.wiz-nav{display:flex;gap:10px;align-items:center;margin-top:18px}
+.wiz-nav .submit{flex:1;margin-top:0}
+.wiz-nav .back{flex:none}
+.skip{margin:12px 0 0;text-align:center;color:var(--ink-2);font-size:14px}
+#pf .pf-sec>h3{display:none}
+@media(prefers-reduced-motion:reduce){*{animation-duration:2s!important;transition:none!important}}
 </style>
 </head>
-<body>
+<body class="cr-root">
 <div class="wrap">
   <header class="top">
-    <div class="brand">Isla <span>Autopilot</span></div>
+    <div class="brand"><span class="logo" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10v4M8 7v10M12 4v16M16 8v8M20 11v2"/></svg></span>{{BRAND}}</div>
     <div class="lang" role="group" aria-label="Idioma / Language">
       <button type="button" data-lang="es" aria-pressed="true">ES</button>
       <button type="button" data-lang="en" aria-pressed="false">EN</button>
@@ -95,92 +100,81 @@ input:focus,select:focus,textarea:focus{border-color:var(--accent)}
   </header>
 
   <main>
-    <h1 data-i="h1">Tu web y tus redes, en piloto automático</h1>
-    <p class="lead" data-i="lead">Cuéntanos sobre tu negocio. La IA hace el resto, sin que tengas que aprender nada.</p>
+    <section class="hero cr-card cr-card--basalt">
+      <h1 class="display-lg" data-i="h1">Tu web y tus redes, en piloto automático</h1>
+      <p class="lead" data-i="lead">Cuéntanos sobre tu negocio. La IA hace el resto, sin que tengas que aprender nada.</p>
+    </section>
 
     <ol class="steps" aria-label="">
-      <li><b>1</b><p data-i="s1">La IA crea tu página web con lo que nos cuentas.</p></li>
-      <li><b>2</b><p data-i="s2">Tú nos dices qué quieres promocionar.</p></li>
-      <li><b>3</b><p data-i="s3">La IA escribe las publicaciones y crea una imagen nueva cada vez.</p></li>
+      <li class="cr-card"><b>1</b><p data-i="s1">La IA crea tu página web con lo que nos cuentas.</p></li>
+      <li class="cr-card"><b>2</b><p data-i="s2">Tú nos dices qué quieres promocionar.</p></li>
+      <li class="cr-card"><b>3</b><p data-i="s3">La IA escribe las publicaciones y crea una imagen nueva cada vez.</p></li>
     </ol>
 
-    <form id="f" novalidate>
-      <div class="err" id="formErr" role="alert"></div>
+    <form id="f" class="cr-card" novalidate>
+      <div class="wiz-top">
+        <div class="wiz-bar" aria-hidden="true"><i id="wizBar"></i></div>
+        <p class="wiz-step"><span id="wizN"></span> · <b id="wizTitle"></b></p>
+      </div>
+      <div class="err cr-badge cr-badge--bad" id="formErr" role="alert"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 2 20h20L12 3zM12 10v4M12 17.5v.01"/></svg><span id="formErrTxt"></span></div>
+      <div class="step" data-step="1">
 
-      <div class="field" data-f="name">
-        <label for="name"><span data-i="l_name">Nombre del negocio</span> *</label>
-        <input type="text" id="name" name="name" autocomplete="organization" maxlength="120" required>
+      <div class="field cr-field" data-f="name">
+        <label class="cr-label" for="name"><span data-i="l_name">Nombre del negocio</span> *</label>
+        <input class="cr-input" type="text" id="name" name="name" autocomplete="organization" maxlength="120" required>
         <p class="fielderr" data-i="req">Este campo es obligatorio.</p>
       </div>
 
-      <div class="field" data-f="kind">
-        <label for="kind"><span data-i="l_kind">Tipo de negocio</span> *</label>
-        <input type="text" id="kind" name="kind" list="kinds" maxlength="80" required>
+      <div class="field cr-field" data-f="kind">
+        <label class="cr-label" for="kind"><span data-i="l_kind">Tipo de negocio</span> *</label>
+        <input class="cr-input" type="text" id="kind" name="kind" list="kinds" maxlength="80" required>
         <datalist id="kinds"></datalist>
         <p class="fielderr" data-i="req">Este campo es obligatorio.</p>
       </div>
 
       <div class="row two">
-        <div class="field" data-f="town">
-          <label for="town"><span data-i="l_town">Localidad</span> *</label>
-          <select id="town" name="town" required></select>
+        <div class="field cr-field" data-f="town">
+          <label class="cr-label" for="town"><span data-i="l_town">Localidad</span> *</label>
+          <div class="selwrap"><select class="cr-input" id="town" name="town" required></select></div>
           <p class="fielderr" data-i="req">Este campo es obligatorio.</p>
         </div>
-        <div class="field" data-f="townOther" id="townOtherWrap" hidden>
-          <label for="townOther"><span data-i="l_townOther">Escribe tu localidad</span> *</label>
-          <input type="text" id="townOther" maxlength="80">
+        <div class="field cr-field" data-f="townOther" id="townOtherWrap" hidden>
+          <label class="cr-label" for="townOther"><span data-i="l_townOther">Escribe tu localidad</span> *</label>
+          <input class="cr-input" type="text" id="townOther" maxlength="80">
           <p class="fielderr" data-i="req">Este campo es obligatorio.</p>
         </div>
       </div>
 
       <div class="row two">
-        <div class="field" data-f="phone">
-          <label for="phone"><span data-i="l_phone">WhatsApp o teléfono</span> *</label>
-          <input type="tel" id="phone" name="phone" autocomplete="tel" inputmode="tel" maxlength="40" placeholder="+34 600 000 000" required>
+        <div class="field cr-field" data-f="phone">
+          <label class="cr-label" for="phone"><span data-i="l_phone">WhatsApp o teléfono</span> *</label>
+          <input class="cr-input" type="tel" id="phone" name="phone" autocomplete="tel" inputmode="tel" maxlength="40" placeholder="+34 600 000 000" required>
           <p class="fielderr" data-i="req">Este campo es obligatorio.</p>
         </div>
-        <div class="field" data-f="email">
-          <label for="email"><span data-i="l_email">Correo electrónico</span> *</label>
-          <input type="email" id="email" name="email" autocomplete="email" maxlength="160" required>
+        <div class="field cr-field" data-f="email">
+          <label class="cr-label" for="email"><span data-i="l_email">Correo electrónico</span> *</label>
+          <input class="cr-input" type="email" id="email" name="email" autocomplete="email" maxlength="160" required>
           <p class="fielderr" data-i="bademail">Introduce un correo válido.</p>
         </div>
       </div>
 
-      <div class="field">
-        <label for="domain"><span data-i="l_domain">Tu dominio propio</span> <span class="opt" data-i="optional">(opcional)</span></label>
-        <input type="text" id="domain" name="domain" autocomplete="url" inputmode="url" maxlength="120" placeholder="minegocio.es">
-        <p class="hint" data-i="h_domain">Si ya tienes uno. Si no, no pasa nada.</p>
+      <div class="field cr-field">
+        <label class="cr-label" for="domain"><span data-i="l_domain">Tu dominio propio</span> <span class="opt" data-i="optional">(opcional)</span></label>
+        <input class="cr-input" type="text" id="domain" name="domain" autocomplete="url" inputmode="url" maxlength="120" placeholder="minegocio.es">
+        <p class="cr-hint hint" data-i="h_domain">Si ya tienes uno. Si no, no pasa nada.</p>
       </div>
 
-      <div class="field" data-f="langs">
-        <span class="lbl" id="langLbl" data-i="l_langs">Idiomas de tus clientes</span>
+      <div class="field cr-field" data-f="langs">
+        <span class="cr-label lbl" id="langLbl" data-i="l_langs">Idiomas de tus clientes</span>
         <div class="chips" role="group" aria-labelledby="langLbl" id="langs"></div>
-        <p class="hint" data-i="h_langs">El primero que marques será el idioma principal.</p>
+        <p class="cr-hint hint" data-i="h_langs">El primero que marques será el idioma principal.</p>
         <p class="fielderr" data-i="req_lang">Elige al menos un idioma.</p>
       </div>
 
-      <div class="field" data-f="offer">
-        <label for="offer"><span data-i="l_offer">¿Qué ofreces?</span> *</label>
-        <textarea id="offer" name="offer" maxlength="2000" required></textarea>
-        <p class="fielderr" data-i="req">Este campo es obligatorio.</p>
       </div>
+      <div id="pf"></div>
 
-      <div class="field">
-        <label for="hours"><span data-i="l_hours">Horario</span> <span class="opt" data-i="optional">(opcional)</span></label>
-        <input type="text" id="hours" name="hours" maxlength="200">
-      </div>
-
-      <div class="field">
-        <span class="lbl"><span data-i="l_photo">Una foto de tu negocio</span> <span class="opt" data-i="optional">(opcional)</span></span>
-        <div class="file">
-          <input type="file" id="photo" accept="image/jpeg,image/png,image/webp">
-          <label class="btn-ghost" for="photo" data-i="choose">Elegir foto</label>
-          <div class="preview" id="prev"><img id="prevImg" alt=""><button type="button" class="link" id="prevRm" data-i="remove">Quitar</button></div>
-        </div>
-        <p class="hint" data-i="h_photo">Nos ayuda a que la web y las publicaciones se parezcan a ti.</p>
-      </div>
-
-      <div class="field" data-f="terms">
+      <div class="field cr-field step-final" data-f="terms">
         <label class="check" for="terms">
           <input type="checkbox" id="terms" required>
           <span><span data-i="terms">Acepto las condiciones del servicio y el tratamiento de mis datos para prestarlo.</span> *</span>
@@ -188,16 +182,22 @@ input:focus,select:focus,textarea:focus{border-color:var(--accent)}
         <p class="fielderr" data-i="req_terms">Debes aceptar para continuar.</p>
         <label class="check" for="mkt">
           <input type="checkbox" id="mkt">
-          <span data-i="mkt">Quiero recibir novedades y consejos de Isla Autopilot por correo o WhatsApp. Puedo darme de baja cuando quiera.</span>
+          <span data-i="mkt">Quiero recibir novedades y consejos de {{BRAND}} por correo o WhatsApp. Puedo darme de baja cuando quiera.</span>
         </label>
       </div>
 
-      <button class="submit" id="go" type="submit"><span class="spin" aria-hidden="true"></span><span id="goTxt" data-i="go">Empieza gratis</span></button>
+      <div class="wiz-nav">
+        <button type="button" class="cr-btn cr-btn--soft back" id="back" data-i="back">Atrás</button>
+        <button type="button" class="cr-btn cr-btn--primary cr-btn--lg submit" id="next"><span data-i="next">Siguiente</span></button>
+        <button class="cr-btn cr-btn--primary cr-btn--lg submit" id="go" type="submit" hidden><span class="spin" aria-hidden="true"></span><span id="goTxt" data-i="go">Crear mi web</span></button>
+      </div>
+      <p class="skip" id="skipNote" data-i="skip">Puedes saltarte lo que no tengas a mano y completarlo después.</p>
       <p class="foot" data-i="foot">Sin tarjeta. Tu enlace personal te llega al terminar.</p>
     </form>
   </main>
 </div>
 
+<script src="/assets/profile-form.js"></script>
 <script>
 (() => {
 "use strict";
@@ -212,8 +212,9 @@ const T = {
     l_offer:"¿Qué ofreces?", l_hours:"Horario", l_photo:"Una foto de tu negocio", optional:"(opcional)",
     choose:"Elegir foto", remove:"Quitar", h_photo:"Nos ayuda a que la web y las publicaciones se parezcan a ti.",
     terms:"Acepto las condiciones del servicio y el tratamiento de mis datos para prestarlo.",
-    mkt:"Quiero recibir novedades y consejos de Isla Autopilot por correo o WhatsApp. Puedo darme de baja cuando quiera.",
-    go:"Empieza gratis", sending:"Creando tu cuenta…", foot:"Sin tarjeta. Tu enlace personal te llega al terminar.",
+    mkt:"Quiero recibir novedades y consejos de {{BRAND}} por correo o WhatsApp. Puedo darme de baja cuando quiera.",
+    go:"Crear mi web", sending:"Creando tu web…", next:"Siguiente", back:"Atrás", skip:"Puedes saltarte lo que no tengas a mano y completarlo después.",
+    steps:["Tu negocio","Tu marca","Qué ofreces","Dónde y cuándo","Fotos y listo"], stepOf:"Paso {n} de 5", foot:"Sin tarjeta. Tu enlace personal te llega al terminar.",
     req:"Este campo es obligatorio.", bademail:"Introduce un correo válido.", req_lang:"Elige al menos un idioma.", req_terms:"Debes aceptar para continuar.",
     town_ph:"Elige tu localidad", other:"Otra", net:"No hemos podido conectar. Revisa tu conexión e inténtalo de nuevo.", generic:"Algo ha fallado. Inténtalo de nuevo.",
     ph_kind:"Restaurante, excursión en barco…", ph_hours:"Lun-Sáb 10:00-18:00",
@@ -230,8 +231,9 @@ const T = {
     l_offer:"What do you offer?", l_hours:"Opening hours", l_photo:"A photo of your business", optional:"(optional)",
     choose:"Choose photo", remove:"Remove", h_photo:"Helps the website and posts look like you.",
     terms:"I accept the terms of service and the processing of my data to provide it.",
-    mkt:"I would like to receive news and tips from Isla Autopilot by email or WhatsApp. I can unsubscribe at any time.",
-    go:"Get started", sending:"Creating your account…", foot:"No card needed. Your personal link arrives when you finish.",
+    mkt:"I would like to receive news and tips from {{BRAND}} by email or WhatsApp. I can unsubscribe at any time.",
+    go:"Create my website", sending:"Creating your website…", next:"Next", back:"Back", skip:"Skip anything you don't have to hand and add it later.",
+    steps:["Your business","Your brand","What you offer","Where and when","Photos and done"], stepOf:"Step {n} of 5", foot:"No card needed. Your personal link arrives when you finish.",
     req:"This field is required.", bademail:"Enter a valid email.", req_lang:"Pick at least one language.", req_terms:"You must accept to continue.",
     town_ph:"Choose your town", other:"Other", net:"Could not connect. Check your connection and try again.", generic:"Something went wrong. Please try again.",
     ph_kind:"Restaurant, boat trips…", ph_hours:"Mon-Sat 10:00-18:00",
@@ -243,13 +245,13 @@ const TOWNS=["Los Cristianos","Costa Adeje","Playa de las Américas","Puerto de 
 const LANGS=[["es","Español"],["en","English"],["de","Deutsch"],["it","Italiano"],["nl","Nederlands"],["sv","Svenska"],["fr","Français"]];
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 let lang="es";
-try{const s=localStorage.getItem("isla:lang"); if(s==="es"||s==="en") lang=s;}catch(e){}
+try{const s=localStorage.getItem("crier:lang"); if(s==="es"||s==="en") lang=s;}catch(e){}
 
 // language order: first checked = main
 let order=["es","en"];
 const langBox=$("#langs");
 LANGS.forEach(([c,n])=>{
-  const l=document.createElement("label"); l.className="chip";
+  const l=document.createElement("label"); l.className="cr-chip chip";
   l.innerHTML=`<input type="checkbox" value="${c}"><span>${n} <small>${c}</small></span>`;
   const i=l.querySelector("input"); i.checked=order.includes(c);
   i.addEventListener("change",()=>{
@@ -263,74 +265,78 @@ function applyLang(){
   const t=T[lang]; document.documentElement.lang=lang;
   $$("[data-i]").forEach(el=>{const v=t[el.dataset.i]; if(v!=null) el.textContent=v;});
   $$(".lang button").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.lang===lang)));
-  $("#kind").placeholder=t.ph_kind; $("#hours").placeholder=t.ph_hours; $("#offer").placeholder=t.ph_offer;
+  $("#kind").placeholder=t.ph_kind;
+  if(window.pf) pf=pf.setLang(lang);
+  showStep(step,true);
   $("#kinds").innerHTML=t.kinds.map(k=>`<option value="${k}">`).join("");
   const sel=$("#town"), cur=sel.value;
   sel.innerHTML=`<option value="">${t.town_ph}</option>`+TOWNS.map(x=>`<option>${x}</option>`).join("")+`<option value="__other">${t.other}</option>`;
   sel.value=cur;
-  document.title="Isla Autopilot - "+t.go;
+  document.title="{{BRAND}} - "+t.go;
   $(".steps").setAttribute("aria-label", lang==="es"?"Qué pasa después":"What happens next");
 }
 $$(".lang button").forEach(b=>b.addEventListener("click",()=>{
-  lang=b.dataset.lang; try{localStorage.setItem("isla:lang",lang);}catch(e){} applyLang();
+  lang=b.dataset.lang; try{localStorage.setItem("crier:lang",lang);}catch(e){} applyLang();
 }));
 $("#town").addEventListener("change",e=>{
   const o=e.target.value==="__other"; $("#townOtherWrap").hidden=!o;
   if(o) $("#townOther").focus();
 });
 
-// image downscale
-function downscale(file,max=1600,q=0.85){
-  return new Promise((res,rej)=>{
-    const url=URL.createObjectURL(file), img=new Image();
-    img.onload=()=>{
-      let {naturalWidth:w,naturalHeight:h}=img; const k=Math.min(1,max/Math.max(w,h));
-      w=Math.round(w*k); h=Math.round(h*k);
-      const c=document.createElement("canvas"); c.width=w; c.height=h;
-      const x=c.getContext("2d"); x.fillStyle="#fff"; x.fillRect(0,0,w,h); x.drawImage(img,0,0,w,h);
-      URL.revokeObjectURL(url); res(c.toDataURL("image/jpeg",q));
-    };
-    img.onerror=()=>{URL.revokeObjectURL(url); rej(new Error("img"));};
-    img.src=url;
-  });
+// ---------- wizard ----------
+const SECTIONS=["brand","offer","place","photos"];
+let step=1;
+var pf=window.pf=ProfileForm.mount($("#pf"),{lang,sections:SECTIONS,maxPhotos:8,requireOffer:true});
+function showStep(n,quiet){
+  step=n; const t=T[lang];
+  $$("[data-step]").forEach(s=>s.hidden=Number(s.dataset.step)!==n);
+  $$("#pf .pf-sec").forEach(s=>s.hidden=s.dataset.sec!==SECTIONS[n-2]);
+  $(".step-final").hidden=n!==5;
+  $("#wizBar").style.width=(n*20)+"%";
+  $("#wizN").textContent=t.stepOf.replace("{n}",n); $("#wizTitle").textContent=t.steps[n-1];
+  $("#back").hidden=n===1; $("#next").hidden=n===5; $("#go").hidden=n!==5; $("#skipNote").hidden=n===1||n===5;
+  if(!quiet){ errBox.classList.remove("on"); $("#f").scrollIntoView({block:"start",behavior:"smooth"}); }
 }
-let image=null;
-$("#photo").addEventListener("change",async e=>{
-  const f=e.target.files[0]; if(!f) return;
-  try{ image=await downscale(f); $("#prevImg").src=image; $("#prev").classList.add("on"); }
-  catch(_){ image=null; e.target.value=""; $("#prev").classList.remove("on"); }
+const v=id=>$("#"+id).value.trim();
+function checkBasics(){
+  const town=$("#town").value==="__other"?v("townOther"):$("#town").value;
+  const bad={ name:!v("name"), kind:!v("kind"), town:!town, phone:!v("phone"), email:!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v("email")), langs:!order.length };
+  if($("#town").value==="__other"){ $('[data-f=townOther]').classList.toggle("bad",!town); bad.town=false; }
+  else $('[data-f=townOther]').classList.remove("bad");
+  $$("[data-step='1'] [data-f]").forEach(f=>{ if(f.dataset.f!=="townOther") f.classList.toggle("bad",!!bad[f.dataset.f]); });
+  const first=$$("[data-step='1'] .field.bad")[0];
+  if(first){ const i=first.querySelector("input,select,textarea"); if(i) i.focus(); first.scrollIntoView({block:"center",behavior:"smooth"}); return false; }
+  return true;
+}
+$("#next").addEventListener("click",()=>{
+  if(step===1&&!checkBasics()) return;
+  if(step===3){ const p=pf.problem("offer"); if(p){ showErr(p.msg); const el=$("#"+p.id); if(el) el.focus(); return; } }
+  showStep(step+1);
 });
-$("#prevRm").addEventListener("click",()=>{image=null;$("#photo").value="";$("#prev").classList.remove("on");$("#photo").focus();});
+$("#back").addEventListener("click",()=>showStep(Math.max(1,step-1)));
 
 const errBox=$("#formErr");
-function showErr(m){errBox.textContent=m;errBox.classList.add("on");errBox.scrollIntoView({block:"nearest",behavior:"smooth"});}
+function showErr(m){$("#formErrTxt").textContent=m;errBox.classList.add("on");errBox.scrollIntoView({block:"nearest",behavior:"smooth"});}
 
 $("#f").addEventListener("submit",async e=>{
   e.preventDefault(); errBox.classList.remove("on");
-  const t=T[lang], v=id=>$("#"+id).value.trim();
+  const t=T[lang];
+  if(step!==5) return;
+  if(!$("#terms").checked){ $('[data-f=terms]').classList.add("bad"); $("#terms").focus(); return; }
+  if(!checkBasics()){ showStep(1); return; }
   const town=$("#town").value==="__other"?v("townOther"):$("#town").value;
-  const bad={
-    name:!v("name"), kind:!v("kind"), town:!town, phone:!v("phone"),
-    email:!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v("email")), offer:!v("offer"),
-    langs:!order.length, terms:!$("#terms").checked
-  };
-  if($("#town").value==="__other") { $('[data-f=townOther]').classList.toggle("bad",!town); bad.town=false; if(!town) bad.townOther=true; }
-  else $('[data-f=townOther]').classList.remove("bad");
-  $$("[data-f]").forEach(f=>{ if(f.dataset.f!=="townOther") f.classList.toggle("bad",!!bad[f.dataset.f]); });
-  const first=$$(".field.bad")[0];
-  if(first){ const i=first.querySelector("input,select,textarea"); if(i) i.focus(); first.scrollIntoView({block:"center",behavior:"smooth"}); return; }
-
+  const data=pf.collect();
+  if(!data.offer){ showStep(3); showErr(pf.problem("offer").msg); return; }
   const body={name:v("name"),kind:v("kind"),town,phone:v("phone"),email:v("email"),languages:order.slice(),
-    offer:v("offer"),acceptTerms:true,marketingConsent:$("#mkt").checked};
+    offer:data.offer,hours:data.hours,profile:data.profile,photos:data.photos,acceptTerms:true,marketingConsent:$("#mkt").checked};
+  if(data.logo) body.logo=data.logo;
   if(v("domain")) body.domain=v("domain");
-  if(v("hours")) body.hours=v("hours");
-  if(image) body.image=image;
 
   const btn=$("#go"); btn.disabled=true; btn.classList.add("busy"); $("#goTxt").textContent=t.sending;
   try{
     const r=await fetch("/api/signup",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(body)});
     let d={}; try{d=await r.json();}catch(_){}
-    if(r.ok && d.portalUrl){ location.href=d.portalUrl; return; }
+    if(r.ok && d.portalUrl){ location.href=d.portalUrl+"?welcome=1"; return; }
     showErr(d.error||t.generic);
   }catch(_){ showErr(t.net); }
   btn.disabled=false; btn.classList.remove("busy"); $("#goTxt").textContent=t.go;

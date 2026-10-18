@@ -1,5 +1,6 @@
 // Plan 3 · Multilingual Activity Pages: matrix -> writer -> QA -> sitemap -> rankings, plus the free audit lead magnet.
 import { useState } from "react";
+import { BRAND } from "../core/brand";
 import {
   Page, Card, Button, Field, Input, TextArea, Select, Form, Tabs, Badge, Stat, Stats, Table, Empty, AiOutput,
   LangPicker, LangTag, ClientPicker, ConfirmButton, toast, fmtDate, type Tone,
@@ -545,7 +546,7 @@ function AuditView({ audit, onClose }: { audit: Audit; onClose: () => void }) {
     setMsgBusy(true);
     const res = await aiText(
       `Write a short ${audit.channel === "email" ? "email" : "WhatsApp message"} in Spanish to ${audit.business}, who asked for this audit (${audit.consentSource}). Summarise the score ${r.score}/100, missing languages ${r.missingLangs.join(", ")}, and the top 2 quick wins. Offer a free 60-day pilot. No pressure, no ranking promises, under 90 words.`,
-      () => `Hola, soy de Isla Autopilot. Aquí tienes la auditoría que pediste para ${audit.business}: ${r.score}/100. ${r.missingLangs.length ? `Ahora mismo no tienes páginas en ${r.missingLangs.map((l) => LANGS[l].toLowerCase()).join(", ")}, y esos turistas buscan en su idioma.` : "Ya cubres los cinco idiomas principales."} Dos mejoras rápidas: botón de reserva directa y WhatsApp en cada página, y completar tu ficha de Google en ${audit.town}. Si te interesa, hacemos un piloto gratis de 60 días. Sin compromiso.`,
+      () => `Hola, soy de ${BRAND}. Aquí tienes la auditoría que pediste para ${audit.business}: ${r.score}/100. ${r.missingLangs.length ? `Ahora mismo no tienes páginas en ${r.missingLangs.map((l) => LANGS[l].toLowerCase()).join(", ")}, y esos turistas buscan en su idioma.` : "Ya cubres los cinco idiomas principales."} Dos mejoras rápidas: botón de reserva directa y WhatsApp en cada página, y completar tu ficha de Google en ${audit.town}. Si te interesa, hacemos un piloto gratis de 60 días. Sin compromiso.`,
     );
     setMsgBusy(false); setMsg({ text: res.data, live: res.live });
   };

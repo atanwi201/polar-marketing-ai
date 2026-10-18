@@ -7,6 +7,8 @@ import Billing from "../screens/billing";
 import Reports from "../screens/reports";
 import Settings from "../screens/settings";
 import Studio from "../screens/studio";
+import Plans from "../screens/plans";
+import Business from "../screens/business";
 import * as reviews from "./reviews";
 import * as visibility from "./visibility";
 import * as receptionist from "./receptionist";
@@ -18,14 +20,19 @@ import * as clips from "./clips";
 import * as social from "./social";
 import * as makers from "./makers";
 
-export interface Route { id: string; label: string; Screen: ComponentType; plan?: PlanId; group: "business" | "core" | "more" }
+export interface Route { id: string; label: string; Screen: ComponentType; plan?: PlanId; group: "business" | "core" | "more"; hidden?: boolean; navAs?: string }
+
+/** The extra tools (the older one-service-per-screen offer) are hidden unless switched on in Settings. */
+export const isExtraTool = (r: Route) => r.group !== "business";
 
 export const ROUTES: Route[] = [
   { id: "dashboard", label: "Today", Screen: Dashboard, group: "business" },
-  { id: "studio", label: "Content Studio", Screen: Studio, group: "business" },
-  { id: "clients", label: "Clients & pipeline", Screen: Clients, group: "business" },
-  { id: "visits", label: "Visits & follow-ups", Screen: Visits, group: "business" },
+  { id: "clients", label: "Businesses", Screen: Clients, group: "business" },
+  { id: "business", label: "Business", Screen: Business, group: "business", hidden: true, navAs: "clients" },
+  { id: "studio", label: "All posts & videos", Screen: Studio, group: "business" },
+  { id: "plans", label: "Plans & prices", Screen: Plans, group: "business" },
   { id: "billing", label: "Billing", Screen: Billing, group: "business" },
+  { id: "visits", label: "Visits & follow-ups", Screen: Visits, group: "business" },
   { id: "reports", label: "Client reports", Screen: Reports, group: "business" },
   { id: "settings", label: "Settings", Screen: Settings, group: "business" },
   { id: "reviews", label: "Maps & Reviews", Screen: reviews.default, plan: "p1", group: "core" },

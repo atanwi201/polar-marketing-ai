@@ -136,3 +136,6 @@ export function useStoreVersion() {
 
 export const storeReady = ready;
 export const collections = () => [...cache.keys()];
+
+/** Wait until a collection has loaded (before reading it outside a component). */
+export const loadCollection = (col: string) => ensure(col);

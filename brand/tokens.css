@@ -1,0 +1,82 @@
+/* Crier — generated from tokens.json */
+:root, [data-theme="light"] {
+  --bg: #f4f6f6;
+  --surface: #ffffff;
+  --surface-2: #eaf0f0;
+  --line: #d5dede;
+  --line-strong: #76888c;
+  --ink: #0e1316;
+  --ink-2: #4a5b60;
+  --brand: #007c89;
+  --brand-hover: #00626d;
+  --on-brand: #ffffff;
+  --brand-ink: #006872;
+  --brand-soft: #ddf2f1;
+  --basalt: #0e1316;
+  --on-basalt: #ffffff;
+  --sun: #ffb400;
+  --on-sun: #1a1200;
+  --good: #146b41;
+  --good-soft: #ddf3e7;
+  --warn: #8f5400;
+  --warn-soft: #fbebd0;
+  --bad: #b3261e;
+  --bad-soft: #fadedb;
+  --shadow-card: 0 12px 32px -16px rgba(14,19,22,0.28);
+  --shadow-pop: 0 20px 48px -16px rgba(14,19,22,0.36);
+}
+[data-theme="dark"] {
+  --bg: #0b1012;
+  --surface: #141b1e;
+  --surface-2: #1c2528;
+  --line: #2a363a;
+  --line-strong: #6e8288;
+  --ink: #edf3f3;
+  --ink-2: #a7b6ba;
+  --brand: #3dd6d0;
+  --brand-hover: #7be6e1;
+  --on-brand: #04201f;
+  --brand-ink: #3dd6d0;
+  --brand-soft: #12383a;
+  --basalt: #1c2a2e;
+  --on-basalt: #edf3f3;
+  --sun: #ffc53d;
+  --on-sun: #1a1200;
+  --good: #5ccb93;
+  --good-soft: #12332a;
+  --warn: #f0b04a;
+  --warn-soft: #3a2b10;
+  --bad: #ff8f86;
+  --bad-soft: #3f1c1a;
+  --shadow-card: 0 12px 32px -16px rgba(0,0,0,0.7);
+  --shadow-pop: 0 20px 48px -16px rgba(0,0,0,0.8);
+}
+:root {
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+  --space-8: 64px;
+  --radius-sm: 12px;
+  --radius-md: 16px;
+  --radius-lg: 24px;
+  --radius-xl: 32px;
+  --radius-pill: 999px;
+  --tap: 48px;
+  --tap-lg: 56px;
+  --measure: 65ch;
+  --font-display: "Bricolage Grotesque", "Avenir Next", "Segoe UI", system-ui, sans-serif;
+  --font-sans: "Figtree", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+.display-xl { font-family: var(--font-display); font-size: 56px; line-height: 58px; font-weight: 700; letter-spacing: -0.02em; }
+.display-lg { font-family: var(--font-display); font-size: 40px; line-height: 44px; font-weight: 700; letter-spacing: -0.015em; }
+.display-md { font-family: var(--font-display); font-size: 28px; line-height: 32px; font-weight: 600; letter-spacing: -0.01em; }
+.body-lg { font-family: var(--font-sans); font-size: 18px; line-height: 28px; font-weight: 400; }
+.body { font-family: var(--font-sans); font-size: 16px; line-height: 24px; font-weight: 400; }
+.body-sm { font-family: var(--font-sans); font-size: 14px; line-height: 20px; font-weight: 400; }
+.label { font-family: var(--font-sans); font-size: 13px; line-height: 16px; font-weight: 600; letter-spacing: 0.02em; }
+.data { font-family: var(--font-mono); font-size: 13px; line-height: 20px; font-weight: 500; }

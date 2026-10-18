@@ -186,7 +186,7 @@ export function CalendarView(props: { bot: Bot; client: Client; bookings: Bookin
                       const on = sel?.tripId === trip.id && sel.date === d && sel.time === time;
                       const pct = s.cap ? Math.round(((s.cap - s.left) / s.cap) * 100) : 100;
                       return (
-                        <button type="button" className={"chip" + (on ? " chip-on" : "")} style={{ width: "100%", minWidth: 96, borderRadius: 6 }} onClick={() => setSel({ tripId: trip.id, date: d, time })}
+                        <button type="button" className={"chip" + (on ? " chip-on" : "")} style={{ width: "100%", minWidth: 96, borderRadius: "var(--radius-md)" }} onClick={() => setSel({ tripId: trip.id, date: d, time })}
                           aria-label={`${d} ${time}: ${s.block ? "closed" : `${s.left} seats left`}`}>
                           <span className="stack-sm">
                             <span>{s.block ? "Closed" : s.left === 0 ? "Full" : `${s.left} left`}</span>
@@ -522,7 +522,7 @@ export function AuditView() {
               {audits.map((a) => {
                 const x = computeAudit(a);
                 return (
-                  <button key={a.id} type="button" className={"chip" + (current?.id === a.id ? " chip-on" : "")} style={{ textAlign: "left", borderRadius: 6 }} onClick={() => { setDraft(null); setSelId(a.id); }}>
+                  <button key={a.id} type="button" className={"chip" + (current?.id === a.id ? " chip-on" : "")} style={{ textAlign: "left", borderRadius: "var(--radius-md)" }} onClick={() => { setDraft(null); setSelId(a.id); }}>
                     {a.business} · {a.town} · {x.lost.toFixed(1)} lost/week
                   </button>
                 );

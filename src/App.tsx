@@ -1,63 +1,97 @@
 import { useState, useEffect } from "react";
-import { ROUTES } from "./modules";
+import { ROUTES, isExtraTool } from "./modules";
 import { useRoute, navigate } from "./core/nav";
 import { AiModePill, Toasts, Button } from "./core/ui";
 import { useBackend } from "./core/store";
+import { useUiPrefs } from "./screens/settings";
+import { BRAND } from "./core/brand";
 
 const GROUPS = [
-  { id: "business", label: "Run the business" },
-  { id: "core", label: "Start here" },
-  { id: "more", label: "More services" },
+  { id: "business", label: "Your business" },
+  { id: "core", label: "Extra tools" },
+  { id: "more", label: "More extra tools" },
 ] as const;
 
 function Mark() {
   // Teide over the Atlantic: one peak, two swell lines.
   return (
     <svg className="brand-mark" viewBox="0 0 32 32" aria-hidden>
-      <rect width="32" height="32" rx="7" fill="#0a6a86" />
-      <path d="M5 21 L13.5 9.5 L16 12 L18 10 L27 21 Z" fill="#ffffff" />
-      <path d="M13.5 9.5 L16 12 L18 10 L16.2 8 Z" fill="#cfe6ee" />
-      <path d="M5 24.5 q3.5 -2 7 0 t7 0 t7 0" stroke="#9fd3e3" strokeWidth="1.6" fill="none" />
+      <rect className="m-bg" width="32" height="32" rx="10" />
+      <path className="m-peak" d="M5 21 L13.5 9.5 L16 12 L18 10 L27 21 Z" />
+      <path className="m-swell" d="M5 24.5 q3.5 -2 7 0 t7 0 t7 0" strokeWidth="1.8" fill="none" strokeLinecap="round" />
     </svg>
   );
 }
 
+type Auth = "checking" | "signed-in" | "local";
+
+/** Ask the server whether we're signed in; without a server (artifact / offline) the app runs locally. */
+function useAdminAuth(): Auth {
+  const [auth, setAuth] = useState<Auth>("checking");
+  useEffect(() => {
+    fetch("/api/auth", { credentials: "same-origin" })
+      .then((r) => r.json())
+      .then((d: { admin?: boolean; setup?: boolean }) => {
+        if (typeof d?.setup !== "boolean") return setAuth("local");
+        if (d.admin) return setAuth("signed-in");
+        location.replace("/#admin"); // the landing page asks for the password (or creates it the first time)
+      })
+      .catch(() => setAuth("local"));
+  }, []);
+  return auth;
+}
+
+async function signOut() {
+  await fetch("/api/auth/logout", { method: "POST", credentials: "same-origin" }).catch(() => {});
+  location.href = "/";
+}
+
 export default function App() {
+  const auth = useAdminAuth();
   const route = useRoute();
   const backend = useBackend();
   const [open, setOpen] = useState(false);
-  const current = ROUTES.find((r) => r.id === route) ?? ROUTES[0];
+  const { showTools } = useUiPrefs();
+  const visible = ROUTES.filter((r) => !r.hidden && (showTools || !isExtraTool(r)));
+  // A hidden tool still opens from a direct link, so nothing is lost. "business/<id>" opens one business.
+  const current = ROUTES.find((r) => r.id === route.split("/")[0]) ?? ROUTES[0];
+  const navId = current.navAs ?? current.id;
   useEffect(() => setOpen(false), [route]);
+  useEffect(() => { document.title = BRAND; }, []);
+  if (auth === "checking") return null;
 
   return (
     <div className="shell">
       <nav className={"rail" + (open ? " open" : "")} aria-label="Sections">
+       <div className="rail-in">
         <div className="brand">
           <Mark />
           <div>
-            <div className="brand-name">Isla Autopilot</div>
+            <div className="brand-name">{BRAND}</div>
             <div className="brand-sub">AI marketing · Tenerife</div>
           </div>
         </div>
-        {GROUPS.map((g) => (
+        {GROUPS.filter((g) => visible.some((r) => r.group === g.id)).map((g) => (
           <div className="nav-group" key={g.id}>
             <div className="nav-label">{g.label}</div>
-            {ROUTES.filter((r) => r.group === g.id).map((r) => (
-              <button key={r.id} className="nav-item" aria-current={r.id === current.id ? "page" : undefined} onClick={() => navigate(r.id)}>
+            {visible.filter((r) => r.group === g.id).map((r) => (
+              <button key={r.id} className="nav-item" aria-current={r.id === navId ? "page" : undefined} onClick={() => navigate(r.id)}>
                 <span>{r.label}</span>
-                {r.plan && <span className="nav-tag">P{r.plan.slice(1)}</span>}
+
               </button>
             ))}
           </div>
         ))}
+       </div>
       </nav>
       <div className="main">
         <div className="topbar">
           <span className="menu-btn"><Button small onClick={() => setOpen(!open)}>Menu</Button></span>
           <span className="small faint">{backend === "cloud" ? "Saved to your workspace" : backend === "browser" ? "Saved in this browser" : ""}</span>
           <AiModePill />
+          {auth === "signed-in" && <Button small onClick={() => void signOut()}>Sign out</Button>}
         </div>
-        <current.Screen key={current.id} />
+        <current.Screen key={route} />
       </div>
       <Toasts />
     </div>

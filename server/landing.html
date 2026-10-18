@@ -1,0 +1,252 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>{{BRAND}}</title>
+<meta name="description" content="Marketing con IA para negocios de Tenerife: publicaciones, vídeos y una web a medida.">
+<meta name="robots" content="noindex">
+<meta name="color-scheme" content="light dark">
+<script>
+(function(){try{var m=matchMedia("(prefers-color-scheme: dark)"),r=document.documentElement,f=function(){r.dataset.theme=m.matches?"dark":"light"};f();m.addEventListener("change",f)}catch(e){}})();
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;700&family=Figtree:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/brand/tokens.css">
+<link rel="stylesheet" href="/brand/components.css">
+<style>
+html{-webkit-text-size-adjust:100%}
+body{margin:0;min-height:100vh}
+.wrap{max-width:560px;margin:0 auto;padding:0 var(--space-4) var(--space-8)}
+header.top{display:flex;align-items:center;justify-content:space-between;gap:var(--space-3);padding:var(--space-4) 0}
+.brand{display:flex;align-items:center;gap:10px;font:700 22px/1 var(--font-display);letter-spacing:-.01em}
+.logo{width:40px;height:40px;border-radius:var(--radius-pill);background:var(--basalt);color:var(--brand);display:grid;place-items:center;flex:none}
+.logo svg{width:22px;height:22px}
+.seg{display:inline-flex;background:var(--surface);border-radius:var(--radius-pill);padding:3px;box-shadow:inset 0 0 0 2px var(--line)}
+.seg button{border:0;background:none;padding:0 var(--space-4);font:700 14px var(--font-sans);color:var(--ink-2);cursor:pointer;min-height:var(--tap);min-width:var(--tap);border-radius:var(--radius-pill)}
+.seg button[aria-pressed=true],.seg button[aria-selected=true]{background:var(--ink);color:var(--bg)}
+.seg button:focus-visible,.eye:focus-visible,.foot a:focus-visible{outline:3px solid var(--brand);outline-offset:2px}
+.tabs{display:flex;width:100%;margin-bottom:var(--space-5)}
+.tabs button{flex:1}
+.hero{margin-bottom:var(--space-4);padding:var(--space-6) var(--space-5)}
+.hero h1{margin:0 0 var(--space-3);font-size:clamp(32px,9vw,44px);line-height:1.05;color:var(--on-basalt)}
+.lead{margin:0;max-width:46ch;color:var(--on-basalt);opacity:.88;font-size:17px;line-height:26px}
+.pills{list-style:none;margin:var(--space-4) 0 0;padding:0;display:flex;flex-wrap:wrap;gap:var(--space-2)}
+.pills li{display:inline-flex;align-items:center;gap:8px;padding:8px 14px;border-radius:var(--radius-pill);background:rgba(255,255,255,.12);color:var(--on-basalt);font:600 14px var(--font-sans)}
+.pills svg{width:18px;height:18px;flex:none}
+.small-print{margin:var(--space-4) 0 0;color:var(--on-basalt);opacity:.7;font-size:13px}
+form.cr-card,.cr-card.panel{padding:var(--space-5) var(--space-4)}
+@media(min-width:600px){.cr-card.panel{padding:var(--space-6)}}
+.panel h2{margin:0 0 var(--space-2);font:700 24px/1.2 var(--font-display)}
+.sub{margin:0 0 var(--space-5);color:var(--ink-2);font-size:16px;line-height:24px}
+.field{position:relative;margin-bottom:var(--space-5)}
+.code{font-family:var(--font-mono);letter-spacing:.2em;text-transform:uppercase;text-align:center;font-size:22px}
+.eye{position:absolute;right:6px;top:50%;transform:translateY(-50%);background:none;border:0;color:var(--brand-ink);text-decoration:underline;font:600 15px var(--font-sans);cursor:pointer;padding:0 var(--space-3);min-height:var(--tap);border-radius:var(--radius-sm)}
+.hint{margin:calc(-1 * var(--space-3)) 0 var(--space-5);color:var(--ink-2);font-size:14px}
+.err{display:block;margin:0 0 var(--space-4);padding:var(--space-3) var(--space-4);border-radius:var(--radius-md);background:var(--bad-soft,transparent);color:var(--bad);font:600 15px/22px var(--font-sans)}
+.err[hidden]{display:none}
+.spin{width:18px;height:18px;border:3px solid var(--on-brand);border-top-color:transparent;border-radius:50%;animation:sp .8s linear infinite;display:none}
+.cr-btn.busy .spin{display:block}
+.cr-btn[disabled].busy{opacity:.8;cursor:progress}
+a.cr-btn{text-decoration:none}
+.cr-btn+.cr-btn{margin-top:var(--space-3)}
+@keyframes sp{to{transform:rotate(360deg)}}
+.foot{margin:var(--space-4) 0 0;text-align:center;color:var(--ink-2);font-size:14px}
+.foot a{color:var(--brand-ink);font-weight:600}
+[hidden]{display:none!important}
+@media(prefers-reduced-motion:reduce){*{animation-duration:2s!important;transition:none!important}}
+</style>
+</head>
+<body class="cr-root">
+<div class="wrap">
+  <header class="top">
+    <div class="brand"><span class="logo" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10v4M8 7v10M12 4v16M16 8v8M20 11v2"/></svg></span>{{BRAND}}</div>
+    <div class="seg" role="group" aria-label="Idioma / Language"><button type="button" data-lang="es" aria-pressed="true">ES</button><button type="button" data-lang="en" aria-pressed="false">EN</button></div>
+  </header>
+
+  <section class="hero cr-card cr-card--basalt" aria-labelledby="t1">
+    <h1 id="t1" class="display-lg" data-t="h1"></h1>
+    <p class="lead" data-t="lead"></p>
+    <ul class="pills">
+      <li><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="7" height="7" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><rect x="13" y="4" width="7" height="7" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><rect x="4" y="13" width="7" height="7" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><rect x="13" y="13" width="7" height="7" rx="2" fill="none" stroke="currentColor" stroke-width="2"/></svg><span data-t="p1"></span></li>
+      <li><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="6" width="13" height="12" rx="3" fill="none" stroke="currentColor" stroke-width="2"/><path d="M16 10.5l5-3v9l-5-3z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg><span data-t="p2"></span></li>
+      <li><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/><path d="M3 12h18M12 3c2.6 2.6 3.8 5.6 3.8 9s-1.2 6.4-3.8 9c-2.6-2.6-3.8-5.6-3.8-9S9.4 5.6 12 3z" fill="none" stroke="currentColor" stroke-width="2"/></svg><span data-t="p3"></span></li>
+    </ul>
+    <p class="small-print" data-t="made"></p>
+  </section>
+
+  <main>
+    <div class="cr-card panel">
+      <div class="seg tabs" role="tablist">
+        <button type="button" role="tab" id="tabClient" aria-controls="paneClient" aria-selected="true" data-t="tabClient"></button>
+        <button type="button" role="tab" id="tabAdmin" aria-controls="paneAdmin" aria-selected="false" data-t="tabAdmin"></button>
+      </div>
+
+      <form id="paneClient" role="tabpanel" aria-labelledby="tabClient" novalidate>
+        <h2 data-t="cTitle"></h2>
+        <p class="sub" data-t="cSub"></p>
+        <div class="err" id="cErr" role="alert" hidden></div>
+        <div class="field cr-field">
+          <label class="cr-label" for="code" data-t="cLabel"></label>
+          <input class="cr-input code" id="code" name="code" autocomplete="one-time-code" autocapitalize="characters" spellcheck="false" inputmode="text" maxlength="7" placeholder="ABC-123" required>
+        </div>
+        <button class="cr-btn cr-btn--primary cr-btn--lg cr-btn--block" id="cGo" type="submit"><span class="spin" aria-hidden="true"></span><span data-t="cGo"></span></button>
+        <p class="foot"><span data-t="newHere"></span> <a href="/signup" data-t="signup"></a></p>
+      </form>
+
+      <form id="paneAdmin" role="tabpanel" aria-labelledby="tabAdmin" novalidate hidden>
+        <div id="aSigned" hidden>
+          <h2 data-t="aSignedT"></h2>
+          <p class="sub" data-t="aSignedP"></p>
+          <a class="cr-btn cr-btn--primary cr-btn--lg cr-btn--block" href="/admin/" data-t="aOpen"></a>
+          <button class="cr-btn cr-btn--outline cr-btn--block" type="button" id="aOut" data-t="aOut"></button>
+        </div>
+        <div id="aForm">
+          <h2 id="aTitle"></h2>
+          <p class="sub" id="aSub"></p>
+          <div class="err" id="aErr" role="alert" hidden></div>
+          <div class="field cr-field">
+            <label class="cr-label" for="pw" data-t="aLabel"></label>
+            <input class="cr-input" id="pw" type="password" autocomplete="current-password" required style="padding-right:84px"><button class="eye" type="button" id="eye" aria-controls="pw" data-t="show"></button>
+          </div>
+          <div id="confirmRow" hidden>
+            <div class="field cr-field">
+              <label class="cr-label" for="pw2" data-t="aConfirm"></label>
+              <input class="cr-input" id="pw2" type="password" autocomplete="new-password">
+            </div>
+            <p class="hint" data-t="aHint"></p>
+          </div>
+          <button class="cr-btn cr-btn--primary cr-btn--lg cr-btn--block" id="aGo" type="submit"><span class="spin" aria-hidden="true"></span><span id="aGoT"></span></button>
+        </div>
+      </form>
+    </div>
+  </main>
+</div>
+<script>
+(() => {
+  const T = {
+    es: {
+      h1: "Tu marketing en piloto automático.", lead: "Publicaciones, vídeos y una web a medida para negocios de Tenerife, hechos con IA.",
+      p1: "Posts para redes", p2: "Vídeos para Reels y Shorts", p3: "Tu web premium", made: "Hecho en Tenerife · {{BRAND}}",
+      tabClient: "Soy cliente", tabAdmin: "Administrador",
+      cTitle: "Entra en tu panel", cSub: "Escribe el código de 6 caracteres que te dimos.", cLabel: "Tu código", cGo: "Entrar",
+      newHere: "¿Aún no eres cliente?", signup: "Empieza gratis",
+      aTitle: "Panel de administración", aSub: "Escribe tu contraseña para gestionar todos los negocios.",
+      setupT: "Crea tu contraseña", setupS: "Es la primera vez: elige la contraseña de administrador. La necesitarás para entrar.",
+      aLabel: "Contraseña", aConfirm: "Repite la contraseña", aHint: "Mínimo 8 caracteres.", aGo: "Entrar", setupGo: "Crear y entrar",
+      show: "Ver", hide: "Ocultar",
+      aSignedT: "Ya has iniciado sesión", aSignedP: "Tu panel de administración está listo.", aOpen: "Abrir el panel", aOut: "Cerrar sesión",
+      eCode: "El código tiene 6 caracteres, por ejemplo ABC-123.", ePw: "Escribe tu contraseña.", eShort: "Usa al menos 8 caracteres.",
+      eMatch: "Las contraseñas no coinciden.", eNet: "No hay conexión con el servidor. Inténtalo otra vez.",
+    },
+    en: {
+      h1: "Your marketing on autopilot.", lead: "Posts, videos and a custom website for Tenerife businesses, made with AI.",
+      p1: "Social posts", p2: "Reels and Shorts videos", p3: "Your premium website", made: "Made in Tenerife · {{BRAND}}",
+      tabClient: "I'm a client", tabAdmin: "Admin",
+      cTitle: "Open your dashboard", cSub: "Type the 6-character code we gave you.", cLabel: "Your code", cGo: "Enter",
+      newHere: "Not a client yet?", signup: "Start free",
+      aTitle: "Admin dashboard", aSub: "Type your password to manage every business.",
+      setupT: "Create your password", setupS: "First time here: choose the admin password. You'll need it to sign in.",
+      aLabel: "Password", aConfirm: "Repeat the password", aHint: "At least 8 characters.", aGo: "Sign in", setupGo: "Create and sign in",
+      show: "Show", hide: "Hide",
+      aSignedT: "You're signed in", aSignedP: "Your admin dashboard is ready.", aOpen: "Open the dashboard", aOut: "Sign out",
+      eCode: "The code has 6 characters, like ABC-123.", ePw: "Type your password.", eShort: "Use at least 8 characters.",
+      eMatch: "The passwords don't match.", eNet: "Can't reach the server. Try again.",
+    },
+  };
+  const $ = (id) => document.getElementById(id);
+  const store = { get: (k) => { try { return localStorage.getItem(k); } catch { return null; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch {} } };
+  const q = new URLSearchParams(location.search);
+  let lang = q.get("lang") || store.get("isla:lang") || ((navigator.language || "es").startsWith("es") ? "es" : "en");
+  if (!T[lang]) lang = "es";
+  let auth = { admin: false, setup: false };
+  const t = (k) => T[lang][k] ?? k;
+
+  function render() {
+    document.documentElement.lang = lang;
+    document.querySelectorAll("[data-t]").forEach((el) => { el.textContent = t(el.dataset.t); });
+    document.querySelectorAll("[data-lang]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.lang === lang)));
+    $("aTitle").textContent = auth.setup ? t("setupT") : t("aTitle");
+    $("aSub").textContent = auth.setup ? t("setupS") : t("aSub");
+    $("aGoT").textContent = auth.setup ? t("setupGo") : t("aGo");
+    $("confirmRow").hidden = !auth.setup;
+    $("pw").autocomplete = auth.setup ? "new-password" : "current-password";
+    $("eye").textContent = $("pw").type === "password" ? t("show") : t("hide");
+    $("aSigned").hidden = !auth.admin;
+    $("aForm").hidden = auth.admin;
+  }
+
+  function tab(which, focus = true) {
+    const admin = which === "admin";
+    $("tabClient").setAttribute("aria-selected", String(!admin));
+    $("tabAdmin").setAttribute("aria-selected", String(admin));
+    $("paneClient").hidden = admin;
+    $("paneAdmin").hidden = !admin;
+    store.set("isla:landingTab", which);
+    if (focus) (admin ? (auth.admin ? null : $("pw")) : $("code"))?.focus();
+  }
+  $("tabClient").onclick = () => tab("client");
+  $("tabAdmin").onclick = () => tab("admin");
+  document.querySelector(".tabs").addEventListener("keydown", (e) => {
+    if (e.key === "ArrowRight" || e.key === "ArrowLeft") { const admin = $("tabClient").getAttribute("aria-selected") === "true"; tab(admin ? "admin" : "client"); (admin ? $("tabAdmin") : $("tabClient")).focus(); }
+  });
+  document.querySelectorAll("[data-lang]").forEach((b) => (b.onclick = () => { lang = b.dataset.lang; store.set("isla:lang", lang); render(); }));
+
+  const show = (el, msg, kind = "err") => { el.className = kind; el.textContent = msg; el.hidden = !msg; };
+  const busy = (btn, on) => { btn.disabled = on; btn.classList.toggle("busy", on); btn.setAttribute("aria-busy", String(on)); };
+  async function post(url, body) {
+    const r = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body), credentials: "same-origin" });
+    let d = {}; try { d = await r.json(); } catch {}
+    return { ok: r.ok, d };
+  }
+
+  // Client code: letters and numbers only, shown as ABC-123.
+  const code = $("code");
+  const fmt = (v) => { const raw = v.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 6); return raw.length > 3 ? raw.slice(0, 3) + "-" + raw.slice(3) : raw; };
+  code.addEventListener("input", () => { code.value = fmt(code.value); $("cErr").hidden = true; });
+  $("paneClient").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const v = code.value.replace(/-/g, "");
+    if (v.length !== 6) { show($("cErr"), t("eCode")); code.focus(); return; }
+    busy($("cGo"), true);
+    try {
+      const { ok, d } = await post("/api/client-login", { code: v });
+      if (ok && d.portalUrl) { location.href = d.portalUrl; return; }
+      show($("cErr"), d.error || t("eCode"));
+    } catch { show($("cErr"), t("eNet")); }
+    busy($("cGo"), false);
+    code.select();
+  });
+
+  $("eye").onclick = () => { const pw = $("pw"); pw.type = pw.type === "password" ? "text" : "password"; if (auth.setup) $("pw2").type = pw.type; render(); };
+  $("paneAdmin").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    if (auth.admin) return;
+    const pw = $("pw").value;
+    if (!pw) { show($("aErr"), t("ePw")); $("pw").focus(); return; }
+    if (auth.setup && pw.length < 8) { show($("aErr"), t("eShort")); $("pw").focus(); return; }
+    if (auth.setup && pw !== $("pw2").value) { show($("aErr"), t("eMatch")); $("pw2").focus(); return; }
+    busy($("aGo"), true);
+    try {
+      const { ok, d } = await post("/api/auth/login", { password: pw });
+      if (ok) { location.href = d.next || "/admin/"; return; }
+      show($("aErr"), d.error || t("ePw"));
+    } catch { show($("aErr"), t("eNet")); }
+    busy($("aGo"), false);
+    $("pw").select();
+  });
+  $("aOut").onclick = async () => { try { await post("/api/auth/logout", {}); } catch {} auth.admin = false; render(); $("pw").focus(); };
+
+  if (q.get("code")) code.value = fmt(q.get("code"));
+  render();
+  tab(location.hash === "#admin" || q.get("next") === "admin" ? "admin" : q.get("code") ? "client" : store.get("isla:landingTab") || "client", false);
+  fetch("/api/auth", { credentials: "same-origin" }).then((r) => r.json()).then((d) => {
+    auth = d;
+    render();
+    if (d.setup) tab("admin", false); // first run: create the password straight away
+  }).catch(() => {});
+})();
+</script>
+</body>
+</html>

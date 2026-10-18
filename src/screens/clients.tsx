@@ -1,12 +1,16 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Page, Card, Button, Badge, Table, Tabs, Modal, Field, Input, TextArea, Select, LangPicker, ConfirmButton, Stats, Stat, Empty, fmtDate, toast, type Tone } from "../core/ui";
 import { useCollection, put, remove, uid, now, today } from "../core/store";
-import { clientMrr, subLabel, subMrr, upsellFor, withIgic } from "../core/biz";
-import { PLANS, planById, TOWNS, eur } from "../core/plans";
-import type { Client, Stage, Subscription, PlanId, Consent } from "../core/types";
+import { withIgic, STAGE_LABEL, clientMonthly, monthlyIncome, planLabel, trialDaysLeft } from "../core/biz";
+import { useOffer, PLAN_IDS, type Offer } from "../core/offer";
+import { TOWNS, eur } from "../core/plans";
+import { pushPlanToStudio, useStudio } from "../core/studio-sync";
+import { navigate } from "../core/nav";
+import { initials } from "./business";
+import type { Client, Stage, Consent } from "../core/types";
 
 export const STAGE_TONE: Record<Stage, Tone> = { lead: "info", pilot: "warn", paid: "good", churned: "neutral" };
-const STAGES: Stage[] = ["lead", "pilot", "paid", "churned"];
+const STAGES: Stage[] = ["paid", "pilot", "lead", "churned"];
 
 const blank = (): Client => ({
   id: uid(), createdAt: now(), name: "", kind: "Restaurant", town: "Los Cristianos", contact: "", phone: "", stage: "lead",
@@ -15,45 +19,104 @@ const blank = (): Client => ({
 
 export default function Clients() {
   const clients = useCollection<Client>("clients");
-  const [tab, setTab] = useState<Stage | "all">("all");
+  const offer = useOffer();
+  const studio = useStudio();
+  const [filter, setFilter] = useState<Stage | "all" | "needs">("all");
+  const [q, setQ] = useState("");
   const [editing, setEditing] = useState<Client | null>(null);
-  const shown = tab === "all" ? clients : clients.filter((c) => c.stage === tab);
+  // Today's "Add a client" opens the form straight away.
+  useEffect(() => {
+    let id: string | null = null;
+    try { id = sessionStorage.getItem("isla:openClient"); sessionStorage.removeItem("isla:openClient"); } catch { /* ignore */ }
+    if (id === "new") setEditing(blank());
+    else if (id) navigate(`business/${id}`);
+  }, []);
+
+  const flaggedFor = (c: Client) => studio?.messages.filter((m) => m.clientId === c.studioId && m.needsOwner && !m.seenByOwner).length ?? 0;
+  const sc = (c: Client) => studio?.clients.find((x) => x.id === c.studioId);
+  const readyPosts = (c: Client) => studio?.posts.filter((p) => p.clientId === c.studioId && (p.status === "ready" || p.status === "published")).length ?? 0;
+  const lastActive = (c: Client) => {
+    const times = [c.createdAt, ...(studio?.messages.filter((m) => m.clientId === c.studioId).map((m) => m.createdAt) ?? []), ...(studio?.posts.filter((p) => p.clientId === c.studioId).map((p) => p.createdAt) ?? [])];
+    return times.sort().pop() ?? c.createdAt;
+  };
+  const needle = q.trim().toLowerCase();
+  const shown = clients
+    .filter((c) => filter === "all" || (filter === "needs" ? flaggedFor(c) > 0 : c.stage === filter))
+    .filter((c) => !needle || `${c.name} ${c.kind} ${c.town} ${c.contact} ${c.phone}`.toLowerCase().includes(needle))
+    .sort((a, b) => flaggedFor(b) - flaggedFor(a) || lastActive(b).localeCompare(lastActive(a)));
   const count = (s: Stage) => clients.filter((c) => c.stage === s).length;
+  const needs = clients.filter((c) => flaggedFor(c) > 0).length;
 
   return (
-    <Page title="Clients & pipeline" intro="Every business from first visit to paying client, with what they buy and the consents you hold."
-      actions={<Button kind="primary" onClick={() => setEditing(blank())}>Add client</Button>}>
-      <Stats>
-        {STAGES.map((s) => <Stat key={s} label={s === "paid" ? "Paying" : s[0].toUpperCase() + s.slice(1) + "s"} value={count(s)}
-          sub={s === "paid" ? eur(Math.round(clients.reduce((n, c) => n + clientMrr(c), 0))) + "/mo" : undefined} />)}
-      </Stats>
-      <Card>
-        <Tabs value={tab} onChange={setTab} tabs={[{ id: "all", label: "All", count: clients.length }, ...STAGES.map((s) => ({ id: s, label: s[0].toUpperCase() + s.slice(1), count: count(s) }))]} />
-        <Table rows={shown} rowKey={(c) => c.id} onRow={(c) => setEditing(structuredClone(c))}
-          empty={<>No clients here. Use <strong>Add client</strong> after a visit, or log visits first.</>}
-          cols={[
-            { label: "Business", render: (c) => <div className="stack-sm"><span className="strong">{c.name}</span><span className="small faint">{c.kind} · {c.town}</span></div> },
-            { label: "Stage", render: (c) => <Badge tone={STAGE_TONE[c.stage]}>{c.stage}</Badge> },
-            { label: "Services", render: (c) => c.subs.length ? <div className="row wrap">{c.subs.map((s, i) => <Badge key={i}>{subLabel(s)}</Badge>)}</div> : <span className="faint">None</span> },
-            { label: "Per month", render: (c) => c.subs.length ? eur(Math.round(c.subs.reduce((n, s) => n + subMrr(s), 0))) : "", num: true },
-            { label: "Next", render: (c) => { const u = upsellFor(c); return u ? <span className="small muted">Offer {planById(u.plan).name}</span> : null; } },
-          ]} />
-      </Card>
-      {editing && <ClientEditor client={editing} onClose={() => setEditing(null)} />}
+    <Page title="Businesses" intro="Everyone you work with. Click a business to see and manage everything: its conversation with the assistant, posts, videos, website, plan and details."
+      actions={<Button kind="primary" onClick={() => setEditing(blank())}>Add business</Button>}>
+      <div className="biz-toolbar">
+        <input className="input" type="search" placeholder="Search by name, town or phone" value={q} onChange={(e) => setQ(e.target.value)} aria-label="Search businesses" style={{ maxWidth: 340 }} />
+        <div className="chips">
+          {([["all", `All ${clients.length}`], ...(needs ? [["needs", `Need you ${needs}`]] : []), ...STAGES.map((s) => [s, `${STAGE_LABEL[s]} ${count(s)}`])] as [typeof filter, string][]).map(([v, label]) => (
+            <button key={v} type="button" className={"chip" + (filter === v ? " chip-on" : "")} aria-pressed={filter === v} onClick={() => setFilter(v)}>{label}</button>
+          ))}
+        </div>
+        <span className="small muted" style={{ marginLeft: "auto" }}>{eur(Math.round(monthlyIncome(clients, offer)))} a month from {count("paid")} paying</span>
+      </div>
+
+      {!shown.length ? (
+        <Card><Empty>{clients.length ? "No business matches." : <>No businesses yet. Share your sign-up link, or use <strong>Add business</strong>.</>}</Empty></Card>
+      ) : (
+        <div className="biz-grid">
+          {shown.map((c) => {
+            const s = sc(c);
+            const left = trialDaysLeft(c, offer);
+            const flagged = flaggedFor(c);
+            return (
+              <button key={c.id} type="button" className="biz-card" onClick={() => navigate(`business/${c.id}`)}>
+                <span className="row" style={{ gap: 12 }}>
+                  <span className="biz-av" aria-hidden>{initials(c.name)}</span>
+                  <span className="stack-sm" style={{ minWidth: 0, flex: 1 }}>
+                    <span className="strong biz-name">{c.name}</span>
+                    <span className="small faint biz-name">{[c.kind, c.town].filter(Boolean).join(" · ") || "No details yet"}</span>
+                  </span>
+                  {flagged > 0 && <Badge tone="bad">{flagged} need{flagged === 1 ? "s" : ""} you</Badge>}
+                  {sc(c)?.approvalStatus === "pending" && <Badge tone="accent">Approve</Badge>}
+                  {sc(c)?.approvalStatus === "declined" && <Badge tone="neutral">Declined</Badge>}
+                </span>
+                <span className="row wrap">
+                  <Badge tone={STAGE_TONE[c.stage]}>{STAGE_LABEL[c.stage]}</Badge>
+                  {(c.plan || c.stage === "pilot") && <span className="small">{planLabel(c, offer)}</span>}
+                  {c.stage === "paid" && c.plan && <span className="small strong tabular">{eur(Math.round(clientMonthly(c, offer)))}/mo</span>}
+                  {left != null && <span className="small" style={{ color: left <= 0 ? "var(--bad)" : "var(--ink-3)" }}>{left > 0 ? `${left} days left` : "trial ended"}</span>}
+                </span>
+                <span className="row wrap small muted biz-meta">
+                  {s ? <>
+                    <span><span className={"dot " + (s.site?.status === "ready" ? "dot-good" : s.site?.status === "building" ? "dot-info" : "dot-bad")} />{s.site?.status === "ready" ? "Website live" : s.site?.status === "building" ? "Website building" : "No website"}</span>
+                    <span>{readyPosts(c)} posts</span>
+                    {s.autopilot && <span>autopilot {s.postsPerWeek}/wk</span>}
+                  </> : <span>Not on the autopilot yet</span>}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      )}
+      {editing && <ClientEditor client={editing} offer={offer} onClose={(saved) => { setEditing(null); if (saved) navigate(`business/${saved}`); }} />}
     </Page>
   );
 }
 
-function ClientEditor({ client, onClose }: { client: Client; onClose: () => void }) {
+
+function ClientEditor({ client, offer, onClose }: { client: Client; offer: Offer; onClose: (savedId?: string) => void }) {
   const [c, setC] = useState<Client>(client);
-  const set = <K extends keyof Client>(k: K, v: Client[K]) => setC({ ...c, [k]: v });
+  const set = <K extends keyof Client>(k: K, v: Client[K]) => setC((x) => ({ ...x, [k]: v }));
   const isNew = !client.name;
 
   const save = async () => {
     if (!c.name.trim()) return toast("Give the business a name first.");
+    if (c.stage === "paid" && !c.plan) return toast("Pick a plan for a paying client.");
     await put("clients", c);
-    toast(isNew ? "Client added" : "Client saved");
-    onClose();
+    const planChanged = c.plan !== client.plan || c.customPrice !== client.customPrice || c.stage !== client.stage;
+    if (c.studioId && planChanged) await pushPlanToStudio(c, offer);
+    toast(isNew ? "Business added" : "Business saved");
+    onClose(c.id);
   };
 
   return (
@@ -68,7 +131,6 @@ function ClientEditor({ client, onClose }: { client: Client; onClose: () => void
         <Field label="Business name"><Input id="c-name" value={c.name} onChange={(v) => set("name", v)} placeholder="Tasca El Puerto" /></Field>
         <Field label="Type of business"><Input id="c-kind" value={c.kind} onChange={(v) => set("kind", v)} placeholder="Restaurant, dive school…" /></Field>
         <Field label="Town"><Select id="c-town" value={c.town} onChange={(v) => set("town", v)} options={TOWNS.includes(c.town) ? TOWNS : [c.town, ...TOWNS]} /></Field>
-        <Field label="Stage"><Select id="c-stage" value={c.stage} onChange={(v) => set("stage", v)} options={STAGES} /></Field>
         <Field label="Contact person"><Input id="c-contact" value={c.contact} onChange={(v) => set("contact", v)} /></Field>
         <Field label="Business phone"><Input id="c-phone" value={c.phone} onChange={(v) => set("phone", v)} placeholder="+34 922…" /></Field>
         <Field label="Email (invoices only)"><Input id="c-email" value={c.email ?? ""} onChange={(v) => set("email", v)} /></Field>
@@ -77,46 +139,69 @@ function ClientEditor({ client, onClose }: { client: Client; onClose: () => void
         <Field label="Notes" wide><TextArea id="c-notes" rows={3} value={c.notes ?? ""} onChange={(v) => set("notes", v)} /></Field>
       </div>
       <hr className="divider" />
-      <SubsEditor subs={c.subs} onChange={(subs) => set("subs", subs)} />
+      <PlanPicker c={c} offer={offer} onChange={(patch) => setC((x) => ({ ...x, ...patch }))} />
       <hr className="divider" />
       <ConsentEditor consents={c.consents} onChange={(v) => set("consents", v)} />
     </Modal>
   );
 }
 
-function SubsEditor({ subs, onChange }: { subs: Subscription[]; onChange: (s: Subscription[]) => void }) {
-  const [plan, setPlan] = useState<PlanId>("p1");
-  const p = planById(plan);
-  const [tier, setTier] = useState(p.tiers[0].name);
-  const t = p.tiers.find((x) => x.name === tier) ?? p.tiers[0];
-  const total = subs.reduce((n, s) => n + subMrr(s), 0);
+/** Status and plan: lead, free trial, one of the two paid plans, or left; plus a custom price for this business. */
+export function PlanPicker({ c, offer, onChange }: { c: Client; offer: Offer; onChange: (patch: Partial<Client>) => void }) {
+  type Choice = "lead" | "trial" | "basic" | "pro" | "churned";
+  const current: Choice = c.stage === "paid" && c.plan ? c.plan : c.stage === "pilot" ? "trial" : c.stage === "churned" ? "churned" : "lead";
+  const pick = (v: Choice) => {
+    if (v === "basic" || v === "pro") onChange({ stage: "paid", plan: v, planSince: c.stage === "paid" && c.plan ? c.planSince : today(), customPrice: c.plan === v ? c.customPrice : undefined });
+    else if (v === "trial") onChange({ stage: "pilot", plan: c.plan ?? "basic", trialStart: c.stage === "pilot" ? c.trialStart : today() });
+    else onChange({ stage: v });
+  };
+  const options: { v: Choice; title: string; sub: string }[] = [
+    { v: "lead", title: "Lead", sub: "Not using it yet" },
+    { v: "trial", title: "Free trial", sub: `${offer.trialDays} days, no charge` },
+    ...PLAN_IDS.map((id) => ({ v: id as Choice, title: offer.plans[id].name, sub: `${eur(offer.plans[id].price)} a month` })),
+    { v: "churned", title: "Left", sub: "No longer a client" },
+  ];
+  const listPrice = c.plan ? offer.plans[c.plan].price : 0;
+  const price = c.customPrice ?? listPrice;
+  const monthly = c.annual ? (price * 10) / 12 : price;
+  const left = trialDaysLeft(c, offer);
   return (
     <div className="stack">
-      <div className="row between"><h3>Services</h3><span className="small muted tabular">{eur(Math.round(total))}/mo · {eur(withIgic(total))} with IGIC</span></div>
-      {subs.length ? subs.map((s, i) => (
-        <div key={i} className="row between box wrap">
-          <div className="stack-sm">
-            <span className="strong">{subLabel(s)}</span>
-            <span className="small faint">Since {fmtDate(s.startedAt)}{s.setup ? ` · setup ${eur(s.setup)}` : ""}</span>
-          </div>
-          <span className="row wrap">
-            <span className="tabular">{eur(s.price)}/mo</span>
-            <Button small kind={s.annual ? "primary" : "ghost"} title="12 months for the price of 10"
-              onClick={() => onChange(subs.map((x, j) => (j === i ? { ...x, annual: !x.annual } : x)))}>{s.annual ? "Annual" : "Monthly"}</Button>
-            <Button small kind="ghost" onClick={() => onChange(subs.filter((_, j) => j !== i))}>Remove</Button>
-          </span>
-        </div>
-      )) : <Empty>No services yet.</Empty>}
-      <div className="form-grid">
-        <Field label="Plan"><Select id="s-plan" value={plan} onChange={(v) => { setPlan(v); setTier(planById(v).tiers[0].name); }} options={PLANS.map((x) => ({ value: x.id, label: x.name }))} /></Field>
-        <Field label="Tier" hint={t.detail}><Select id="s-tier" value={tier} onChange={setTier} options={p.tiers.map((x) => ({ value: x.name, label: `${x.name} · ${x.price ? eur(x.price) + "/mo" : "one-off"}` }))} /></Field>
-        <Button onClick={() => onChange([...subs, { plan, tier: t.name, price: t.price, setup: p.setup, startedAt: today() }])}>Add service</Button>
+      <div className="row between wrap"><h3>Plan</h3>{c.stage === "paid" && c.plan && <span className="small muted tabular">{eur(Math.round(monthly))} a month · {eur(withIgic(monthly))} with IGIC</span>}</div>
+      <div className="plan-pick" role="radiogroup" aria-label="Plan">
+        {options.map((o) => (
+          <button key={o.v} type="button" role="radio" aria-checked={current === o.v} className={"plan-opt" + (current === o.v ? " on" : "")} onClick={() => pick(o.v)}>
+            <span className="strong">{o.title}</span><span className="small muted">{o.sub}</span>
+          </button>
+        ))}
       </div>
+      {c.stage === "pilot" && (
+        <div className="form-grid top">
+          <Field label="Trying which plan?" hint={left != null ? (left > 0 ? `${left} days left on the trial` : "The trial has ended: move them to a paid plan") : undefined}>
+            <Select id="c-trial-plan" value={c.plan ?? "basic"} onChange={(v) => onChange({ plan: v })} options={PLAN_IDS.map((id) => ({ value: id, label: offer.plans[id].name }))} />
+          </Field>
+          <Field label="Trial started"><Input id="c-trial-start" type="date" value={c.trialStart ?? c.createdAt.slice(0, 10)} onChange={(v) => onChange({ trialStart: v })} /></Field>
+        </div>
+      )}
+      {c.stage === "paid" && c.plan && (
+        <div className="form-grid top">
+          <Field label="Price for this business (€ a month)" hint={c.customPrice != null && c.customPrice !== listPrice ? `Custom price. The ${offer.plans[c.plan].name} list price is ${eur(listPrice)}.` : "This is the list price. Type another amount to give this business its own price."}>
+            <Input id="c-price" type="number" min={0} step={1} value={price}
+              onChange={(v) => { const n = Math.max(0, Number(v) || 0); onChange({ customPrice: n === listPrice ? undefined : n }); }} />
+          </Field>
+          <Field label="Billing">
+            <Select id="c-annual" value={c.annual ? "annual" : "monthly"} onChange={(v) => onChange({ annual: v === "annual" })}
+              options={[{ value: "monthly", label: "Monthly" }, { value: "annual", label: "Yearly (12 months for 10)" }]} />
+          </Field>
+          <Field label="Paying since"><Input id="c-since" type="date" value={c.planSince ?? today()} onChange={(v) => onChange({ planSince: v })} /></Field>
+        </div>
+      )}
+      {c.subs.length > 0 && <p className="small faint" style={{ margin: 0 }}>This client also has {c.subs.length} older service{c.subs.length > 1 ? "s" : ""} from before the two plans. They're no longer billed.</p>}
     </div>
   );
 }
 
-function ConsentEditor({ consents, onChange }: { consents: Consent[]; onChange: (c: Consent[]) => void }) {
+export function ConsentEditor({ consents, onChange }: { consents: Consent[]; onChange: (c: Consent[]) => void }) {
   const [channel, setChannel] = useState<Consent["channel"]>("whatsapp");
   const [source, setSource] = useState("Said yes during visit");
   return (

@@ -3,103 +3,50 @@ import {
   Page, Card, Button, Badge, Table, Tabs, Modal, Field, Input, TextArea, Select, LangPicker, LangTag,
   ConfirmButton, CopyButton, Stats, Stat, Empty, fmtDate, toast, type Tone,
 } from "../core/ui";
-import { useCollection } from "../core/store";
+import { useCollection, put as putRecord } from "../core/store";
+import { useOffer, PLAN_IDS, type PaidPlanId } from "../core/offer";
+import { eur } from "../core/plans";
 import type { Client as AppClient, Lang } from "../core/types";
 
-// ---- Types (see studio API contract) ----
-interface Site { status: "building" | "ready" | "failed"; url?: string; path?: string; builtAt?: string; error?: string; models?: unknown }
-interface SClient {
-  id: string; token: string; name: string; kind: string; town: string; phone: string; email: string; domain: string;
-  offer: string; hours: string; tone: string; languages: string[]; platforms: string[]; autopilot: boolean;
-  postsPerWeek: number; autoPublish: boolean; webhookUrl: string; siteSlug?: string; site?: Site; createdAt: string;
-  source?: string; marketingConsent?: boolean;
-}
-interface Brief { id: string; clientId: string; text: string; createdAt: string; imageFile?: string; imageDescription?: string; archived?: boolean }
-type PostStatus = "generating" | "ready" | "published" | "failed";
-interface Post {
-  id: string; clientId: string; briefId?: string; createdAt: string; status: PostStatus; reason?: string; concept?: string;
-  imagePrompt?: string; captions?: Record<string, string>; hashtags?: string[]; cta?: string; imageFile?: string;
-  model?: string; error?: string; publishNote?: string; publishedAt?: string;
-}
-interface StudioData { clients: SClient[]; briefs: Brief[]; posts: Post[]; ai: { openrouter: boolean }; images: string }
+import {
+  type SClient, type Post, type PostStatus, type StudioData, type Act, type Platform, type ImageSettings, type ImageProvider, type AiSettings,
+  readToken, saveToken, apiOrigin, mediaUrl, siteUrl, call, downscale, tagLine,
+} from "./studio-api";
+import { ShareModal } from "./studio-share";
+import { VideosTab } from "./studio-videos";
 
-type Result<T> = { kind: "ok"; data: T } | { kind: "unreachable" } | { kind: "auth" } | { kind: "error"; message: string };
-
-// ---- API helpers ----
-const TOKEN_KEY = "isla:adminToken";
-const readToken = () => { try { return localStorage.getItem(TOKEN_KEY) ?? ""; } catch { return ""; } };
-const saveToken = (t: string) => { try { localStorage.setItem(TOKEN_KEY, t); } catch { /* ignore */ } };
-
-const apiOrigin = /:8787$/.test(location.origin) ? location.origin : "http://localhost:8787";
-const sameOrigin = apiOrigin === location.origin;
-const assetUrl = (p: string) => (sameOrigin ? p : apiOrigin + p);
-const mediaUrl = (file: string) => assetUrl("/media/" + file);
-const siteUrl = (u: string) => (/^https?:/.test(u) ? u : assetUrl(u));
-
-async function call<T>(method: string, path: string, body?: unknown): Promise<Result<T>> {
-  try {
-    const headers: Record<string, string> = {};
-    if (body !== undefined) headers["Content-Type"] = "application/json";
-    const tok = readToken();
-    if (tok) headers["x-admin-token"] = tok;
-    const res = await fetch("/api/studio" + path, { method, headers, body: body === undefined ? undefined : JSON.stringify(body) });
-    if (res.status === 401) return { kind: "auth" };
-    const text = await res.text();
-    let json: unknown;
-    try { json = JSON.parse(text); } catch { return { kind: "unreachable" }; }
-    if (!res.ok) {
-      const m = (json as { error?: string } | null)?.error;
-      return { kind: "error", message: m ?? `Request failed (${res.status})` };
-    }
-    return { kind: "ok", data: json as T };
-  } catch {
-    return { kind: "unreachable" };
-  }
-}
-
-const PLATFORMS = ["instagram", "facebook", "google", "tiktok", "linkedin"];
-const STATUS_TONE: Record<PostStatus, Tone> = { generating: "info", ready: "warn", published: "good", failed: "bad" };
-const SITE_TONE: Record<string, Tone> = { building: "info", ready: "good", failed: "bad" };
+const PLATFORMS = ["instagram", "facebook", "x", "youtube", "google", "tiktok", "linkedin"];
+const STATUS_TONE: Record<PostStatus, Tone> = { generating: "info", waiting: "info", ready: "warn", published: "good", failed: "bad" };
+const SITE_TONE: Record<string, Tone> = { building: "info", waiting: "info", ready: "good", failed: "bad" };
 
 const blankClient = (): SClient => ({
   id: "", token: "", name: "", kind: "", town: "", phone: "", email: "", domain: "", offer: "", hours: "", tone: "friendly, warm, simple",
-  languages: ["es", "en"], platforms: ["instagram", "facebook"], autopilot: true, postsPerWeek: 3, autoPublish: false,
+  languages: ["es", "en"], platforms: ["instagram", "facebook"], autopilot: true, postsPerWeek: 7, autoPublish: false,
   webhookUrl: "", createdAt: "",
 });
 
 const isBusy = (d: StudioData | null) =>
-  !!d && (d.posts.some((p) => p.status === "generating") || d.clients.some((c) => c.site?.status === "building"));
+  !!d && (d.posts.some((p) => p.status === "generating" || p.status === "waiting") || d.videos.some((v) => v.status === "generating") || d.clients.some((c) => c.site?.status === "building" || c.site?.status === "waiting"));
 
 const weekAgo = () => Date.now() - 7 * 24 * 3600 * 1000;
 
-function downscale(file: File, max = 1600): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const fr = new FileReader();
-    fr.onerror = () => reject(new Error("Could not read the file"));
-    fr.onload = () => {
-      const img = new Image();
-      img.onerror = () => reject(new Error("That file is not a usable image"));
-      img.onload = () => {
-        const k = Math.min(1, max / Math.max(img.width, img.height));
-        const cv = document.createElement("canvas");
-        cv.width = Math.round(img.width * k); cv.height = Math.round(img.height * k);
-        const ctx = cv.getContext("2d");
-        if (!ctx) return reject(new Error("Canvas is not available"));
-        ctx.drawImage(img, 0, 0, cv.width, cv.height);
-        resolve(cv.toDataURL("image/jpeg", 0.85));
-      };
-      img.src = String(fr.result);
-    };
-    fr.readAsDataURL(file);
-  });
-}
 
 // ---- Screen ----
 export default function Studio() {
   const [data, setData] = useState<StudioData | null>(null);
   const [state, setState] = useState<"loading" | "ok" | "unreachable" | "auth">("loading");
-  const [tab, setTab] = useState<"clients" | "feed" | "briefs">("clients");
+  const [tab, setTab] = useState<"clients" | "feed" | "videos" | "briefs">(() => {
+    // Today's buttons can open a specific tab.
+    try {
+      const t = sessionStorage.getItem("isla:studioTab");
+      sessionStorage.removeItem("isla:studioTab");
+      if (t === "feed" || t === "videos" || t === "briefs") return t;
+    } catch { /* ignore */ }
+    return "clients";
+  });
   const [editing, setEditing] = useState<SClient | null>(null);
+  const [imgSettings, setImgSettings] = useState(false);
+  const [aiSettings, setAiSettings] = useState(false);
   const [feedClient, setFeedClient] = useState("");
   const [briefClient, setBriefClient] = useState("");
   const alive = useRef(true);
@@ -141,15 +88,20 @@ export default function Studio() {
 
   const nameOf = (id: string) => data.clients.find((c) => c.id === id)?.name ?? "Deleted client";
   const week = weekAgo();
-  const generating = data.posts.filter((p) => p.status === "generating").length;
+  const generating = data.posts.filter((p) => p.status === "generating").length + data.videos.filter((v) => v.status === "generating").length;
   const live = data.clients.filter((c) => c.site?.status === "ready").length;
 
   return (
     <Page title="Content Studio" plan="Autopilot"
-      intro="Clients get a website and fresh posts with a new image every time. Autopilot keeps posting while you do other things."
+      intro="Clients get a website, fresh posts with a new AI image and caption every time, and short video ads for Reels and Shorts. Share them to Instagram, Facebook, X and YouTube, or let autopilot post on its own."
       actions={<>
-        <Badge tone={data.ai.openrouter ? "accent" : "warn"}>{data.ai.openrouter ? "AI: OpenRouter free models" : "AI: template captions (no key)"}</Badge>
-        <Badge>Images: Pollinations (free)</Badge>
+        <Button small kind="ghost" onClick={() => setAiSettings(true)} title="Choose the AI text providers and add keys">
+          {data.ai.openrouter ? `AI: ${data.ai.providers.join(" › ")}` : "AI: template captions (no key)"} ›
+        </Button>
+        <Button small kind="ghost" onClick={() => setImgSettings(true)} title="Choose how images are made">
+          {ENGINE_LABEL(data.images)} ›
+        </Button>
+        <Badge tone={data.video.ffmpeg ? "accent" : "warn"}>{data.video.ffmpeg ? "Video: ffmpeg" : "Video: install ffmpeg"}</Badge>
         <Button kind="primary" onClick={() => setEditing(blankClient())}>Add client</Button>
       </>}>
       <Stats>
@@ -163,14 +115,18 @@ export default function Studio() {
         <Tabs value={tab} onChange={setTab} tabs={[
           { id: "clients", label: "Clients", count: data.clients.length },
           { id: "feed", label: "Feed", count: data.posts.length },
+          { id: "videos", label: "Videos", count: data.videos.length },
           { id: "briefs", label: "Briefs", count: data.briefs.length },
         ]} />
         {tab === "clients" && <ClientsTab data={data} onEdit={(c) => setEditing(structuredClone(c))} />}
         {tab === "feed" && <FeedTab data={data} nameOf={nameOf} filter={feedClient} setFilter={setFeedClient} act={act} />}
+        {tab === "videos" && <VideosTab data={data} nameOf={nameOf} act={act} />}
         {tab === "briefs" && <BriefsTab data={data} nameOf={nameOf} clientId={briefClient} setClientId={setBriefClient} act={act} />}
       </Card>
 
-      {editing && <ClientEditor client={editing} onClose={() => setEditing(null)} act={act} />}
+      {editing && <ClientEditor client={editing} data={data} onClose={() => setEditing(null)} act={act} />}
+      {aiSettings && <AiSettingsModal s={data.ai} act={act} onClose={() => setAiSettings(false)} />}
+      {imgSettings && <ImageSettingsModal s={data.images} act={act} onClose={() => setImgSettings(false)} />}
     </Page>
   );
 }
@@ -190,7 +146,7 @@ function SetupCard({ onRetry }: { onRetry: () => void }) {
         </ol>
         <div className="box">
           <div className="small muted">Client sign-up page, once the server is running</div>
-          <div className="row wrap"><a className="mono" href="http://localhost:8787/signup" target="_blank" rel="noreferrer">http://localhost:8787/signup</a><CopyButton text="http://localhost:8787/signup" /></div>
+          <div className="row wrap"><a className="mono" href={`${apiOrigin}/signup`} target="_blank" rel="noreferrer">{`${apiOrigin}/signup`}</a><CopyButton text={`${apiOrigin}/signup`} /></div>
         </div>
         <div className="row"><Button kind="primary" onClick={onRetry}>Try again</Button></div>
       </div>
@@ -201,11 +157,17 @@ function SetupCard({ onRetry }: { onRetry: () => void }) {
 function TokenCard({ onSaved }: { onSaved: () => void }) {
   const [t, setT] = useState(readToken());
   return (
-    <Card title="Admin token needed">
+    <Card title="Sign in again">
       <div className="stack">
-        <p className="muted">This server asks for an admin token. Enter the ADMIN_TOKEN value from your .env file. It is kept in this browser only.</p>
-        <Field label="Admin token"><Input id="studio-token" type="password" value={t} onChange={setT} /></Field>
-        <div className="row"><Button kind="primary" onClick={() => { saveToken(t.trim()); onSaved(); }}>Save and continue</Button></div>
+        <p className="muted">Your session has ended. Sign in with your admin password to keep going.</p>
+        <div className="row"><a className="btn btn-primary" href="/#admin" style={{ textDecoration: "none" }}>Sign in</a></div>
+        <details>
+          <summary className="small muted">Use an ADMIN_TOKEN instead</summary>
+          <div className="stack" style={{ marginTop: 10 }}>
+            <Field label="Admin token" hint="The ADMIN_TOKEN value from your .env file. Kept in this browser only."><Input id="studio-token" type="password" value={t} onChange={setT} /></Field>
+            <div className="row"><Button onClick={() => { saveToken(t.trim()); onSaved(); }}>Save and continue</Button></div>
+          </div>
+        </details>
       </div>
     </Card>
   );
@@ -232,20 +194,25 @@ function ClientsTab({ data, onEdit }: { data: StudioData; onEdit: (c: SClient) =
             </div>
           ) : <span className="faint">No site</span>,
         },
-        { label: "Autopilot", render: (c) => c.autopilot && c.postsPerWeek > 0 ? <Badge tone="accent">{c.postsPerWeek} / week</Badge> : <span className="faint">Off</span> },
+        { label: "Autopilot", render: (c) => c.autopilot && (c.postsPerWeek > 0 || (c.videosPerWeek ?? 0) > 0)
+          ? <span className="row wrap"><Badge tone="accent">{c.postsPerWeek} posts / week</Badge>{(c.videosPerWeek ?? 0) > 0 && <Badge tone="accent">{c.videosPerWeek} videos / week</Badge>}</span>
+          : <span className="faint">Off</span> },
+        { label: "Connected", render: (c) => {
+          const on = (Object.entries(c.connections ?? {}) as [Platform, { ready: boolean }][]).filter(([, v]) => v.ready).map(([k]) => k);
+          return on.length ? <span className="row wrap">{on.map((k) => <Badge key={k} tone="good">{k === "x" ? "X" : k}</Badge>)}</span> : <span className="faint">Share by hand</span>;
+        } },
         { label: "Last post", render: (c) => { const d = lastPost(c.id); return d ? fmtDate(d) : <span className="faint">None</span>; } },
       ]} />
   );
 }
 
 // ---- Client editor ----
-type Act = (method: string, path: string, body?: unknown, okMsg?: string) => Promise<unknown>;
-
-function ClientEditor({ client, onClose, act }: { client: SClient; onClose: () => void; act: Act }) {
+function ClientEditor({ client, data, onClose, act }: { client: SClient; data: StudioData; onClose: () => void; act: Act }) {
   const [c, setC] = useState<SClient>(client);
   const [busy, setBusy] = useState(false);
   const [picked, setPicked] = useState("");
   const appClients = useCollection<AppClient>("clients");
+  const offer = useOffer();
   const isNew = !client.id;
   const set = <K extends keyof SClient>(k: K, v: SClient[K]) => setC((p) => ({ ...p, [k]: v }));
   const portal = c.token ? `${apiOrigin}/portal/${c.token}` : "";
@@ -260,12 +227,29 @@ function ClientEditor({ client, onClose, act }: { client: SClient; onClose: () =
     }));
   };
 
+  // Plan: kept in step with the same business in Clients.
+  const linked = appClients.find((a) => (c.id && a.studioId === c.id) || (picked && a.id === picked));
+  const planChoice: "trial" | PaidPlanId = c.plan ? c.plan : "trial";
+  const choosePlan = (v: "trial" | PaidPlanId) => {
+    const limits = offer.plans[v === "trial" ? (linked?.plan ?? "basic") : v];
+    setC((p) => ({ ...p, plan: v === "trial" ? "" : v, postsPerWeek: limits.postsPerWeek, videosPerWeek: limits.videosPerWeek }));
+  };
+
   const save = async () => {
     if (!c.name.trim()) return toast("Give the business a name first.");
     setBusy(true);
-    const { site: _s, token: _t, createdAt: _c, id, ...rest } = c;
+    const { site: _s, token: _t, createdAt: _c, connections: _k, id, ...rest } = c;
     const payload = isNew ? { ...rest, buildSite: true } : { id, ...rest };
-    const r = await act("POST", "/clients", payload, isNew ? "Client added. Building the website." : "Client saved");
+    const r = (await act("POST", "/clients", payload, isNew ? "Client added. Building the website." : "Client saved")) as SClient | undefined;
+    if (r && linked) {
+      const paid = !!r.plan;
+      await putRecord<AppClient>("clients", {
+        ...linked, studioId: r.id, plan: (r.plan || linked.plan || "basic") as PaidPlanId,
+        stage: paid ? "paid" : linked.stage === "paid" ? "pilot" : linked.stage,
+        planSince: paid && linked.stage !== "paid" ? new Date().toISOString().slice(0, 10) : linked.planSince,
+        trialStart: !paid && linked.stage === "paid" ? new Date().toISOString().slice(0, 10) : linked.trialStart,
+      });
+    }
     setBusy(false);
     if (r !== undefined) onClose();
   };
@@ -307,6 +291,16 @@ function ClientEditor({ client, onClose, act }: { client: SClient; onClose: () =
           <Field label="Opening hours"><Input id="s-hours" value={c.hours} onChange={(v) => set("hours", v)} /></Field>
           <Field label="Tone of voice"><Input id="s-tone" value={c.tone} onChange={(v) => set("tone", v)} placeholder="friendly, relaxed" /></Field>
           <Field label="Languages (first is the main one)" wide><LangPicker value={c.languages as Lang[]} onChange={(v) => set("languages", v)} /></Field>
+          <Field label="Plan" hint="Sets their posts and videos a week. Prices are in Plans & prices." wide>
+            <div className="plan-pick" role="radiogroup" aria-label="Plan">
+              {(["trial", ...PLAN_IDS] as const).map((v) => (
+                <button key={v} type="button" role="radio" aria-checked={planChoice === v} className={"plan-opt" + (planChoice === v ? " on" : "")} onClick={() => choosePlan(v)}>
+                  <span className="strong">{v === "trial" ? "Free trial" : offer.plans[v].name}</span>
+                  <span className="small muted">{v === "trial" ? `${offer.trialDays} days` : `${eur(offer.plans[v].price)}/mo · ${offer.plans[v].postsPerWeek} posts, ${offer.plans[v].videosPerWeek} videos a week`}</span>
+                </button>
+              ))}
+            </div>
+          </Field>
           <Field label="Platforms" wide>
             <div className="chips">
               {PLATFORMS.map((p) => {
@@ -318,20 +312,33 @@ function ClientEditor({ client, onClose, act }: { client: SClient; onClose: () =
         </div>
         <hr className="divider" />
         <div className="form-grid">
-          <Field label="Autopilot" hint="Posts on its own from the client's briefs.">
+          <Field label="Autopilot" hint="Posts every day on its own, from the client's briefs or a topic the AI picks.">
             <label className="row"><input type="checkbox" checked={c.autopilot} onChange={(e) => set("autopilot", e.target.checked)} /> <span>{c.autopilot ? "On" : "Off"}</span></label>
           </Field>
-          <Field label="Posts per week (0 to 14)">
-            <Input id="s-ppw" type="number" min={0} step={1} value={c.postsPerWeek}
-              onChange={(v) => set("postsPerWeek", Math.max(0, Math.min(14, Math.round(Number(v) || 0))))} />
+          <Field label="Posts per week (7 to 21)" hint="At least one a day.">
+            <Input id="s-ppw" type="number" min={7} step={1} value={c.postsPerWeek}
+              onChange={(v) => set("postsPerWeek", Math.max(7, Math.min(21, Math.round(Number(v) || 0))))} />
           </Field>
           <Field label="Auto-publish" hint="Off means posts wait for approval as Ready.">
             <label className="row"><input type="checkbox" checked={c.autoPublish} onChange={(e) => set("autoPublish", e.target.checked)} /> <span>{c.autoPublish ? "On" : "Off"}</span></label>
           </Field>
-          <Field label="Webhook URL" hint="Publishing sends the post here. n8n, Make or Zapier can pick it up and post to Instagram or Facebook." wide>
+          <Field label="Videos per week (0 to 7)" hint="Autopilot video ads from the client's briefs.">
+            <Input id="s-vpw" type="number" min={0} step={1} value={c.videosPerWeek ?? 0}
+              onChange={(v) => set("videosPerWeek", Math.max(0, Math.min(7, Math.round(Number(v) || 0))))} />
+          </Field>
+          <Field label="Video length">
+            <Select id="s-vlen" value={String(c.videoSeconds ?? 15)} onChange={(v) => set("videoSeconds", Number(v))}
+              options={data.video.lengths.map((s) => ({ value: String(s), label: `${s} seconds` }))} />
+          </Field>
+          <Field label="Video voice-over" hint={data.video.voices.length ? "System voice, labelled as AI in the video." : "No system voices on this server."}>
+            <label className="row"><input type="checkbox" checked={!!c.videoVoice} disabled={!data.video.voices.length} onChange={(e) => set("videoVoice", e.target.checked)} /> <span>{c.videoVoice ? "On" : "Off"}</span></label>
+          </Field>
+          <Field label="Webhook URL" hint="Publishing also sends the post here (n8n, Make, Zapier...)." wide>
             <Input id="s-hook" value={c.webhookUrl} onChange={(v) => set("webhookUrl", v)} placeholder="https://..." />
           </Field>
         </div>
+        <hr className="divider" />
+        <AccountsEditor c={c} setC={setC} data={data} act={act} saved={!isNew} />
         {c.site?.error && <p className="small" style={{ color: "var(--bad)" }}>Website: {c.site.error}</p>}
       </div>
     </Modal>
@@ -339,39 +346,48 @@ function ClientEditor({ client, onClose, act }: { client: SClient; onClose: () =
 }
 
 // ---- Feed tab ----
-function FeedTab({ data, nameOf, filter, setFilter, act }: {
-  data: StudioData; nameOf: (id: string) => string; filter: string; setFilter: (v: string) => void; act: Act;
+export function FeedTab({ data, nameOf, filter, setFilter, act, fixed }: {
+  data: StudioData; nameOf: (id: string) => string; filter: string; setFilter: (v: string) => void; act: Act; fixed?: boolean;
 }) {
+  const [sharing, setSharing] = useState<string>("");
+  const [editingPost, setEditingPost] = useState<string>("");
+  const shareP = data.posts.find((p) => p.id === sharing);
+  const shareC = data.clients.find((c) => c.id === shareP?.clientId);
+  const editP = data.posts.find((p) => p.id === editingPost);
   const posts = useMemo(
     () => data.posts.filter((p) => !filter || p.clientId === filter).sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
     [data.posts, filter],
   );
   return (
     <div className="stack" style={{ marginTop: 14 }}>
-      <div style={{ maxWidth: 320 }}>
+      {!fixed && <div style={{ maxWidth: 320 }}>
         <Select id="s-feed-filter" value={filter} onChange={setFilter}
           options={[{ value: "", label: "All clients" }, ...data.clients.map((c) => ({ value: c.id, label: c.name }))]} />
-      </div>
-      {!posts.length ? <Empty>No posts yet. Add a brief, or wait for autopilot.</Empty> : (
-        <div className="grid-3" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))" }}>{posts.map((p) => <PostCard key={p.id} p={p} name={nameOf(p.clientId)} act={act} />)}</div>
+      </div>}
+      {!posts.length ? <Empty>No posts yet. Ask for one above, or wait for autopilot.</Empty> : (
+        <div className="grid-3" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))" }}>{posts.map((p) => (
+          <PostCard key={p.id} p={p} name={nameOf(p.clientId)} act={act} onShare={() => setSharing(p.id)} onEdit={() => setEditingPost(p.id)} />
+        ))}</div>
       )}
+      {shareP && shareC && <ShareModal kind="post" item={shareP} client={shareC} data={data} act={act} onClose={() => setSharing("")} />}
+      {editP && <EditPost p={editP} act={act} onClose={() => setEditingPost("")} />}
     </div>
   );
 }
 
-function PostCard({ p, name, act }: { p: Post; name: string; act: Act }) {
+function PostCard({ p, name, act, onShare, onEdit }: { p: Post; name: string; act: Act; onShare: () => void; onEdit: () => void }) {
   const langs = Object.keys(p.captions ?? {});
   const [lang, setLang] = useState(langs[0] ?? "");
   const cur = langs.includes(lang) ? lang : langs[0];
-  const hashtags = (p.hashtags ?? []).map((h) => (h.startsWith("#") ? h : "#" + h)).join(" ");
+  const hashtags = tagLine(p.hashtags);
   return (
     <div className="box stack" style={{ padding: 0, overflow: "hidden" }}>
       {p.status === "generating" ? (
         <div className="row" style={{ aspectRatio: "1 / 1", justifyContent: "center", background: "var(--surface-2)" }}>
-          <span className="muted"><span className="spinner" aria-hidden /> Drawing the image...</span>
+          <span className="muted"><span className="spinner" aria-hidden /> {p.captions ? "Drawing a new image..." : "Writing the caption and drawing the image..."}</span>
         </div>
       ) : p.imageFile ? (
-        <img src={mediaUrl(p.imageFile)} alt={p.concept ?? "Post image"} loading="lazy" style={{ width: "100%", aspectRatio: "1 / 1", objectFit: "cover", display: "block" }} />
+        <img src={mediaUrl(p.imageFile)} alt={p.altText || p.concept || "Post image"} loading="lazy" style={{ width: "100%", aspectRatio: "1 / 1", objectFit: "cover", display: "block" }} />
       ) : (
         <div className="row" style={{ aspectRatio: "1 / 1", justifyContent: "center", background: "var(--surface-2)" }}><span className="faint">No image</span></div>
       )}
@@ -392,14 +408,19 @@ function PostCard({ p, name, act }: { p: Post; name: string; act: Act }) {
           </div>
         )}
         {hashtags && <span className="small mono muted">{hashtags}</span>}
+        {p.altText && <span className="small"><span className="faint">Image description:</span> {p.altText}</span>}
         {p.cta && <span className="small"><span className="faint">Call to action:</span> {p.cta}</span>}
-        {p.model && <span className="small faint mono">{p.model}</span>}
+        {p.model && <span className="small faint mono">{p.model}{p.imageEngine ? ` · ${p.imageEngine}` : ""}</span>}
+        {p.imageNote && <span className="small" style={{ color: "var(--warn)" }}>{p.imageNote}</span>}
         {p.publishNote && <span className="small muted">{p.publishNote}</span>}
         {p.error && <span className="small" style={{ color: "var(--bad)" }}>{p.error}</span>}
         <div className="row wrap">
+          {p.imageFile && p.status !== "generating" && <Button small kind="primary" onClick={onShare}>Share</Button>}
+          {p.captions && p.status !== "generating" && <Button small onClick={onEdit}>Edit text</Button>}
+          {p.imagePrompt && p.status !== "generating" && <Button small onClick={() => void act("POST", `/posts/${p.id}/image`, undefined, "Drawing a new image")}>New image</Button>}
           {p.status !== "generating" && <Button small onClick={() => void act("POST", `/posts/${p.id}/again`, undefined, "Making another version")}>Another version</Button>}
-          {p.status === "failed" && <Button small onClick={() => void act("POST", `/posts/${p.id}/retry`, undefined, "Trying again")}>Retry</Button>}
-          {p.status === "ready" && <Button small kind="primary" onClick={() => void act("POST", `/posts/${p.id}/publish`, undefined, "Published")}>Publish</Button>}
+          {(p.status === "failed" || p.status === "waiting") && <Button small onClick={() => void act("POST", `/posts/${p.id}/retry`, undefined, "Trying again")}>Retry</Button>}
+          {p.status === "ready" && <Button small onClick={() => void act("POST", `/posts/${p.id}/publish`, undefined, "Publishing to the connected accounts")}>Publish</Button>}
           <ConfirmButton label="Delete" confirm="Delete post" onConfirm={() => void act("DELETE", `/posts/${p.id}`, undefined, "Post deleted")} />
         </div>
       </div>
@@ -469,5 +490,230 @@ function BriefsTab({ data, nameOf, clientId, setClientId, act }: {
         ))}</div>
       )}
     </div>
+  );
+}
+
+// ---- Edit a post's text ----
+function EditPost({ p, act, onClose }: { p: Post; act: Act; onClose: () => void }) {
+  const langs = Object.keys(p.captions ?? {});
+  const [lang, setLang] = useState(langs[0] ?? "es");
+  const [captions, setCaptions] = useState({ ...p.captions });
+  const [short, setShort] = useState({ ...p.short });
+  const [tags, setTags] = useState(tagLine(p.hashtags));
+  const [alt, setAlt] = useState(p.altText ?? "");
+  const [busy, setBusy] = useState(false);
+  const save = async () => {
+    setBusy(true);
+    const r = await act("POST", `/posts/${p.id}/edit`, { captions, short, altText: alt, hashtags: tags.split(/[\s,]+/).filter(Boolean) }, "Post saved");
+    setBusy(false);
+    if (r !== undefined) onClose();
+  };
+  return (
+    <Modal open title="Edit post text" onClose={onClose}
+      footer={<><span style={{ flex: 1 }} /><Button onClick={onClose}>Cancel</Button><Button kind="primary" busy={busy} onClick={save}>Save</Button></>}>
+      <div className="stack">
+        {langs.length > 1 && <div className="row wrap">{langs.map((l) => (
+          <button key={l} type="button" className={"chip" + (l === lang ? " chip-on" : "")} aria-pressed={l === lang} onClick={() => setLang(l)}>{l.toUpperCase()}</button>
+        ))}</div>}
+        <Field label="Caption (Instagram, Facebook)"><TextArea id="pe-cap" rows={6} value={captions[lang] ?? ""} onChange={(v) => setCaptions((x) => ({ ...x, [lang]: v.slice(0, 2200) }))} /></Field>
+        <Field label={`Short text for X (${(short[lang] ?? "").length}/220)`}><TextArea id="pe-short" rows={3} value={short[lang] ?? ""} onChange={(v) => setShort((x) => ({ ...x, [lang]: v.slice(0, 260) }))} /></Field>
+        <Field label="Hashtags"><Input id="pe-tags" value={tags} onChange={setTags} placeholder="#tenerife #canaryislands" /></Field>
+        <Field label="Image description (alt text)" hint="Read out by screen readers. Sent with the image to Instagram and X."><TextArea id="pe-alt" rows={2} value={alt} onChange={setAlt} /></Field>
+      </div>
+    </Modal>
+  );
+}
+
+// ---- Social accounts for a client ----
+const ACCOUNT_HELP: Record<Platform, { title: string; help: string; fields: { k: string; label: string; secret?: boolean; placeholder?: string }[] }> = {
+  instagram: {
+    title: "Instagram (business or creator account)",
+    help: "The Instagram account must be linked to a Facebook Page. Get its ID and a token with instagram_content_publish in Meta's Graph API Explorer. Leave the token empty to use the Facebook token.",
+    fields: [{ k: "userId", label: "Instagram account ID", placeholder: "1784..." }, { k: "token", label: "Access token", secret: true }],
+  },
+  facebook: {
+    title: "Facebook Page",
+    help: "A long-lived Page access token with pages_manage_posts and pages_read_engagement (Graph API Explorer, then exchange it for a long-lived one).",
+    fields: [{ k: "pageId", label: "Page ID" }, { k: "token", label: "Page access token", secret: true }],
+  },
+  x: {
+    title: "X",
+    help: "Your X app's API key and secret go in .env (X_API_KEY, X_API_SECRET). Here: the client's access token and secret, with read and write permission.",
+    fields: [{ k: "token", label: "Access token", secret: true }, { k: "secret", label: "Access token secret", secret: true }],
+  },
+  youtube: {
+    title: "YouTube (for Shorts)",
+    help: "Set YOUTUBE_CLIENT_ID and YOUTUBE_CLIENT_SECRET in .env, then get a refresh token with the youtube.upload scope (for example in Google's OAuth Playground with your own client).",
+    fields: [{ k: "refreshToken", label: "Refresh token", secret: true }],
+  },
+};
+
+export function AccountsEditor({ c, setC, data, act, saved }: {
+  c: SClient; setC: (f: (p: SClient) => SClient) => void; data: StudioData; act: Act; saved: boolean;
+}) {
+  const [checking, setChecking] = useState(false);
+  const [check, setCheck] = useState<Record<string, { ok: boolean; name?: string; error?: string }> | null>(null);
+  const accounts = (c.accounts ?? {}) as Record<string, Record<string, string>>;
+  const setField = (pf: Platform, k: string, v: string) =>
+    setC((p) => ({ ...p, accounts: { ...(p.accounts ?? {}), [pf]: { ...((p.accounts as unknown as Record<string, Record<string, string>> | undefined)?.[pf] ?? {}), [k]: v } } as SClient["accounts"] }));
+  const runCheck = async () => {
+    setChecking(true);
+    const r = await act("POST", `/clients/${c.id}/accounts`);
+    setChecking(false);
+    if (r) setCheck(r as Record<string, { ok: boolean; name?: string; error?: string }>);
+  };
+  return (
+    <div className="stack">
+      <div className="stack-sm">
+        <strong>Social accounts</strong>
+        <span className="small muted">Connect the client's accounts so posts and videos go straight to Instagram, Facebook, X and YouTube Shorts. Tokens stay on your server; only the last 4 characters are shown here.</span>
+      </div>
+      {(Object.keys(ACCOUNT_HELP) as Platform[]).map((pf) => {
+        const h = ACCOUNT_HELP[pf];
+        const conn = c.connections?.[pf];
+        const res = check?.[pf];
+        const appMissing = (pf === "x" && !data.apps.x) || (pf === "youtube" && !data.apps.youtube);
+        return (
+          <div key={pf} className="box stack-sm">
+            <span className="row wrap between">
+              <span className="strong">{h.title}</span>
+              {conn?.ready ? <Badge tone="good">ready</Badge> : <Badge>not connected</Badge>}
+            </span>
+            <span className="small faint">{h.help}</span>
+            {appMissing && <span className="small" style={{ color: "var(--warn)" }}>{pf === "x" ? "X_API_KEY and X_API_SECRET" : "YOUTUBE_CLIENT_ID and YOUTUBE_CLIENT_SECRET"} are not set in .env yet.</span>}
+            <div className="form-grid">
+              {h.fields.map((f) => (
+                <Field key={f.k} label={f.label}>
+                  <Input id={`acc-${pf}-${f.k}`} type={f.secret ? "password" : "text"} value={accounts[pf]?.[f.k] ?? ""} placeholder={f.placeholder}
+                    onChange={(v) => setField(pf, f.k, v)} />
+                </Field>
+              ))}
+            </div>
+            {res && (res.ok
+              ? <span className="small" style={{ color: "var(--good)" }}>Works: {res.name}</span>
+              : <span className="small" style={{ color: conn?.ready ? "var(--bad)" : "var(--ink-3)" }}>{res.error}</span>)}
+          </div>
+        );
+      })}
+      <div className="row wrap">
+        <Button small disabled={!saved} busy={checking} onClick={() => void runCheck()} title={saved ? "" : "Save the client first"}>Check connections</Button>
+        <span className="small faint">{saved ? "Save first if you changed a token." : "Add the client first, then check."}</span>
+      </div>
+    </div>
+  );
+}
+
+// ---- AI text providers: keys saved in the dashboard, tried in order ----
+export function AiSettingsModal({ s, act, onClose }: { s: AiSettings; act: Act; onClose: () => void }) {
+  const [groq, setGroq] = useState(s.groqKey);
+  const [mistral, setMistral] = useState(s.mistralKey);
+  const [or, setOr] = useState(s.openrouterKey);
+  const [order, setOrder] = useState(s.order || "groq,mistral,openrouter");
+  const [busy, setBusy] = useState(false);
+  const hint = (id: "groq" | "mistral" | "openrouter", get: string) => s.sources[id] === "env" ? `Using the key from .env. Enter one here to override it.` : get;
+  return (
+    <Modal open title="AI providers" onClose={onClose}
+      footer={<><span style={{ flex: 1 }} /><Button onClick={onClose}>Close</Button>
+        <Button kind="primary" busy={busy} onClick={async () => {
+          setBusy(true);
+          const r = await act("POST", "/settings/ai", { groqKey: groq, mistralKey: mistral, openrouterKey: or, order }, "AI providers saved");
+          setBusy(false);
+          if (r !== undefined) onClose();
+        }}>Save</Button></>}>
+      <div className="stack">
+        <p className="small muted" style={{ margin: 0 }}>Posts, sites and chat use the first provider with a key. When one hits its limit, the next one answers. One key is enough. Keys stay on your server.</p>
+        <Field label="Groq API key" hint={hint("groq", "Free at console.groq.com/keys")}><Input id="ai-groq" type="password" value={groq} onChange={setGroq} placeholder={s.sources.groq === "env" ? "Set in .env" : "gsk_..."} /></Field>
+        <Field label="Mistral API key" hint={hint("mistral", "Free at console.mistral.ai/api-keys")}><Input id="ai-mistral" type="password" value={mistral} onChange={setMistral} placeholder={s.sources.mistral === "env" ? "Set in .env" : "Mistral key"} /></Field>
+        <Field label="OpenRouter API key" hint={hint("openrouter", "Free at openrouter.ai/keys. Only free models are used.")}><Input id="ai-or" type="password" value={or} onChange={setOr} placeholder={s.sources.openrouter === "env" ? "Set in .env" : "sk-or-..."} /></Field>
+        <Field label="Order tried" hint="Comma separated, first is used first.">
+          <Select id="ai-order" value={order} onChange={setOrder} options={[
+            { value: "groq,mistral,openrouter", label: "Groq, Mistral, OpenRouter" },
+            { value: "mistral,groq,openrouter", label: "Mistral, Groq, OpenRouter" },
+            { value: "openrouter,groq,mistral", label: "OpenRouter, Groq, Mistral" },
+            { value: "openrouter,mistral,groq", label: "OpenRouter, Mistral, Groq" },
+          ]} />
+        </Field>
+        <span className="small faint">Now using: <span className="mono">{s.providers.join(" › ") || "none (template captions)"}</span></span>
+      </div>
+    </Modal>
+  );
+}
+
+// ---- Image engine: free (default), OpenRouter or Google ----
+const ENGINE_LABEL = (s: ImageSettings) => {
+  if (s.engine.startsWith("openrouter/")) return `Images: OpenRouter ${s.openrouterModels.find((m) => m.id === s.openrouterModel)?.label.split(" (")[0] ?? s.openrouterModel}`;
+  if (s.engine.startsWith("google/")) return `Images: Google ${s.googleModels.find((m) => m.id === s.googleModel)?.label ?? ""}`;
+  return "Images: free";
+};
+
+function ImageSettingsModal({ s, act, onClose }: { s: ImageSettings; act: Act; onClose: () => void }) {
+  const [provider, setProvider] = useState<ImageProvider>(s.provider);
+  const [orModel, setOrModel] = useState(s.openrouterModel);
+  const [key, setKey] = useState(s.googleKey);
+  const [gModel, setGModel] = useState(s.googleModel);
+  const [size, setSize] = useState(s.googleSize);
+  const [fallback, setFallback] = useState(s.fallback);
+  const [pexels, setPexels] = useState(s.pexelsKey ?? "");
+  const [busy, setBusy] = useState(false);
+  const [check, setCheck] = useState<{ ok: boolean; model?: string; note?: string; error?: string } | null>(null);
+  const save = async () => {
+    setBusy(true);
+    const r = await act("POST", "/settings/images", { provider, openrouterModel: orModel, googleKey: key, googleModel: gModel, googleSize: size, fallback, pexelsKey: pexels }, "Image settings saved");
+    setBusy(false);
+    return r !== undefined;
+  };
+  const test = async () => {
+    if (!(await save())) return;
+    setBusy(true);
+    setCheck((await act("POST", "/settings/images/check")) as typeof check);
+    setBusy(false);
+  };
+  const choices: { id: ImageProvider; title: string; text: string }[] = [
+    { id: "free", title: "Free", text: "No key, no cost. One image every 45 seconds, simpler pictures." },
+    { id: "openrouter", title: "OpenRouter", text: s.openrouterKey ? "Uses your OpenRouter key. Paid per image (from about 1.5 cents)." : "Needs OPENROUTER_API_KEY in .env." },
+    { id: "google", title: "Google", text: "Uses your own Google AI Studio key. Paid per image." },
+  ];
+  return (
+    <Modal open title="Image engine" onClose={onClose}
+      footer={<><span style={{ flex: 1 }} /><Button onClick={onClose}>Close</Button>
+        {provider !== "free" && <Button busy={busy} onClick={() => void test()}>Save and test</Button>}
+        <Button kind="primary" busy={busy} onClick={async () => { if (await save()) onClose(); }}>Save</Button></>}>
+      <div className="stack">
+        <p className="small muted" style={{ margin: 0 }}>Draws every post image and video scene. You can switch at any time; posts already made keep their images.</p>
+        <div className="stack-sm" role="radiogroup" aria-label="Image engine">
+          {choices.map((c) => (
+            <label key={c.id} className="box row" style={{ cursor: "pointer", alignItems: "flex-start", borderColor: provider === c.id ? "var(--accent)" : undefined }}>
+              <input type="radio" name="img-provider" checked={provider === c.id} onChange={() => { setProvider(c.id); setCheck(null); }} style={{ marginTop: 3 }} />
+              <span className="stack-sm"><span className="strong">{c.title}{c.id === "free" && " (default)"}</span><span className="small muted">{c.text}</span></span>
+            </label>
+          ))}
+        </div>
+        {provider === "openrouter" && (
+          <Field label="OpenRouter image model" hint="Pick one, or type any model id from openrouter.ai/models?output_modalities=image">
+            <input id="img-or-model" className="input" list="or-image-models" value={orModel} onChange={(e) => setOrModel(e.target.value)} />
+            <datalist id="or-image-models">{s.openrouterModels.map((m) => <option key={m.id} value={m.id}>{m.label}</option>)}</datalist>
+          </Field>
+        )}
+        {provider === "google" && <>
+          <Field label="Google API key" hint={s.googleKeyFromEnv && !key ? "Using GOOGLE_API_KEY from .env. Enter a key here to override it." : "Create one at aistudio.google.com/apikey (billing on). Stored on your server only."}>
+            <Input id="img-key" type="password" value={key} onChange={setKey} placeholder={s.googleKeyFromEnv ? "Set in .env" : "AIza..."} />
+          </Field>
+          <div className="form-grid">
+            <Field label="Google model"><Select id="img-model" value={gModel} onChange={setGModel} options={s.googleModels.map((m) => ({ value: m.id, label: m.label }))} /></Field>
+            <Field label="Resolution"><Select id="img-size" value={size} onChange={(v) => setSize(v as "1K" | "2K")} options={[{ value: "1K", label: "1K" }, { value: "2K", label: "2K (costs more)" }]} /></Field>
+          </div>
+        </>}
+        {provider !== "free" && (
+          <label className="row small"><input type="checkbox" checked={fallback} onChange={(e) => setFallback(e.target.checked)} /> If it fails (no credit, quota), use the free service instead of failing the post</label>
+        )}
+        {check && (check.ok
+          ? <span className="small" style={{ color: "var(--good)" }}>Works with {check.model}.{check.note ? ` ${check.note}` : ""}</span>
+          : <span className="small" style={{ color: "var(--bad)" }}>{check.error}</span>)}
+        <span className="small faint">Now using: <span className="mono">{s.engine}</span></span>
+        <Field label="Website photos" hint={s.pexelsKeyFromEnv && !pexels ? "Using PEXELS_API_KEY from .env." : "Client websites use free stock photos (no AI drawing). Without a key they come from Openverse (public domain); add a free key from pexels.com/api for nicer photos."}>
+          <Input id="img-pexels" type="password" value={pexels} onChange={setPexels} placeholder={s.pexelsKeyFromEnv ? "Set in .env" : "Pexels API key (optional)"} />
+        </Field>
+      </div>
+    </Modal>
   );
 }

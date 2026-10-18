@@ -621,7 +621,7 @@ function ReportTab({ maker, products }: { maker: Client; products: Product[] }) 
 export async function seed(): Promise<void> {
   const aloe: Client = example("ex-makers-c-aloe", {
     name: "Aloe Teide Natural", kind: "Cosmetics maker", town: "Güímar", contact: "Nayra González", phone: "+34 922 000 110", email: "hola@aloeteide.es",
-    stage: "paid", subs: [{ plan: "p9", tier: "Pro", price: 500, setup: 300, startedAt: dayOffset(-70) }], consents: [],
+    stage: "paid", plan: "pro", planSince: dayOffset(-70), subs: [{ plan: "p9", tier: "Pro", price: 500, setup: 300, startedAt: dayOffset(-70) }], consents: [],
     languages: ["es", "en", "de", "it"], notes: "Organic aloe farm shop. Sells to German and Italian tourists; wants repeat orders online.",
   }) as Client;
   await put("clients", aloe);

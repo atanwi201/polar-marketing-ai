@@ -10,9 +10,11 @@
     "build": "tsc --noEmit && vite build && node scripts/to-artifact.mjs",
     "start": "npm run build && node server/index.mjs",
     "test": "node --test server/*.test.mjs",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "deploy": "bash scripts/deploy.sh"
   },
   "dependencies": {
+    "@napi-rs/canvas": "^1.0.11",
     "react": "18.3.1",
     "react-dom": "18.3.1"
   },

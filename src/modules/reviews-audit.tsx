@@ -1,6 +1,7 @@
 // Profile health audit. Doubles as the free printed walk-in audit for prospects
 // (Maps score, unanswered reviews, a sample reply in German).
 import { useState } from "react";
+import { BRAND } from "../core/brand";
 import { aiJson } from "../core/ai";
 import { create } from "../core/store";
 import { dayOffset } from "../core/seed";
@@ -173,7 +174,7 @@ function AuditSheet(props: { a: Audit }) {
           Maps & Reviews from {eur(99)}/month + 7% IGIC: profile clean-up, monthly posts, and a reply to every review in the guest's language.
           Free 30-day pilot. We improve your profile; nobody can guarantee a Google ranking.
         </p>
-        <p className="small faint">Prepared by Isla Autopilot, Tenerife.</p>
+        <p className="small faint">Prepared by {BRAND}, Tenerife.</p>
       </div>
     </Card>
   );

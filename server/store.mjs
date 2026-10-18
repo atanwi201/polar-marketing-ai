@@ -9,7 +9,7 @@ export const MEDIA_DIR = join(DATA_DIR, "media");
 mkdirSync(MEDIA_DIR, { recursive: true });
 const FILE = join(DATA_DIR, "studio.json");
 
-const empty = () => ({ clients: [], briefs: [], posts: [] });
+const empty = () => ({ clients: [], briefs: [], posts: [], videos: [], messages: [] });
 export const db = existsSync(FILE) ? { ...empty(), ...JSON.parse(readFileSync(FILE, "utf8")) } : empty();
 
 let saving = Promise.resolve();

@@ -2,7 +2,8 @@ import { useState } from "react";
 import { Page, Card, Button, Field, Select, ClientPicker, AiOutput, Table, Empty, toast, fmtDate } from "../core/ui";
 import { useCollection, getAll, create, collections, storeReady } from "../core/store";
 import { aiText } from "../core/ai";
-import { subLabel, clientMrr } from "../core/biz";
+import { planLabel, clientMonthly } from "../core/biz";
+import { useOffer } from "../core/offer";
 import { eur } from "../core/plans";
 import type { Client, Rec } from "../core/types";
 
@@ -17,6 +18,7 @@ const monthName = (m: string) => new Date(m + "-15").toLocaleDateString("en-GB",
 export default function Reports() {
   const clients = useCollection<Client>("clients").filter((c) => c.stage !== "churned");
   const reports = useCollection<Report>("reports");
+  const offer = useOffer();
   const [clientId, setClientId] = useState("");
   const [month, setMonth] = useState(months()[0]);
   const [out, setOut] = useState<{ text: string; live: boolean; error?: string }>();
@@ -36,7 +38,7 @@ export default function Reports() {
     }
     const r = await aiText(
       `Write a short monthly report for ${client.name} (${client.kind}, ${client.town}) for ${monthName(month)}. ` +
-      `Services: ${client.subs.map(subLabel).join(", ") || "none"}. Records created this month per area: ${JSON.stringify(activity)}. ` +
+      `Plan: ${planLabel(client, offer)}. Records created this month per area: ${JSON.stringify(activity)}. ` +
       `Write in Spanish, friendly and plain, max 180 words: what we did, what changed, one next action. Don't invent numbers that aren't given.`,
       () => demoReport(client, month, activity),
       { onText: (text) => setOut({ text, live: true }) },
@@ -53,7 +55,7 @@ export default function Reports() {
             <>
               <Field label="Client"><ClientPicker id="r-client" clients={clients} value={client?.id ?? ""} onChange={setClientId} /></Field>
               <Field label="Month"><Select id="r-month" value={month} onChange={setMonth} options={months().map((m) => ({ value: m, label: monthName(m) }))} /></Field>
-              {client && <p className="small muted">{client.subs.map(subLabel).join(", ") || "No services"} · {eur(Math.round(clientMrr(client)))}/mo</p>}
+              {client && <p className="small muted">{planLabel(client, offer)}{client.stage === "paid" && client.plan ? ` · ${eur(Math.round(clientMonthly(client, offer)))} a month` : ""}</p>}
               <Button kind="primary" busy={busy} onClick={run}>Write report</Button>
             </>
           ) : <Empty>Add a client first.</Empty>}

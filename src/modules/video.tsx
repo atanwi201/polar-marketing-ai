@@ -9,6 +9,7 @@ import { aiJson, pick } from "../core/ai";
 import { eur, LANGS } from "../core/plans";
 import { EX, EXAMPLE_CLIENTS, example, dayOffset } from "../core/seed";
 import type { Client, Lang, Rec, Task } from "../core/types";
+import { navigate } from "../core/nav";
 
 // ---------- Types ----------
 
@@ -249,7 +250,8 @@ export default function Screen() {
 
   return (
     <Page plan="Plan 2 · UGC Ad Factory" title="Video Ads"
-      intro="Short multilingual Reels built on real footage. AI writes hooks, scripts and voiceovers; you film, check and polish.">
+      intro={<>Short multilingual Reels built on real footage. AI writes hooks, scripts and voiceovers; you film, check and polish.{" "}
+        For finished AI video ads (MP4 for Reels, Facebook and YouTube Shorts), use <a href="#" onClick={(e) => { e.preventDefault(); navigate("studio"); }}>Content Studio › Videos</a>.</>}>
       <Tabs value={tab} onChange={setTab} tabs={[
         { id: "overview", label: "Quota" },
         { id: "briefs", label: "Briefs", count: briefs.length },

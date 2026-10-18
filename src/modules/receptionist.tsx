@@ -238,7 +238,7 @@ function Simulator(props: { bot: Bot; client: Client; bookings: Booking[]; block
             {chats.length ? (
               <div className="stack-sm">
                 {chats.slice(0, 8).map((x) => (
-                  <button key={x.id} type="button" className={"chip" + (x.id === chatId ? " chip-on" : "")} style={{ textAlign: "left", borderRadius: 6 }} onClick={() => setChatId(x.id)}>
+                  <button key={x.id} type="button" className={"chip" + (x.id === chatId ? " chip-on" : "")} style={{ textAlign: "left", borderRadius: "var(--radius-md)" }} onClick={() => setChatId(x.id)}>
                     {x.guestName} · {x.lang?.toUpperCase() ?? "?"} · {x.status}
                   </button>
                 ))}

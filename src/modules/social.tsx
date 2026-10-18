@@ -1,5 +1,6 @@
 // Plan 5 · White-label social content for agencies.
 import { useState } from "react";
+import { BRAND } from "../core/brand";
 import {
   Page, Card, Button, Field, Input, TextArea, Select, Form, Tabs, Badge, Stat, Stats, Table, Empty,
   CopyButton, LangPicker, LangTag, ClientPicker, Modal, ConfirmButton, toast, fmtDate, type Tone,
@@ -659,7 +660,7 @@ function Approval({ posts, reels, brand, month }: Ctx & { brand: Brand }) {
   return (
     <div className="stack">
       <div className="banner">
-        <span className="small">This is what the agency's client sees: their brand only, no Isla Autopilot name or logo, read-only.</span>
+        <span className="small">This is what the agency's client sees: their brand only, no {BRAND} name or logo, read-only.</span>
         <span className="row wrap"><Button small onClick={() => setClean(true)} disabled={!list.length}>Open clean view</Button><Button small kind="primary" onClick={copyLink} disabled={!list.length}>Copy approval link</Button></span>
       </div>
       {unchecked > 0 && <p className="small" style={{ color: "var(--warn)" }}>{unchecked} post{unchecked === 1 ? "" : "s"} not QA-clean yet. Fix them before sending.</p>}

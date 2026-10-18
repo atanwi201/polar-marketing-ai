@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { Page, Card, Button, Badge, Table, Tabs, Modal, Stats, Stat, ConfirmButton, Field, Input, Empty, fmtDate, toast, type Tone } from "../core/ui";
 import { useCollection, put, remove, uid, now, today } from "../core/store";
-import { subLabel, totalMrr } from "../core/biz";
+import { monthlyIncome, clientPrice } from "../core/biz";
+import { useOffer } from "../core/offer";
 import { eur, IGIC } from "../core/plans";
 import { useBusiness } from "./settings";
 import type { Client, Invoice } from "../core/types";
@@ -24,6 +25,7 @@ export default function Billing() {
   const invoices = useCollection<Invoice>("invoices");
   const clients = useCollection<Client>("clients");
   const biz = useBusiness();
+  const offer = useOffer();
   const [tab, setTab] = useState<"invoices" | "igic" | "costs">("invoices");
   const [view, setView] = useState<Invoice | null>(null);
   const name = (id: string) => clients.find((c) => c.id === id)?.name ?? "Unknown client";
@@ -31,7 +33,7 @@ export default function Billing() {
   const month = today().slice(0, 7);
   const thisMonth = invoices.filter((i) => i.date.startsWith(month));
   const unpaid = invoices.filter((i) => i.status === "sent");
-  const mrr = totalMrr(clients);
+  const mrr = monthlyIncome(clients, offer);
   const costs = COSTS.reduce((n, c) => n + c.amount, 0);
 
   const nextNumber = (n: number) => {
@@ -42,15 +44,16 @@ export default function Billing() {
 
   const runMonth = async () => {
     const billed = new Set(thisMonth.map((i) => i.clientId));
-    const due = clients.filter((c) => c.stage === "paid" && c.subs.length && !billed.has(c.id));
+    // Yearly clients are billed once a year, in the month their plan started.
+    const due = clients.filter((c) => c.stage === "paid" && c.plan && !billed.has(c.id) && (!c.annual || !c.planSince || c.planSince.slice(5, 7) === month.slice(5, 7)));
     if (!due.length) return toast("Every paying client already has an invoice this month.");
     let n = 1;
     for (const c of due) {
-      const lines = c.subs.flatMap((s) => {
-        const out = [{ description: s.annual ? `${subLabel(s)} (annual, 12 months for 10)` : subLabel(s), amount: s.annual ? s.price * 10 : s.price }];
-        if (s.setup && s.startedAt.startsWith(month)) out.push({ description: `${subLabel(s)} setup`, amount: s.setup });
-        return out;
-      });
+      const plan = offer.plans[c.plan!];
+      const price = clientPrice(c, offer);
+      const period = new Date(month + "-15T12:00:00").toLocaleDateString("es-ES", { month: "long", year: "numeric" });
+      const lines = [{ description: c.annual ? `Plan ${plan.name} · anual (12 meses al precio de 10)` : `Plan ${plan.name} · ${period}`, amount: c.annual ? price * 10 : price }];
+      if (plan.setup && (c.planSince ?? "").startsWith(month)) lines.push({ description: `Alta del plan ${plan.name}`, amount: plan.setup });
       await put<Invoice>("invoices", { id: uid(), createdAt: now(), number: nextNumber(n++), clientId: c.id, date: today(), lines, igicRate: IGIC, status: "draft" });
     }
     toast(`${due.length} draft invoice${due.length > 1 ? "s" : ""} created`);
@@ -66,7 +69,7 @@ export default function Billing() {
   }
 
   return (
-    <Page title="Billing" intro="Monthly invoices with 7% IGIC, payment status and what you owe Hacienda each quarter."
+    <Page title="Billing" intro="Monthly invoices for your paying clients, with 7% IGIC, who has paid, and what you owe Hacienda each quarter."
       actions={<Button kind="primary" onClick={runMonth}>Create this month's invoices</Button>}>
       <Stats>
         <Stat label="Recurring per month" value={eur(Math.round(mrr))} sub="excl. IGIC" tone="accent" />

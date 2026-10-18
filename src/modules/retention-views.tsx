@@ -235,7 +235,7 @@ export function CampaignsView(props: { client: Client; setup: RetSetup; customer
             {campaigns.length ? (
               <div className="stack-sm">
                 {campaigns.map((c) => (
-                  <button key={c.id} type="button" className={"chip" + (c.id === selId ? " chip-on" : "")} style={{ textAlign: "left", borderRadius: 6 }} onClick={() => setSelId(c.id)}>
+                  <button key={c.id} type="button" className={"chip" + (c.id === selId ? " chip-on" : "")} style={{ textAlign: "left", borderRadius: "var(--radius-md)" }} onClick={() => setSelId(c.id)}>
                     {c.title} · {AUDIENCE_LABEL[c.audience]} · {c.status}
                   </button>
                 ))}
