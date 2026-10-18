@@ -1,3 +1,4 @@
+import "./polar-modules.css";
 import type { ComponentType } from "react";
 import type { PlanId } from "../core/types";
 import Dashboard from "../screens/dashboard";

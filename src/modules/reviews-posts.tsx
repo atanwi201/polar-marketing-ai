@@ -128,7 +128,7 @@ function Calendar(props: { month: string; posts: Post[]; events: LocalEvent[]; o
         const ev = props.events.find((e) => e.date === iso);
         return (
           <div key={iso} className="box" style={{ padding: 4, minHeight: 54 }} title={ev?.name}>
-            <div className="row between"><span className="small mono">{d}</span>{ev && <span className="small" style={{ color: "var(--warn)" }} aria-label={ev.name}>●</span>}</div>
+            <div className="row between"><span className="small mono">{d}</span>{ev && <span className="pm-dot" role="img" aria-label={ev.name} />}</div>
             {ps.map((p) => (
               <button key={p.id} type="button" onClick={() => props.onOpen(p)} className={"chip" + (p.status === "posted" ? " chip-on" : "")}
                 style={{ display: "block", width: "100%", marginTop: 2, fontSize: ".66rem", padding: "1px 4px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>

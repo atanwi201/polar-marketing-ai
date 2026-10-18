@@ -2,7 +2,7 @@ import { useState, useRef } from "react";
 import { AiSettingsModal } from "./studio";
 import { call, type AiSettings } from "./studio-api";
 import { BRAND } from "../core/brand";
-import { Page, Card, Button, Badge, Table, Field, Input, TextArea, ConfirmButton, toast } from "../core/ui";
+import { Page, Card, Button, Badge, Table, Field, Input, TextArea, ConfirmButton, ThemeSelect, toast } from "../core/ui";
 import { useCollection, put, remove, getAll, collections, storeReady, useBackend, now } from "../core/store";
 import { useAiMode, useAiProvider } from "../core/ai";
 import { navigate } from "../core/nav";
@@ -183,7 +183,13 @@ export default function Settings() {
           </div>
           <p className="small muted">You sell two plans. Change names, prices and what's included in Plans & prices. Monthly, excl. 7% IGIC.</p>
         </Card>
-        <Card title="Menu">
+        <Card title="Appearance">
+          <div className="stack-sm">
+            <span className="strong">Theme</span>
+            <span className="small muted">Light, dark, or follow your device.</span>
+            <ThemeSelect />
+          </div>
+          <hr className="divider" />
           <label className="row" style={{ alignItems: "flex-start" }}>
             <input type="checkbox" checked={prefs.showTools} style={{ marginTop: 3 }}
               onChange={(e) => void put("settings", { ...prefs, id: "ui", createdAt: prefs.createdAt || now(), showTools: e.target.checked })} />

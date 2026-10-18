@@ -1,7 +1,7 @@
 // One business, everything about it: overview, its conversation with the assistant, posts, videos,
 // website, plan and billing, social accounts and details. Opened from Businesses (#business/<id>).
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
-import { Page, Card, Button, Badge, Tabs, Field, Input, TextArea, Select, LangPicker, ConfirmButton, Empty, CopyButton, fmtDate, toast } from "../core/ui";
+import { Page, Card, Button, Badge, Tabs, Field, Input, TextArea, Select, LangPicker, ConfirmButton, Empty, CopyButton, Icon, fmtDate, toast } from "../core/ui";
 import { useCollection, put, remove } from "../core/store";
 import { useRoute, navigate } from "../core/nav";
 import { useOffer } from "../core/offer";
@@ -90,7 +90,7 @@ export default function Business() {
 
   return (
     <Page title={client.name} avatar={<Avatar name={client.name} logoFile={sc?.logoFile} size={48} />} intro={<span className="row wrap">
-        <button type="button" className="link-btn" onClick={() => navigate("clients")}>← Businesses</button>
+        <button type="button" className="link-btn" onClick={() => navigate("clients")}><Icon name="arrow-left" size="sm" /> Businesses</button>
         <span className="faint">{[client.kind, client.town].filter(Boolean).join(" · ")}</span>
       </span>}
       actions={<>
@@ -185,7 +185,7 @@ function Overview({ client, sc, data, offer, posts, videos, messages, flagged, p
           </div>
           <span className="row wrap">
             <CopyButton text={sc.code} label="Copy code" />
-            <CopyButton text={`Hola ${client.name}: entra en tu panel de Isla Autopilot en ${apiOrigin}/ con tu código ${sc.code}`} label="Copy message for them" />
+            <CopyButton text={`Hola ${client.name}: entra en tu panel de Polar Marketing en ${apiOrigin}/ con tu código ${sc.code}`} label="Copy message for them" />
           </span>
         </div>
       )}

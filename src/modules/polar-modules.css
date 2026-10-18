@@ -1,0 +1,9 @@
+/* Polar Marketing: module-level additions (icons, dots). Colours come from tokens only. */
+.pm-icon { flex: none; vertical-align: -2px; }
+.pm-stars { display: inline-flex; gap: 1px; align-items: center; }
+.pm-line { display: inline-flex; gap: var(--space-2, 8px); align-items: flex-start; }
+.pm-line .pm-icon { margin-top: 3px; }
+.pm-line-bad .pm-icon { color: var(--bad); }
+.pm-line-good .pm-icon { color: var(--good); }
+.pm-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--warn); }
+.mono { font-variant-numeric: tabular-nums; }

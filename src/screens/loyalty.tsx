@@ -1,7 +1,7 @@
 // Loyalty cards: overview of every business's programmes, and one programme's design, rules, rewards, customers, sharing and activity.
 // Server side: server/loyalty-routes.mjs (owner scope /api/studio/loyalty/...). Also embedded as a tab in a business (LoyaltyPanel).
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Page, Card, Button, Badge, Tabs, Field, Input, TextArea, Select, ConfirmButton, Empty, CopyButton, Modal, Stat, Stats, Table, toast, type Tone } from "../core/ui";
+import { Page, Card, Button, Badge, Tabs, Field, Input, TextArea, Select, ConfirmButton, Empty, CopyButton, Modal, Stat, Stats, Table, Icon, toast, type Tone } from "../core/ui";
 import { useRoute, navigate } from "../core/nav";
 import {
   lcall, errText, designImg, readImage, fetchBlobUrl, downloadBlob, slug, fmtWhen, TYPE_INFO, FONT_STACK,
@@ -359,7 +359,7 @@ function ProgramScreen({ id, tabParam }: { id: string; tabParam: PTab }) {
   const [busy, setBusy] = useState("");
   useEffect(() => { void lcall<LoyaltyList>("GET", "/").then((r) => { if (r.kind === "ok") setWallet(r.data); }); }, [id]);
 
-  const back = <button type="button" className="link-btn" onClick={() => navigate("loyalty")}>← Loyalty cards</button>;
+  const back = <button type="button" className="link-btn" onClick={() => navigate("loyalty")}><Icon name="arrow-left" size="sm" /> Loyalty cards</button>;
   if (s.state === "loading") return <Page title="Loading…" intro={back}><Skeleton rows={2} h={200} /></Page>;
   if (s.state === "error") return <Page title="Loyalty programme" intro={back}><Card><LoadError message={s.message} onRetry={reload} /></Card></Page>;
   const p = s.data;

@@ -132,8 +132,10 @@ export async function brandColors(client) {
 export function defaultDesign(client = {}, kind = "stamps", brand = null) {
   const look = kindLook(client);
   const c = client.profile?.colors ?? {};
-  const base = brand?.primary || hex(c.primary) || hslToHex(look.hue, 0.55, 0.28);
-  const pal = paletteFrom(base, brand?.accent || hex(c.accent));
+  // No brand colours known: fall back to Polar black + lime (the validators below keep contrast correct).
+  const hasBrand = !!(brand?.primary || hex(c.primary));
+  const base = brand?.primary || hex(c.primary) || "#111111";
+  const pal = paletteFrom(base, brand?.accent || hex(c.accent) || (hasBrand ? "" : "#d7ff64"));
   const name = clean(client.name, 28, "Loyalty");
   return {
     prompt: "", ...pal, fontStyle: client.profile?.style === "elegant" ? "serif" : client.profile?.style === "warm" ? "rounded" : "modern",

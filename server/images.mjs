@@ -215,7 +215,7 @@ async function openrouterImage(prompt, size, { key, model, reference, fetchImpl 
     try {
       const r = await fetchImpl(`${OPENROUTER()}/images`, {
         method: "POST",
-        headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json", "HTTP-Referer": "http://localhost", "X-Title": "Isla Autopilot" },
+        headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json", "HTTP-Referer": "http://localhost", "X-Title": "Polar Marketing" },
         body: JSON.stringify(body), signal: AbortSignal.timeout(180e3),
       });
       const j = await r.json().catch(() => ({}));

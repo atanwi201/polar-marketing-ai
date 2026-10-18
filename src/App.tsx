@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { ROUTES, isExtraTool } from "./modules";
 import { useRoute, navigate } from "./core/nav";
-import { AiModePill, Toasts, Button } from "./core/ui";
+import { AiModePill, Toasts, Button, Icon, ThemeSelect } from "./core/ui";
 import { useBackend } from "./core/store";
 import { useUiPrefs } from "./screens/settings";
 import { BRAND } from "./core/brand";
@@ -13,17 +13,8 @@ const GROUPS = [
 ] as const;
 
 function Mark() {
-  // Crier mark (brand/logo/crier-mark-dark.svg): two signal arcs forming a C around a sun dot.
-  return (
-    <svg className="brand-mark" viewBox="0 0 64 64" aria-hidden>
-      <rect width="64" height="64" rx="15" fill="#1c2a2e" />
-      <g fill="none" stroke="#3dd6d0" strokeWidth="5.6" strokeLinecap="round">
-        <path d="M44.77 23.33A11 11 0 1 0 44.77 40.67" />
-        <path d="M53.11 17.41A21 21 0 1 0 53.11 46.59" />
-      </g>
-      <circle cx="38" cy="32" r="5.2" fill="#ffc53d" />
-    </svg>
-  );
+  // Supplied Polar bear logo, used as-is (never redrawn). White tile via .pm-logo so it also reads in dark mode.
+  return <img className="pm-logo" src="/brand/logo/polar-mark.png" alt="" width={40} height={40} />;
 }
 
 type Auth = "checking" | "signed-in" | "local";
@@ -80,18 +71,19 @@ export default function App() {
             {visible.filter((r) => r.group === g.id).map((r) => (
               <button key={r.id} className="nav-item" aria-current={r.id === navId ? "page" : undefined} onClick={() => navigate(r.id)}>
                 <span>{r.label}</span>
-
               </button>
             ))}
           </div>
         ))}
+        <div className="rail-foot"><ThemeSelect /></div>
        </div>
       </nav>
       <div className="main">
         <div className="topbar">
-          <span className="menu-btn"><Button small onClick={() => setOpen(!open)}>Menu</Button></span>
+          <span className="menu-btn"><Button small onClick={() => setOpen(!open)}><Icon name="menu" size="sm" />Menu</Button></span>
           <span className="small faint">{backend === "cloud" ? "Saved to your workspace" : backend === "browser" ? "Saved in this browser" : ""}</span>
           <AiModePill />
+          <span className="topbar-theme"><ThemeSelect compact /></span>
           {auth === "signed-in" && <Button small onClick={() => void signOut()}>Sign out</Button>}
         </div>
         <current.Screen key={route} />

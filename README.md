@@ -1,4 +1,4 @@
-# Isla Autopilot
+# Polar Marketing
 
 Back office for the one-person AI marketing studio in Tenerife.
 

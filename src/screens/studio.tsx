@@ -102,7 +102,7 @@ export default function Studio() {
           {data.ai.list.filter((p) => p.key || data.ai.sources[p.id]).map((p) => <option key={p.id} value={p.id}>{p.label}{p.paid ? " (paid)" : ""} only</option>)}
         </select>
         <Button small kind="ghost" onClick={() => setAiSettings(true)} title="Choose the AI text providers and add keys">
-          {data.ai.openrouter ? `AI: ${data.ai.providers.join(" › ")}` : "AI: template captions (no key)"} ›
+          {data.ai.openrouter ? `AI: ${data.ai.providers.join(" / ")}` : "AI: template captions (no key)"} ›
         </Button>
         <Button small kind="ghost" onClick={() => setImgSettings(true)} title="Choose how images are made">
           {ENGINE_LABEL(data.images)} ›
@@ -735,7 +735,7 @@ export function AiSettingsModal({ s, act, onClose }: { s: AiSettings; act: Act; 
         <Field label="Order tried" hint={`Provider ids separated by commas, first is used first: ${s.list.map((p) => p.id).join(", ")}. Any you leave out go last.`}>
           <Input id="ai-order" value={order} onChange={setOrder} placeholder="groq,google,mistral,..." />
         </Field>
-        <span className="small faint">Now using: <span className="mono">{s.providers.join(" › ") || "none (template captions)"}</span></span>
+        <span className="small faint">Now using: <span className="mono">{s.providers.join(" / ") || "none (template captions)"}</span></span>
       </div>
     </Modal>
   );

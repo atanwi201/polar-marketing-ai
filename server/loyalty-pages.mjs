@@ -1,5 +1,5 @@
 // Loyalty card pages: join screen, the web card customers keep on their phone, the staff scanner,
-// and the card's web manifest. Self-contained HTML strings on the Crier design system.
+// and the card's web manifest. Self-contained HTML strings on the Polar Marketing design system.
 // The card face is rendered by `kit()`, which runs on the server for the first paint and (stringified)
 // in the browser for live refreshes, so both always draw the same thing.
 import QRCode from "qrcode";
@@ -39,8 +39,9 @@ function kit() {
     modern: `'Figtree','Segoe UI',system-ui,sans-serif`,
     serif: `'Fraunces','Iowan Old Style',Georgia,serif`,
     rounded: `'Nunito','SF Pro Rounded',ui-rounded,'Segoe UI',system-ui,sans-serif`,
-    mono: `'IBM Plex Mono',ui-monospace,'SF Mono',Menlo,monospace`,
+    mono: `ui-monospace,'SF Mono',Menlo,Consolas,monospace`,
   };
+  const CHK = `<svg class="pm-ic pm-ic--sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>`;
   const file = (f) => (f && /^[\w.\-]+$/.test(f) ? "/media/" + f : "");
   const plural = (n, one, many) => `${n} ${n === 1 ? one : many || one + "s"}`;
   const layoutOf = (d) => (["stripe", "full", "minimal"].includes(d?.layout) ? d.layout : "stripe");
@@ -107,7 +108,7 @@ function kit() {
     return list.map((r) => {
       const n = need(r, v.program);
       const cost = r.kind === "stamps" ? plural(r.cost, "stamp") : plural(r.cost, "point");
-      return `<li class="rw${n.ok ? " ready" : ""}"><div class="rw-row"><div><b>${esc(r.name)}</b>${n.def.description ? `<div class="muted sm">${esc(n.def.description)}</div>` : ""}</div><span class="rw-cost">${cost}</span></div><div class="rw-bar"><i style="width:${n.pct.toFixed(1)}%"></i></div><div class="rw-foot ${n.ok ? "ok" : ""}">${n.ok ? "&#10003; " : ""}${esc(n.text)}${n.ok ? `<span class="muted sm"> Show this card at the till${n.def.expiresDays ? ", valid " + n.def.expiresDays + " days once claimed" : ""}.</span>` : ""}</div></li>`;
+      return `<li class="rw${n.ok ? " ready" : ""}"><div class="rw-row"><div><b>${esc(r.name)}</b>${n.def.description ? `<div class="muted sm">${esc(n.def.description)}</div>` : ""}</div><span class="rw-cost">${cost}</span></div><div class="rw-bar"><i style="width:${n.pct.toFixed(1)}%"></i></div><div class="rw-foot ${n.ok ? "ok" : ""}">${n.ok ? CHK + " " : ""}${esc(n.text)}${n.ok ? `<span class="muted sm"> Show this card at the till${n.def.expiresDays ? ", valid " + n.def.expiresDays + " days once claimed" : ""}.</span>` : ""}</div></li>`;
     }).join("");
   };
 
@@ -167,7 +168,7 @@ export const cardStyles = `
 .wc-name{margin-top:6px;font:700 18px/1.15 var(--font);overflow-wrap:anywhere}
 .wc-qr{margin:0 14px 14px;border-radius:20px;background:#fff;color:#111;padding:14px 14px 10px;display:grid;justify-items:center;gap:6px;width:calc(100% - 28px);border:0;cursor:pointer;font-family:var(--font)}
 .wc-qr .qr{width:min(100%,210px);height:auto;display:block}
-.wc-code{font:600 12px/1 "IBM Plex Mono",ui-monospace,Menlo,monospace;letter-spacing:.06em;color:#333;overflow-wrap:anywhere;text-align:center}
+.wc-code{font:600 12px/1 ui-monospace,"SF Mono",Menlo,Consolas,monospace;letter-spacing:.06em;color:#333;overflow-wrap:anywhere;text-align:center}
 .wc-qr small{font:600 12px var(--font);color:#555}
 .wc-qr.ph{background:rgba(255,255,255,.1);color:var(--fg60);cursor:default;border:2px dashed var(--fg35);min-height:120px;align-content:center;font:600 14px/1.4 var(--font);text-align:center;padding:18px}
 `;
@@ -176,12 +177,10 @@ const HEAD_COMMON = (title) => `<meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>${esc(title)}</title>
 <meta name="color-scheme" content="light dark">
-<script>
-(function(){try{var m=matchMedia("(prefers-color-scheme: dark)"),r=document.documentElement,f=function(){r.dataset.theme=m.matches?"dark":"light"};f();m.addEventListener("change",f)}catch(e){}})();
-</script>
+<script src="/brand/theme.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;700&family=Figtree:wght@400;500;600;700;800&family=Fraunces:wght@600;800&family=IBM+Plex+Mono:wght@500;600&family=Nunito:wght@600;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;700&family=Figtree:wght@400;500;600;700;800&family=Fraunces:wght@600;800&family=Nunito:wght@600;800&display=swap" rel="stylesheet">
 <link rel="icon" href="/brand/logo/favicon.svg" type="image/svg+xml">
 <link rel="icon" href="/brand/logo/favicon.ico" sizes="48x48">
 <link rel="stylesheet" href="/brand/tokens.css">
@@ -219,7 +218,7 @@ export function joinPage({ program, client, baseUrl = "" }) {
   const preview = `<div class="${K.cls(design)}" style="${esc(K.vars(design))}">${K.face(sample, { preview: true })}<div class="wc-qr ph">Your QR code appears here once you join</div></div>`;
   const rewardsList = (program.rewards || []).filter((r) => r.active !== false).slice(0, 4);
   return `<!doctype html>
-<html lang="en" data-theme="light">
+<html lang="en">
 <head>
 ${HEAD_COMMON(`Join ${program.name} - ${bizName}`)}
 <meta name="theme-color" content="${themeColor}">
@@ -246,6 +245,9 @@ form.cr-card{margin-top:var(--space-5);padding:var(--space-5) var(--space-4)}
 .again{margin:0 0 var(--space-4);padding:var(--space-4);border-radius:var(--radius-md);background:var(--brand-soft);color:var(--brand-ink);font:600 15px/22px var(--font-sans);display:flex;gap:12px;align-items:center;justify-content:space-between}
 .again a{color:inherit;white-space:nowrap}
 .terms{margin:var(--space-4) 0 0;color:var(--ink-2);font-size:13px;line-height:19px;white-space:pre-line}
+.foot{margin:var(--space-6) auto 0;display:flex;flex-direction:column;align-items:center;gap:var(--space-3);color:var(--ink-2);font-size:13px}
+.foot .by{display:inline-flex;align-items:center;gap:8px;font-weight:600}
+.foot .pm-logo{width:24px;height:24px;border-radius:7px}
 </style>
 </head>
 <body class="cr-root">
@@ -269,7 +271,9 @@ form.cr-card{margin-top:var(--space-5);padding:var(--space-5) var(--space-4)}
     ${program.terms ? `<p class="terms">${esc(program.terms)}</p>` : ""}
   </form>` : `
   <section class="closed cr-card"><h2>Not open yet</h2><p class="muted">${esc(bizName)} is still setting up this card. Please check back soon, or ask at the till.</p></section>`}
+  <footer class="foot"><div id="themeSel"></div><span class="by"><img class="pm-logo" src="/brand/logo/polar-mark.png" alt="">Powered by Polar Marketing</span></footer>
 </div>
+<script>if(window.PolarTheme)PolarTheme.mount(document.getElementById("themeSel"),document.documentElement.lang)</script>
 ${live ? `<script>
 (function(){
 var code=${js(program.joinCode || "")},$=function(i){return document.getElementById(i)},f=$("f"),err=$("err"),go=$("go"),KEY="lc-card-"+code;
@@ -335,7 +339,7 @@ export function cardPage({ view, baseUrl = "" }) {
   const google = view.wallet?.google?.available && view.wallet.google.url;
   const inactive = view.program.status && view.program.status !== "live";
   return `<!doctype html>
-<html lang="en" data-theme="light">
+<html lang="en">
 <head>
 ${HEAD_COMMON(title)}
 <meta name="theme-color" content="${bg}">
@@ -354,7 +358,7 @@ body{background:var(--bg)}
 .apple{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;max-width:400px;margin:var(--space-4) auto 0;min-height:54px;border-radius:999px;background:#000;color:#fff;font:600 17px/1 var(--font-sans);text-decoration:none;border:1px solid rgba(255,255,255,.25)}
 .apple svg{width:20px;height:20px;fill:currentColor}
 .apple:active{transform:scale(.98)}
-.bk{display:flex;align-items:center;justify-content:center;width:100%;max-width:400px;margin:var(--space-4) auto 0;min-height:54px;border-radius:999px;background:#fff;color:#111;font:700 17px/1 var(--font-sans);text-decoration:none;box-shadow:0 2px 10px rgba(0,0,0,.22)}
+.bk{display:flex;align-items:center;justify-content:center;width:100%;max-width:400px;margin:var(--space-4) auto 0;min-height:54px;border-radius:999px;background:var(--brand);color:var(--on-brand);font:700 17px/1 var(--font-sans);text-decoration:none}
 .bk:active{transform:scale(.98)}
 .panels{max-width:400px;margin:0 auto}
 .panel{margin-top:var(--space-4);padding:var(--space-4) var(--space-4) var(--space-3)}
@@ -377,11 +381,14 @@ ul.list{list-style:none;margin:0;padding:0}
 .pos{color:var(--good)}.neg{color:var(--bad)}
 .hint h3{margin-bottom:var(--space-2)}
 .hint ol{margin:var(--space-2) 0 0;padding-left:22px;line-height:26px}
-.hint kbd{font:600 13px var(--font-mono);background:var(--surface-2);border-radius:6px;padding:2px 7px}
+.hint kbd{display:inline-flex;vertical-align:middle;font:600 13px var(--font-sans);background:var(--surface-2);border-radius:6px;padding:2px 7px}
 .terms{margin:0;color:var(--ink-2);font-size:13px;line-height:19px;white-space:pre-line}
 details.panel summary{font:700 16px/24px var(--font-display);cursor:pointer;min-height:32px}
 .status{max-width:400px;margin:var(--space-5) auto 0;text-align:center;color:var(--ink-2);font-size:13px}
 .status.off{color:var(--warn)}
+.foot{max-width:400px;margin:var(--space-5) auto 0;display:flex;flex-direction:column;align-items:center;gap:var(--space-3);color:var(--ink-2);font-size:13px}
+.foot .by{display:inline-flex;align-items:center;gap:8px;font-weight:600}
+.foot .pm-logo{width:24px;height:24px;border-radius:7px}
 .qfull{position:fixed;inset:0;z-index:50;background:#fff;color:#111;display:none;flex-direction:column;align-items:center;justify-content:center;gap:18px;padding:24px;text-align:center;font-family:var(--font-sans);border:0;width:100%;cursor:pointer}
 .qfull.on{display:flex}
 .qfull .qr{width:min(88vw,70vh,420px);height:auto}
@@ -407,13 +414,14 @@ details.panel summary{font:700 16px/24px var(--font-display);cursor:pointer;min-
     ${wallet || google ? "" : `<section class="panel cr-card hint" id="hint" hidden>
       <h3>Keep this card on your phone</h3>
       <p class="muted sm" style="margin:0" id="hintLead">Add it to your home screen to open it in one tap.</p>
-      <ol id="hintIos" hidden><li>Tap the Share button <kbd>&#8679;</kbd> in Safari.</li><li>Choose <b>Add to Home Screen</b>.</li><li>Tap <b>Add</b>.</li></ol>
-      <ol id="hintAnd" hidden><li>Tap the menu <kbd>&#8942;</kbd> in Chrome.</li><li>Choose <b>Add to Home screen</b> (or <b>Install app</b>).</li><li>Tap <b>Add</b>.</li></ol>
+      <ol id="hintIos" hidden><li>Tap the Share button <kbd><svg class="pm-ic pm-ic--sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12M8 7l4-4 4 4M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"/></svg></kbd> in Safari.</li><li>Choose <b>Add to Home Screen</b>.</li><li>Tap <b>Add</b>.</li></ol>
+      <ol id="hintAnd" hidden><li>Tap the menu <kbd><svg class="pm-ic pm-ic--sm" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/></svg></kbd> in Chrome.</li><li>Choose <b>Add to Home screen</b> (or <b>Install app</b>).</li><li>Tap <b>Add</b>.</li></ol>
       <ol id="hintDesk" hidden><li>Open this same link on your phone.</li><li>Then add it to your home screen.</li></ol>
     </section>`}
     ${view.program.terms ? `<details class="panel cr-card"><summary>Terms</summary><p class="terms" style="margin-top:12px">${esc(view.program.terms)}</p></details>` : ""}
   </div>
   <p class="status" id="status" aria-live="polite"></p>
+  <footer class="foot"><div id="themeSel"></div><span class="by"><img class="pm-logo" src="/brand/logo/polar-mark.png" alt="">Powered by Polar Marketing</span></footer>
 </div>
 <button class="qfull" id="qfull" type="button" aria-label="Close"><b>${esc(view.customer.name)}</b>${qrInline(view.code, "Your loyalty card QR code")}<b>${esc(view.code)}</b><span>Tap anywhere to close</span></button>
 <script>
@@ -448,6 +456,9 @@ addEventListener("focus",refresh);
 document.addEventListener("visibilitychange",function(){if(!document.hidden){refresh();if($("qfull").classList.contains("on"))wake()}});
 addEventListener("online",refresh);
 status();
+if(window.PolarTheme)PolarTheme.mount($("themeSel"),document.documentElement.lang);
+addEventListener("polar-theme",function(){var tc=document.querySelector('meta[name=theme-color]');if(tc)tc.content=K.col((view.program.design||{}).background,"#14232b")});
+var tc0=document.querySelector('meta[name=theme-color]');if(tc0)tc0.content=K.col((view.program.design||{}).background,"#14232b");
 var bk=$("bk");if(bk&&/^es/i.test(navigator.language||"")){bk.textContent=bk.getAttribute("data-es");document.documentElement.lang="es"}
 // big QR on a white screen, kept awake
 var lock=null;
@@ -473,7 +484,7 @@ export function staffPage({ program, client, baseUrl = "" }) {
   const d = program.design || {};
   const cfg = { name: program.name, business: bizName, type: program.type, minSpendEur: program.stamps?.minSpendEur || 0, live: program.status === "live", accent: safeHex(d.accent, "#3dd6d0"), bg: safeHex(d.background, "#14232b") };
   return `<!doctype html>
-<html lang="en" data-theme="light">
+<html lang="en">
 <head>
 ${HEAD_COMMON(`Scan - ${program.name} - ${bizName}`)}
 <meta name="theme-color" content="#0e1316">
@@ -487,6 +498,10 @@ body{overscroll-behavior-y:contain;-webkit-tap-highlight-color:transparent}
 .dot{width:40px;height:40px;border-radius:12px;flex:none;display:grid;place-items:center;font:800 18px var(--font-display)}
 .bar h1{margin:0;font:700 20px/24px var(--font-display);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .bar p{margin:0;font-size:14px;color:var(--ink-2)}
+.tsel{display:flex;justify-content:center;margin:calc(var(--space-2) * -1) 0 var(--space-4)}
+.x svg,.pad svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.x{display:inline-grid;place-items:center}
+.pad button{display:grid;place-items:center}
 .bar>div{min-width:0;flex:1}
 .cam{position:relative;border-radius:var(--radius-lg);overflow:hidden;background:#000;aspect-ratio:1/1;display:none}
 .cam.on{display:block}
@@ -526,7 +541,7 @@ body{overscroll-behavior-y:contain;-webkit-tap-highlight-color:transparent}
 .modal.on{display:flex}
 .sheet{width:100%;max-width:480px;background:var(--surface);border-radius:28px 28px 0 0;padding:var(--space-4) var(--space-4) max(var(--space-4),env(safe-area-inset-bottom));max-height:92vh;overflow:auto;box-shadow:var(--shadow-pop)}
 .sheet h3{margin:0 0 var(--space-3);font:700 20px/26px var(--font-display);display:flex;justify-content:space-between;align-items:center}
-.x{border:0;background:var(--surface-2);color:var(--ink);width:40px;height:40px;border-radius:50%;font-size:22px;line-height:1;cursor:pointer}
+.x{border:0;background:var(--surface-2);color:var(--ink);width:40px;height:40px;border-radius:50%;cursor:pointer}
 .amt{font:700 44px/1.1 var(--font-display);text-align:center;padding:var(--space-3) 0 var(--space-4);font-variant-numeric:tabular-nums}
 .amt small{font-size:26px;color:var(--ink-2);margin-left:4px}
 .pad{display:grid;grid-template-columns:repeat(3,1fr);gap:var(--space-2);margin-bottom:var(--space-3)}
@@ -538,19 +553,18 @@ body{overscroll-behavior-y:contain;-webkit-tap-highlight-color:transparent}
 .rbtn small{display:block;font:500 13px/18px var(--font-sans);color:var(--ink-2)}
 .toast{position:fixed;left:50%;top:max(var(--space-4),env(safe-area-inset-top));transform:translate(-50%,-140%);z-index:60;max-width:min(92vw,440px);width:max-content;padding:var(--space-3) var(--space-5);border-radius:var(--radius-md);font:700 16px/22px var(--font-sans);box-shadow:var(--shadow-pop);transition:transform .25s;text-align:center}
 .toast.on{transform:translate(-50%,0)}
-.toast.ok{background:var(--good);color:#fff}
-.toast.bad{background:var(--bad);color:#fff}
-[data-theme=dark] .toast.ok{background:var(--good-soft);color:var(--good);border:2px solid var(--good)}
-[data-theme=dark] .toast.bad{background:var(--bad-soft);color:var(--bad);border:2px solid var(--bad)}
+.toast.ok{background:var(--good-soft);color:var(--good);border:2px solid var(--good)}
+.toast.bad{background:var(--bad-soft);color:var(--bad);border:2px solid var(--bad)}
 .closed{text-align:center;padding:var(--space-6) var(--space-4)}
 </style>
 </head>
 <body class="cr-root">
 <div class="wrap">
   <header class="bar">
-    <span class="dot" style="background:${cfg.bg};color:${cfg.accent}" aria-hidden="true">${esc((bizName.trim()[0] || "?").toUpperCase())}</span>
+    <img class="pm-logo" src="/brand/logo/polar-mark.png" alt="">
     <div><h1>${esc(program.name)}</h1><p>${esc(bizName)} &middot; Staff</p></div>
   </header>
+  <div class="tsel"><div id="themeSel"></div></div>
   ${cfg.live ? `
   <div id="err" class="err" role="alert"></div>
   <section class="scan">
@@ -560,7 +574,7 @@ body{overscroll-behavior-y:contain;-webkit-tap-highlight-color:transparent}
     <form class="manual" id="manual" autocomplete="off"><input class="cr-input" id="code" inputmode="text" autocapitalize="characters" autocorrect="off" spellcheck="false" placeholder="LC1-..." aria-label="Customer code"><button class="cr-btn cr-btn--soft" type="submit">Find</button></form>
   </section>
   <section class="cust cr-card" id="cust" hidden>
-    <div class="cust-top"><div><h2 id="cName"></h2><p class="meta" id="cMeta"></p></div><button class="x" id="clear" type="button" aria-label="Clear customer">&times;</button></div>
+    <div class="cust-top"><div><h2 id="cName"></h2><p class="meta" id="cMeta"></p></div><button class="x" id="clear" type="button" aria-label="Clear customer"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg></button></div>
     <div class="stats" id="stats"></div>
     <ul class="rwds" id="rwds"></ul>
   </section>
@@ -569,13 +583,14 @@ body{overscroll-behavior-y:contain;-webkit-tap-highlight-color:transparent}
 </div>
 ${cfg.live ? `
 <div class="sheet-bar" id="bar" hidden><div class="acts" id="acts"></div></div>
-<div class="modal" id="mAmt"><div class="sheet" role="dialog" aria-label="Purchase amount"><h3>Purchase amount <button class="x" data-close type="button" aria-label="Close">&times;</button></h3><div class="amt"><span id="amt">0</span><small>&euro;</small></div><div class="pad" id="pad"></div><button class="cr-btn cr-btn--primary cr-btn--lg cr-btn--block" id="amtOk" type="button">Add purchase</button></div></div>
-<div class="modal" id="mRw"><div class="sheet" role="dialog" aria-label="Redeem a reward"><h3>Redeem a reward <button class="x" data-close type="button" aria-label="Close">&times;</button></h3><div id="rwList"></div></div></div>
+<div class="modal" id="mAmt"><div class="sheet" role="dialog" aria-label="Purchase amount"><h3>Purchase amount <button class="x" data-close type="button" aria-label="Close"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg></button></h3><div class="amt"><span id="amt">0</span><small>&euro;</small></div><div class="pad" id="pad"></div><button class="cr-btn cr-btn--primary cr-btn--lg cr-btn--block" id="amtOk" type="button">Add purchase</button></div></div>
+<div class="modal" id="mRw"><div class="sheet" role="dialog" aria-label="Redeem a reward"><h3>Redeem a reward <button class="x" data-close type="button" aria-label="Close"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg></button></h3><div id="rwList"></div></div></div>
 ` : ""}
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 ${cfg.live ? `<script>
 (function(){
 var CFG=${js(cfg)},$=function(i){return document.getElementById(i)};
+if(window.PolarTheme)PolarTheme.mount($("themeSel"),document.documentElement.lang);
 var parts=location.pathname.split("/").filter(Boolean),tok=parts[0]==="staff"?parts[1]:"";
 var api="/api/loyalty/staff/"+encodeURIComponent(tok),cur=null,busy=false;
 var KEY="lc-staff-"+tok,recent=[];
@@ -602,7 +617,7 @@ function setCust(c){
   st.push(["Visits",c.visits]);
   $("stats").innerHTML=st.map(function(s){return'<div class="stat"><b>'+esc(s[1])+"</b><span>"+s[0]+"</span></div>"}).join("");
   var rw=c.rewards||[];
-  $("rwds").innerHTML=rw.map(function(r){return'<li class="'+(r.available?"on":"off")+'"><span>'+(r.available?"&#10003; ":"")+esc(r.name)+"</span><span>"+esc(r.cost)+" "+(r.kind==="stamps"?"stamps":"pts")+"</span></li>"}).join("");
+  $("rwds").innerHTML=rw.map(function(r){return'<li class="'+(r.available?"on":"off")+'"><span>'+(r.available?'<svg class="pm-ic pm-ic--sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg> ':"")+esc(r.name)+"</span><span>"+esc(r.cost)+" "+(r.kind==="stamps"?"stamps":"pts")+"</span></li>"}).join("");
   var ready=rw.filter(function(r){return r.available}).length;
   var h='<button class="cr-btn cr-btn--primary act'+(showBuy?"":" full")+'" data-a="visit">'+ICON.visit+'<span class="lbl">'+(isStamps?"Add stamp":"Add visit")+"</span></button>";
   if(showBuy)h+='<button class="cr-btn cr-btn--primary act" data-a="buy">'+ICON.buy+'<span class="lbl">Purchase</span></button>';
@@ -637,7 +652,7 @@ $("acts").addEventListener("click",function(e){
 document.addEventListener("click",function(e){if(e.target.closest("[data-close]")||e.target.classList.contains("modal"))document.querySelectorAll(".modal").forEach(function(m){m.classList.remove("on")})});
 // amount keypad
 var amt="";
-$("pad").innerHTML=["1","2","3","4","5","6","7","8","9",",","0","\\u232B"].map(function(k){return'<button type="button" data-k="'+k+'" aria-label="'+(k==="\\u232B"?"Delete":k)+'">'+k+"</button>"}).join("");
+$("pad").innerHTML=["1","2","3","4","5","6","7","8","9",",","0","\\u232B"].map(function(k){var bs=k==="\\u232B";return'<button type="button" data-k="'+k+'" aria-label="'+(bs?"Delete":k)+'">'+(bs?'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 4H8l-7 8 7 8h13a1 1 0 0 0 1-1V5a1 1 0 0 0-1-1zM18 9l-6 6M12 9l6 6"/></svg>':k)+"</button>"}).join("");
 function drawAmt(){$("amt").textContent=amt||"0"}
 $("pad").addEventListener("click",function(e){
   var b=e.target.closest("[data-k]");if(!b)return;var k=b.getAttribute("data-k");

@@ -7,12 +7,11 @@
 {{ICONS}}
 <meta name="description" content="Tu web y tus publicaciones para redes sociales, hechas con IA. Para negocios de Tenerife.">
 <meta name="color-scheme" content="light dark">
-<script>
-(function(){try{var m=matchMedia("(prefers-color-scheme: dark)"),r=document.documentElement,f=function(){r.dataset.theme=m.matches?"dark":"light"};f();m.addEventListener("change",f)}catch(e){}})();
-</script>
+<meta name="theme-color" content="#d7ff64">
+<script src="/brand/theme.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;700&family=Figtree:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;700&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/brand/tokens.css">
 <link rel="stylesheet" href="/brand/components.css">
 <style>
@@ -21,17 +20,18 @@ body{margin:0;min-height:100vh}
 .wrap{max-width:640px;margin:0 auto;padding:0 var(--space-4) var(--space-8)}
 header.top{display:flex;align-items:center;justify-content:space-between;gap:var(--space-3);padding:var(--space-4) 0}
 .brand{display:flex;align-items:center;gap:10px;font:700 22px/1 var(--font-display);letter-spacing:-.01em}
-.logo{width:40px;height:40px;flex:none;display:block}
 .lang{display:inline-flex;background:var(--surface);border-radius:var(--radius-pill);padding:3px;box-shadow:inset 0 0 0 2px var(--line)}
 .lang button{border:0;background:none;padding:0 var(--space-4);font:700 14px var(--font-sans);color:var(--ink-2);cursor:pointer;min-height:var(--tap);min-width:var(--tap);border-radius:var(--radius-pill)}
-.lang button[aria-pressed=true]{background:var(--ink);color:var(--bg)}
-.lang button:focus-visible,.link:focus-visible{outline:3px solid var(--brand);outline-offset:2px}
+.lang button[aria-pressed=true]{background:var(--brand);color:var(--on-brand)}
+.lang button:focus-visible,.link:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+.logo-lg{display:flex;justify-content:center;margin:var(--space-3) 0 var(--space-5)}
+.tools{display:flex;justify-content:center;margin-top:var(--space-5)}
 .hero{margin-bottom:var(--space-4);padding:var(--space-6) var(--space-5)}
 .hero h1{margin:0 0 var(--space-3);font-size:clamp(32px,9vw,44px);line-height:1.05;color:var(--on-basalt)}
 .lead{margin:0;max-width:46ch;color:var(--on-basalt);opacity:.88;font-size:17px;line-height:26px}
 .steps{list-style:none;margin:0 0 var(--space-4);padding:0;display:grid;gap:var(--space-2)}
 .steps li{display:flex;gap:14px;align-items:center;padding:var(--space-3) var(--space-4)}
-.steps b{flex:none;width:44px;height:44px;border-radius:var(--radius-pill);background:var(--brand-soft);color:var(--brand-ink);display:grid;place-items:center;font:500 16px var(--font-mono)}
+.steps b{flex:none;width:44px;height:44px;border-radius:var(--radius-pill);background:var(--brand-soft);color:var(--brand-ink);display:grid;place-items:center;font:700 16px var(--font-sans);font-variant-numeric:tabular-nums}
 .steps p{margin:0;font-size:16px;font-weight:500}
 @media(min-width:700px){.steps{grid-template-columns:repeat(3,1fr)}.steps li{flex-direction:column;align-items:flex-start;padding:var(--space-4)}}
 form.cr-card{padding:var(--space-5) var(--space-4)}
@@ -49,26 +49,25 @@ form.cr-card{padding:var(--space-5) var(--space-4)}
 .chip input{inset:0;width:100%;height:100%;margin:0;cursor:pointer}
 .chip span{border-color:var(--line-strong)}
 .chip input:checked+span{border-color:var(--brand)}
-.chip input:checked+span::before{content:"\2713";font-weight:700}
-.chip small{font:500 12px var(--font-mono);opacity:.8}
+.chip input:checked+span small{opacity:.7}
+.chip small{font:600 12px var(--font-sans);opacity:.8;text-transform:uppercase}
 .file{display:flex;gap:14px;align-items:center;flex-wrap:wrap;position:relative}
 .file label.cr-btn{margin:0}
 .file label.cr-btn svg{width:18px;height:18px}
 .file input[type=file]{position:absolute;width:1px;height:1px;opacity:0;overflow:hidden}
-.file input:focus-visible+.cr-btn{outline:3px solid var(--brand);outline-offset:2px}
+.file input:focus-visible+.cr-btn{outline:2px solid var(--ink);outline-offset:2px}
 .preview{display:none;align-items:center;gap:10px}
 .preview.on{display:flex}
 .preview img{width:56px;height:56px;object-fit:cover;border-radius:var(--radius-pill)}
 .link{background:none;border:0;color:var(--brand-ink);text-decoration:underline;font:600 15px var(--font-sans);cursor:pointer;padding:0 var(--space-3);min-height:var(--tap);border-radius:var(--radius-sm)}
 .check{display:flex;gap:12px;align-items:flex-start;margin:0 0 var(--space-3);font:400 15px/22px var(--font-sans);color:var(--ink);cursor:pointer;min-height:var(--tap)}
 .check input{flex:none;width:24px;height:24px;margin:0;accent-color:var(--brand)}
-.check input:focus-visible{outline:3px solid var(--brand);outline-offset:2px}
+.check input:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
 .err{display:none;align-items:flex-start;gap:var(--space-2);margin:0 0 var(--space-4);padding:var(--space-3) var(--space-4);border-radius:var(--radius-md);font:600 15px/22px var(--font-sans);letter-spacing:0}
 .err.on{display:flex}
 .err svg{flex:none;width:20px;height:20px;margin-top:1px}
 .fielderr{display:none;color:var(--bad);font:600 14px/20px var(--font-sans);margin:var(--space-2) 2px 0}
 .field.bad .fielderr{display:block}
-.field.bad .fielderr::before{content:"\26A0\FE0E ";}
 .field.bad .cr-input{border-color:var(--bad)}
 .spin{width:18px;height:18px;border:3px solid var(--on-brand);border-top-color:transparent;border-radius:50%;animation:sp .8s linear infinite;display:none}
 .cr-btn.busy .spin{display:block}
@@ -92,7 +91,7 @@ form.cr-card{padding:var(--space-5) var(--space-4)}
 <body class="cr-root">
 <div class="wrap">
   <header class="top">
-    <div class="brand"><img class="logo" src="/brand/logo/crier-mark.svg" alt="" width="40" height="40">{{BRAND}}</div>
+    <div class="brand"><img class="pm-logo" src="/brand/logo/polar-mark.png" alt="" width="40" height="40">{{BRAND}}</div>
     <div class="lang" role="group" aria-label="Idioma / Language">
       <button type="button" data-lang="es" aria-pressed="true">ES</button>
       <button type="button" data-lang="en" aria-pressed="false">EN</button>
@@ -100,9 +99,10 @@ form.cr-card{padding:var(--space-5) var(--space-4)}
   </header>
 
   <main>
+    <div class="logo-lg"><img class="pm-logo pm-logo--lg" src="/brand/logo/polar-logo.png" alt="{{BRAND}}" width="96" height="96"></div>
     <section class="hero cr-card cr-card--basalt">
-      <h1 class="display-lg" data-i="h1">Tu web y tus redes, en piloto automático</h1>
-      <p class="lead" data-i="lead">Cuéntanos sobre tu negocio. La IA hace el resto, sin que tengas que aprender nada.</p>
+      <h1 class="display-lg" data-i="h1">Publicado hoy. Cada día.</h1>
+      <p class="lead" data-i="lead">Creamos y publicamos contenido para tu negocio, para que te centres en lo que importa en Tenerife.</p>
     </section>
 
     <ol class="steps" aria-label="">
@@ -195,6 +195,7 @@ form.cr-card{padding:var(--space-5) var(--space-4)}
       <p class="foot" data-i="foot">Sin tarjeta. Tu enlace personal te llega al terminar.</p>
     </form>
   </main>
+  <div class="tools"><div id="themeSel"></div></div>
 </div>
 
 <script src="/assets/profile-form.js"></script>
@@ -203,8 +204,8 @@ form.cr-card{padding:var(--space-5) var(--space-4)}
 "use strict";
 const T = {
   es:{
-    h1:"Tu web y tus redes, en piloto automático",
-    lead:"Cuéntanos sobre tu negocio. La IA hace el resto, sin que tengas que aprender nada.",
+    h1:"Publicado hoy. Cada día.",
+    lead:"Creamos y publicamos contenido para tu negocio, para que te centres en lo que importa en Tenerife.",
     s1:"La IA crea tu página web con lo que nos cuentas.", s2:"Tú nos dices qué quieres promocionar.", s3:"La IA escribe las publicaciones y crea una imagen nueva cada vez.",
     l_name:"Nombre del negocio", l_kind:"Tipo de negocio", l_town:"Localidad", l_townOther:"Escribe tu localidad",
     l_phone:"WhatsApp o teléfono", l_email:"Correo electrónico", l_domain:"Tu dominio propio", h_domain:"Si ya tienes uno. Si no, no pasa nada.",
@@ -222,8 +223,8 @@ const T = {
     kinds:["Restaurante","Excursión en barco","Escuela de buceo","Peluquería","Inmobiliaria","Bar","Tienda","Hotel o apartamentos","Taller","Clínica"]
   },
   en:{
-    h1:"Your website and social posts, on autopilot",
-    lead:"Tell us about your business. The AI does the rest, with nothing for you to learn.",
+    h1:"Posted today. Every day.",
+    lead:"We create and post content for your business, so you can focus on what matters in Tenerife.",
     s1:"The AI builds your website from what you tell us.", s2:"You tell us what you want to promote.", s3:"The AI writes the posts and creates a new image every time.",
     l_name:"Business name", l_kind:"Type of business", l_town:"Town", l_townOther:"Type your town",
     l_phone:"WhatsApp or phone", l_email:"Email", l_domain:"Your own domain", h_domain:"If you already have one. If not, no problem.",
@@ -245,7 +246,7 @@ const TOWNS=["Los Cristianos","Costa Adeje","Playa de las Américas","Puerto de 
 const LANGS=[["es","Español"],["en","English"],["de","Deutsch"],["it","Italiano"],["nl","Nederlands"],["sv","Svenska"],["fr","Français"]];
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 let lang="es";
-try{const s=localStorage.getItem("crier:lang"); if(s==="es"||s==="en") lang=s;}catch(e){}
+try{const s=(localStorage.getItem("polar:lang")||localStorage.getItem("crier:lang")); if(s==="es"||s==="en") lang=s;}catch(e){}
 
 // language order: first checked = main
 let order=["es","en"];
@@ -263,6 +264,7 @@ LANGS.forEach(([c,n])=>{
 
 function applyLang(){
   const t=T[lang]; document.documentElement.lang=lang;
+  if(window.PolarTheme) PolarTheme.mount($("#themeSel"),lang);
   $$("[data-i]").forEach(el=>{const v=t[el.dataset.i]; if(v!=null) el.textContent=v;});
   $$(".lang button").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.lang===lang)));
   $("#kind").placeholder=t.ph_kind;
@@ -276,7 +278,7 @@ function applyLang(){
   $(".steps").setAttribute("aria-label", lang==="es"?"Qué pasa después":"What happens next");
 }
 $$(".lang button").forEach(b=>b.addEventListener("click",()=>{
-  lang=b.dataset.lang; try{localStorage.setItem("crier:lang",lang);}catch(e){} applyLang();
+  lang=b.dataset.lang; try{localStorage.setItem("polar:lang",lang);}catch(e){} applyLang();
 }));
 $("#town").addEventListener("change",e=>{
   const o=e.target.value==="__other"; $("#townOtherWrap").hidden=!o;

@@ -8,6 +8,7 @@ import { dayOffset } from "../core/seed";
 import {
   AiOutput, Badge, Button, Card, ClientPicker, Empty, Field, Input, Table, TextArea, fmtDate, toast,
 } from "../core/ui";
+import { IconCheck, IconX } from "./polar-icons";
 import type { Client, Task } from "../core/types";
 import { eur } from "../core/plans";
 import { COL, demoReply, detectTopics, type Audit, type AuditItem, type Review } from "./reviews-data";
@@ -152,14 +153,14 @@ function AuditSheet(props: { a: Audit }) {
         <div className="grid-2">
           <div className="stack-sm">
             <span className="strong">Fix first</span>
-            {a.unanswered > 0 && <span className="small">✗ Reply to {a.unanswered} waiting reviews, in each guest's language</span>}
-            {missing.map((i) => <span key={i.id} className="small">✗ {i.label}</span>)}
+            {a.unanswered > 0 && <span className="small pm-line pm-line-bad"><IconX />Reply to {a.unanswered} waiting reviews, in each guest's language</span>}
+            {missing.map((i) => <span key={i.id} className="small pm-line pm-line-bad"><IconX />{i.label}</span>)}
             {!missing.length && !a.unanswered && <span className="small">Nothing urgent. Keep posting and replying.</span>}
           </div>
           <div className="stack-sm">
             <span className="strong">Already good</span>
-            {good.map((i) => <span key={i.id} className="small muted">✓ {i.label}</span>)}
-            {!a.unanswered && <span className="small muted">✓ Every review answered</span>}
+            {good.map((i) => <span key={i.id} className="small muted pm-line pm-line-good"><IconCheck />{i.label}</span>)}
+            {!a.unanswered && <span className="small muted pm-line pm-line-good"><IconCheck />Every review answered</span>}
           </div>
         </div>
         {a.sampleReplyDe && (

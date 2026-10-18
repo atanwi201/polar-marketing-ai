@@ -2,12 +2,13 @@
 import { getAll, put, create, now, today, useCollection } from "../core/store";
 import { aiJson } from "../core/ai";
 import { Badge, toast } from "../core/ui";
+import { StarRow } from "./polar-icons";
 import type { Client, Task } from "../core/types";
-import { COL, defaultSettings, demoReply, replyPrompt, stars, type ReplyDraft, type Review, type ReviewSettings, type ReviewStatus } from "./reviews-data";
+import { COL, defaultSettings, demoReply, replyPrompt, type ReplyDraft, type Review, type ReviewSettings, type ReviewStatus } from "./reviews-data";
 
 export function Stars(props: { n: number }) {
   const tone = props.n >= 4 ? "good" : props.n === 3 ? "warn" : "bad";
-  return <Badge tone={tone}><span aria-label={`${props.n} out of 5 stars`}>{stars(props.n)}</span></Badge>;
+  return <Badge tone={tone}><span aria-label={`${props.n} out of 5 stars`}><StarRow n={props.n} /></span></Badge>;
 }
 
 const STATUS: Record<ReviewStatus, { label: string; tone: "neutral" | "good" | "warn" | "bad" | "info" | "accent" }> = {

@@ -1,4 +1,4 @@
-// Local API for Isla Autopilot:
+// Local API for Polar Marketing:
 // - /api/ai: routes the app's AI calls to OpenRouter free models
 // - /api/studio, /api/portal, /portal/<token>: the autonomous content studio and client portal
 // - serves the built app after `npm run build`
@@ -95,14 +95,15 @@ const ICONS = `<link rel="icon" href="/brand/logo/favicon.svg" type="image/svg+x
 <link rel="icon" href="/brand/logo/favicon.ico" sizes="48x48">
 <link rel="apple-touch-icon" href="/brand/logo/apple-touch-icon.png">
 <link rel="manifest" href="/brand/site.webmanifest">
-<meta name="theme-color" content="#0e1316">
+<meta name="theme-color" content="#d7ff64">
 <meta property="og:image" content="/brand/logo/og-image.png">`;
 const page = (name) => () => readFileSync(join(import.meta.dirname, name), "utf8").replaceAll("{{BRAND}}", BRAND).replaceAll("{{ICONS}}", ICONS);
 const PORTAL_HTML = page("portal.html");
 const SIGNUP_HTML = page("signup.html");
 const LANDING_HTML = page("landing.html");
 const PUTER_CALLBACK_HTML = `<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Puter</title><link rel="icon" href="/brand/logo/favicon.svg" type="image/svg+xml">
-<style>body{font:16px system-ui;background:#0f1417;color:#e8eef0;display:grid;place-items:center;min-height:100vh;margin:0}main{max-width:380px;padding:24px;text-align:center}</style>
+<script src="/brand/theme.js"></script><link rel="stylesheet" href="/brand/tokens.css">
+<style>body{font:16px/24px var(--font-sans,system-ui);background:var(--bg);color:var(--ink);display:grid;place-items:center;min-height:100vh;margin:0}main{max-width:380px;padding:24px;text-align:center}h1{font:700 28px/1.15 var(--font-display,system-ui);margin:0 0 8px}p{color:var(--ink-2);margin:0}</style>
 <main><h1 id="t">Connecting Puter…</h1><p id="m">One moment.</p></main>
 <script>
 (async()=>{
@@ -859,7 +860,7 @@ const server = http.createServer(async (req, res) => {
 });
 
 server.listen(PORT, process.env.HOST || undefined, () => {
-  console.log(`Isla API on http://localhost:${PORT}`);
+  console.log(`Polar Marketing API on http://localhost:${PORT}`);
   console.log(`  AI: ${KEYF() ? `${providerNames().join(" > ")} (first one with capacity answers)` : "No AI key in .env (GROQ_API_KEY, MISTRAL_API_KEY or OPENROUTER_API_KEY), so posts and sites wait until one is added"}`);
   console.log(`  Images: Pollinations (free, no key) · data in ${DATA_DIR} · sites in ${SITES_DIR}`);
   startScheduler();

@@ -21,7 +21,6 @@ export const bookingLabel = (kind, lang) => (LABELS[lang] ?? LABELS.en)[kind ===
 const MARK = /<!--crier-booking-->[\s\S]*?<!--\/crier-booking-->\s*/g;
 const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");
 const hex = (c, d) => (/^#[0-9a-f]{6}$/i.test(c ?? "") ? c : d);
-const darkish = (h) => { const n = parseInt(h.slice(1), 16); return (0.299 * (n >> 16) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255)) < 150; };
 
 /**
  * Add (or, with no booking, remove) the floating booking button. Plain <a>, inline styles only,
@@ -30,9 +29,8 @@ const darkish = (h) => { const n = parseInt(h.slice(1), 16); return (0.299 * (n 
 export function injectBookingCta(html, { booking, lang = "en", color = "#111111" } = {}) {
   const h = html.replace(MARK, "");
   if (!booking?.url) return h;
-  const bg = hex(color, "#111111");
-  const fg = darkish(bg) ? "#ffffff" : "#111111";
-  const a = `<!--crier-booking--><a data-crier-booking href="${esc(booking.url)}" rel="noopener" style="position:fixed;left:50%;bottom:16px;transform:translateX(-50%);z-index:98;display:inline-block;padding:14px 26px;border-radius:999px;background:${bg};color:${fg};font:700 16px/1.2 system-ui,-apple-system,Segoe UI,sans-serif;text-decoration:none;white-space:nowrap;box-shadow:0 6px 22px rgba(0,0,0,.28);border:2px solid rgba(255,255,255,.55)">${esc(bookingLabel(booking.kind, lang))}</a><!--/crier-booking-->\n`;
+  const bg = "#D7FF64", fg = "#111111"; // Polar lime pill; the client's colour no longer drives the button
+  const a = `<!--crier-booking--><a data-crier-booking href="${esc(booking.url)}" rel="noopener" style="position:fixed;left:50%;bottom:16px;transform:translateX(-50%);z-index:98;display:inline-block;padding:14px 26px;border-radius:999px;background:${bg};color:${fg};font:700 16px/1.2 system-ui,-apple-system,Segoe UI,sans-serif;text-decoration:none;white-space:nowrap;box-shadow:0 6px 22px rgba(0,0,0,.28);border:2px solid #111111">${esc(bookingLabel(booking.kind, lang))}</a><!--/crier-booking-->\n`;
   return /<\/body>/i.test(h) ? h.replace(/<\/body>/i, () => `${a}</body>`) : h + a;
 }
 

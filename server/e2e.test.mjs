@@ -497,7 +497,7 @@ test("landing page: the owner creates a password and signs in, a business enters
   await fetch(`${B}/api/auth/logout`, { method: "POST", headers: { cookie: cookie2 } });
   assert.equal((await fetch(`${B}/api/studio`, { headers: { cookie: cookie2 } })).status, 401);
 });
-test("client pages load the Crier brand and the product name is swappable", async () => {
+test("client pages load the Polar Marketing brand and the product name is swappable", async () => {
   const tokens = await fetch(`${B}/brand/tokens.css`);
   assert.equal(tokens.status, 200);
   assert.match(tokens.headers.get("content-type"), /text\/css/);
@@ -507,7 +507,9 @@ test("client pages load the Crier brand and the product name is swappable", asyn
     const html = await (await fetch(B + path)).text();
     assert.match(html, /\/brand\/tokens\.css/);
     assert.doesNotMatch(html, /\{\{BRAND\}\}/, "placeholder must be replaced with the name from brand/brand.json");
-    assert.match(html, /Crier/);
+    assert.match(html, /Polar Marketing/);
+    if (path === "/signup") assert.match(html, /\/brand\/theme\.js/);
   }
+  for (const asset of ["/brand/theme.js", "/brand/logo/polar-mark.png", "/brand/logo/favicon.ico"]) assert.equal((await fetch(B + asset)).status, 200, asset);
 });
 

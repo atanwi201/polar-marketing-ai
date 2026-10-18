@@ -116,7 +116,7 @@ async function viaOpenRouter({ key, prompt, system, tier = "default", json = fal
           Authorization: `Bearer ${key}`,
           "Content-Type": "application/json",
           "HTTP-Referer": "http://localhost",
-          "X-Title": "Isla Autopilot",
+          "X-Title": "Polar Marketing",
         },
         body: JSON.stringify({ models, messages, stream: !!onDelta && !json, temperature: json ? 0.2 : 0.7, ...(withMax && maxTokens ? { max_tokens: maxTokens } : {}) }),
       });

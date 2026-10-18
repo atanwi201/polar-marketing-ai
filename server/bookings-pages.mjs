@@ -1,5 +1,5 @@
 // Public reservation pages: the booking form (/book/<code>) and the manage/cancel page (/booking/<token>).
-// Self-contained HTML strings on the Crier design system, same approach as loyalty-pages.mjs.
+// Self-contained HTML strings on the Polar Marketing design system, same approach as loyalty-pages.mjs.
 // The interactive part is one client function (`app`) stringified into the page; the server only renders
 // the shell (business header, notice) and hands the page its data as escaped JSON.
 
@@ -76,6 +76,7 @@ function app(D) {
   function setLang(l) {
     lang = l; document.documentElement.lang = l;
     try { localStorage.setItem("cr-book-lang", l); } catch (e) {}
+    var tm = $("theme"); if (tm && window.PolarTheme) window.PolarTheme.mount(tm, l);
     var btns = document.querySelectorAll("[data-lang]");
     for (var i = 0; i < btns.length; i++) btns[i].setAttribute("aria-pressed", btns[i].dataset.lang === l ? "true" : "false");
     var els = document.querySelectorAll("[data-t]");
@@ -202,12 +203,13 @@ function app(D) {
     return '<dl class="sum">' + r.map(function (x) { return "<dt>" + esc(x[0]) + "</dt><dd>" + esc(x[1]) + "</dd>"; }).join("") + "</dl>";
   }
   var BADGE = { pending: "warn", confirmed: "good", cancelled: "bad", no_show: "bad", completed: "info" };
-  var badge = function (s) { return '<span class="cr-badge cr-badge--' + (BADGE[s] || "info") + '">' + esc(t("s_" + s)) + "</span>"; };
+  var BI = { pending: '<circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>', confirmed: '<path d="M20 6 9 17l-5-5"/>', cancelled: '<path d="M18 6 6 18M6 6l12 12"/>', no_show: '<circle cx="12" cy="12" r="10"/><path d="m4.9 4.9 14.2 14.2"/>', completed: '<path d="M18 6 7 17l-5-5M22 10l-7.5 7.5L13 16"/>' };
+  var badge = function (s) { return '<span class="cr-badge cr-badge--' + (BADGE[s] || "info") + '"><svg class="pm-ic pm-ic--sm" viewBox="0 0 24 24" aria-hidden="true">' + (BI[s] || BI.pending) + "</svg>" + esc(t("s_" + s)) + "</span>"; };
 
   function renderDone() {
     var b = S.done.booking, conf = b.status === "confirmed";
     $("flow").hidden = true; var d = $("done"); d.hidden = false;
-    d.innerHTML = '<div class="ok-ic" aria-hidden="true">&#10003;</div><h2 tabindex="-1" id="doneH">' + esc(t(conf ? "okConfirmed" : "okPending")) + "</h2><p>" + esc(t(conf ? "okConfirmedText" : "okPendingText").replace("%s", b.email)) + "</p>" +
+    d.innerHTML = '<div class="ok-ic" aria-hidden="true"><svg class="pm-ic pm-ic--lg" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg></div><h2 tabindex="-1" id="doneH">' + esc(t(conf ? "okConfirmed" : "okPending")) + "</h2><p>" + esc(t(conf ? "okConfirmedText" : "okPendingText").replace("%s", b.email)) + "</p>" +
       '<div class="cr-card sumcard"><div class="sumhead"><b>' + esc(t("summary")) + "</b>" + badge(b.status) + "</div>" + summaryRows(b) + "</div>" +
       '<a class="cr-btn cr-btn--primary cr-btn--lg cr-btn--block" href="' + esc(S.done.manageUrl) + '">' + esc(t("manage")) + "</a>";
     $("doneH").focus(); window.scrollTo(0, 0);
@@ -278,12 +280,10 @@ const HEAD = (title) => `<meta charset="utf-8">
 <title>${esc(title)}</title>
 <meta name="color-scheme" content="light dark">
 <meta name="robots" content="noindex,nofollow">
-<script>
-(function(){try{var m=matchMedia("(prefers-color-scheme: dark)"),r=document.documentElement,f=function(){r.dataset.theme=m.matches?"dark":"light"};f();m.addEventListener("change",f)}catch(e){}})();
-</script>
+<script src="/brand/theme.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;700&family=Figtree:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;700&family=Figtree:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="icon" href="/brand/logo/favicon.svg" type="image/svg+xml">
 <link rel="icon" href="/brand/logo/favicon.ico" sizes="48x48">
 <link rel="stylesheet" href="/brand/tokens.css">
@@ -341,19 +341,19 @@ input[type=date].cr-input{min-width:0;max-width:100%;padding-inline:var(--space-
 #done{text-align:center}
 #done h2{font-size:26px;line-height:32px;margin:var(--space-3) 0 var(--space-2)}
 #done>p{margin:0 0 var(--space-5);color:var(--ink-2);overflow-wrap:anywhere}
-.ok-ic{width:64px;height:64px;border-radius:50%;background:var(--good-soft);color:var(--good);display:grid;place-items:center;font-size:32px;font-weight:800;margin:var(--space-4) auto 0}
+.ok-ic{width:64px;height:64px;border-radius:50%;background:var(--good-soft);color:var(--good);display:grid;place-items:center;margin:var(--space-4) auto 0}.ok-ic .pm-ic{width:32px;height:32px;stroke-width:2.6}
 .sumcard{text-align:left;padding:var(--space-4);margin-bottom:var(--space-4)}
 .sumhead{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:var(--space-3);flex-wrap:wrap}
 .sumhead b{font:700 17px var(--font-display)}
 .sum{display:grid;grid-template-columns:auto 1fr;gap:var(--space-2) var(--space-4);margin:0}
 .sum dt{color:var(--ink-2);font-size:14px}.sum dd{margin:0;font-weight:600;overflow-wrap:anywhere;text-align:right}
 a.cr-btn{text-decoration:none}
-.danger{background:var(--bad);color:var(--surface);border-color:var(--bad)}
+.danger{background:var(--bad-soft);color:var(--bad);border-color:var(--bad)}
 .danger-o{color:var(--bad);border-color:var(--bad)}
 .ask{padding:var(--space-4);text-align:center}.ask p{margin:0 0 var(--space-4)}
 .ask-row{display:grid;grid-template-columns:1fr 1fr;gap:var(--space-3)}
-.foot{margin-top:var(--space-6);text-align:center;color:var(--ink-2);font-size:13px}
-.foot a{color:inherit}
+.foot{margin-top:var(--space-6);display:flex;flex-direction:column;align-items:center;gap:var(--space-3);text-align:center;color:var(--ink-2);font-size:13px}.foot p{margin:0;display:flex;align-items:center;gap:var(--space-2)}.foot .pm-logo{width:24px;height:24px;border-radius:8px}
+.foot a,.small a{color:var(--ink);font-weight:600}
 @media(prefers-reduced-motion:reduce){*{animation-duration:2s!important;transition:none!important}}
 `;
 
@@ -428,7 +428,7 @@ export function bookPage({ info, baseUrl = "", lang = "", source = "link" }) {
 
   const data = { mode: "book", info: { code: info.code, kind: info.kind, enabled: !!info.enabled, autoConfirm: !!info.autoConfirm, advanceDays: info.advanceDays, today: info.today, table: info.table, room: info.room, langs: al }, strings: STR, lang: l0, source: src };
   return `<!doctype html>
-<html lang="${l0}" data-theme="light">
+<html lang="${l0}">
 <head>
 ${HEAD(`${isTable ? STR[l0].bookTable : STR[l0].bookRoom} - ${b.name || ""}`)}
 <style>${CSS}</style>
@@ -439,6 +439,7 @@ ${HEAD(`${isTable ? STR[l0].bookTable : STR[l0].bookRoom} - ${b.name || ""}`)}
   <h1 data-t="${isTable ? "bookTable" : "bookRoom"}">${esc(isTable ? T.bookTable : T.bookRoom)}</h1>
   ${info.notice ? `<p class="notice">${esc(info.notice)}</p>` : ""}
   ${info.enabled ? form : closed}
+  <footer class="foot"><div id="theme"></div><p><img class="pm-logo" src="/brand/logo/polar-mark.png" alt="" width="24" height="24">Powered by Polar Marketing</p></footer>
 </div>
 ${LANG_BOOT(al, fixed)}
 <script>
@@ -459,7 +460,7 @@ export function managePage({ booking, info, baseUrl = "", cancellable = false })
   const data = { mode: "manage", info: { code: info.code, kind: info.kind, enabled: !!info.enabled, autoConfirm: !!info.autoConfirm, room: info.room ? { checkIn: info.room.checkIn, checkOut: info.room.checkOut } : undefined, langs }, strings: STR, lang: pref, booking: view, cancellable: !!cancellable };
   const phone = String(b.phone || "").replace(/[^\d+]/g, "");
   return `<!doctype html>
-<html lang="${pref}" data-theme="light">
+<html lang="${pref}">
 <head>
 ${HEAD(`${T.yourBooking} - ${b.name || ""}`)}
 <style>${CSS}</style>
@@ -471,6 +472,7 @@ ${HEAD(`${T.yourBooking} - ${b.name || ""}`)}
   <div id="manageBody"></div>
   <div id="cancelBox" aria-live="polite" style="margin-top:var(--space-4)"></div>
   ${phone ? `<p class="small"><a href="tel:${esc(phone)}">${esc(b.phone)}</a></p>` : ""}
+  <footer class="foot"><div id="theme"></div><p><img class="pm-logo" src="/brand/logo/polar-mark.png" alt="" width="24" height="24">Powered by Polar Marketing</p></footer>
 </div>
 ${LANG_BOOT(langs, "", pref)}
 <script>
