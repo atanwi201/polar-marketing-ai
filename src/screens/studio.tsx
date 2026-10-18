@@ -267,17 +267,6 @@ function ClientEditor({ client, data, onClose, act }: { client: SClient; data: S
     <Modal open title={isNew ? "New client" : c.name} onClose={onClose}
       footer={<>
         {!isNew && <ConfirmButton label="Delete" confirm="Delete for good" onConfirm={async () => { await act("DELETE", `/clients/${c.id}`, undefined, "Client deleted"); onClose(); }} />}
-        {!isNew && <Button small kind="ghost" onClick={() => void act("POST", `/clients/${c.id}/site`, undefined, "Rebuilding the website")}>Rebuild website</Button>}
-        {!isNew && c.site?.url && <Button small kind="ghost" onClick={async () => { try { await downloadSiteZip(c.id, c.name); } catch (e) { toast((e as Error).message); } }}>Download site (zip)</Button>}
-        {!isNew && <>
-          <input ref={zipRef} type="file" accept=".zip,application/zip" hidden onChange={async (e) => {
-            const f = e.target.files?.[0]; e.target.value = ""; if (!f) return;
-            toast("Uploading the website…");
-            const err = await uploadSiteZip(c.id, f);
-            if (err) toast(err); else { toast("New website is live"); onClose(); }
-          }} />
-          <Button small kind="ghost" onClick={() => zipRef.current?.click()} title="Replace the live website with your own zip (needs index.html at the top)">Upload site (zip)</Button>
-        </>}
         {!isNew && <ConfirmButton label="New portal link" confirm="Replace link (old one stops working)" onConfirm={async () => { await act("POST", `/clients/${c.id}/token`, undefined, "New portal link created"); onClose(); }} />}
         <span style={{ flex: 1 }} />
         <Button onClick={onClose}>Cancel</Button>
@@ -296,6 +285,26 @@ function ClientEditor({ client, data, onClose, act }: { client: SClient; data: S
             <span className="row wrap"><span className="mono small" style={{ wordBreak: "break-all" }}>{portal}</span><CopyButton text={portal} /></span>
             <span className="small muted">Sign-up link</span>
             <span className="row wrap"><span className="mono small">{apiOrigin}/signup</span><CopyButton text={`${apiOrigin}/signup`} /></span>
+          </div>
+        )}
+        {!isNew && (
+          <div className="box stack-sm">
+            <span className="strong">Website</span>
+            <span className="small muted">
+              {c.site?.url ? <>Live at <a href={siteUrl(c.site.url)} target="_blank" rel="noreferrer">{siteUrl(c.site.url)}</a>{c.site.kind === "upload" ? ". Uploaded by you." : c.site.kind === "ai" ? ". Designed by the AI." : "."}</> : "No website yet."}
+              {" "}Download it, change it on your computer and upload it again, or let the AI rebuild it.
+            </span>
+            <input ref={zipRef} type="file" accept=".zip,application/zip" hidden onChange={async (e) => {
+              const f = e.target.files?.[0]; e.target.value = ""; if (!f) return;
+              toast("Uploading the website…");
+              const err = await uploadSiteZip(c.id, f);
+              if (err) toast(err); else { toast("New website is live"); onClose(); }
+            }} />
+            <div className="row wrap">
+              {c.site?.url && <Button small onClick={async () => { try { await downloadSiteZip(c.id, c.name); } catch (e) { toast((e as Error).message); } }}>Download site (zip)</Button>}
+              <Button small onClick={() => zipRef.current?.click()} title="Needs an index.html at the top of the zip">Upload site (zip)</Button>
+              <Button small kind="ghost" onClick={() => void act("POST", `/clients/${c.id}/site`, undefined, "Rebuilding the website")}>Rebuild with AI</Button>
+            </div>
           </div>
         )}
         <div className="form-grid">

@@ -4,7 +4,7 @@ import { toast } from "../core/ui";
 export type Platform = "instagram" | "facebook" | "x" | "youtube";
 export interface Site {
   status: "building" | "waiting" | "ready" | "failed"; url?: string; path?: string; builtAt?: string; error?: string; models?: unknown;
-  step?: string; kind?: "ai" | "template"; design?: string; directionName?: string; editedAt?: string; note?: string; languages?: string[];
+  step?: string; kind?: "ai" | "template" | "upload"; design?: string; directionName?: string; editedAt?: string; note?: string; languages?: string[];
 }
 export interface Service { name: string; price: string; description: string }
 export interface Profile {
