@@ -25,6 +25,9 @@ const { receiveUpload, addMessage, startAssistant, portalMessages } = await impo
 const { applyProfile, applyImages, profileView, MAX_PHOTOS } = await import("./profile.mjs");
 const { handleLoyalty } = await import("./loyalty-routes.mjs");
 const loyalty = await import("./loyalty.mjs");
+const { handleBookings } = await import("./bookings-routes.mjs");
+const bookings = await import("./bookings.mjs");
+const { bookingMailer } = await import("./booking-mail.mjs");
 const { handleWallet, pushUpdate } = await import("./wallet.mjs");
 const { walletStatus, buildPass } = await import("./pass.mjs");
 const { googleStatus, saveUrl: googleSaveUrl, pushGoogle, fallbackLogoPng } = await import("./gwallet.mjs");
@@ -223,6 +226,8 @@ loyalty.setOnCardChanged((c) => {
   pushUpdate(c).catch((e) => console.warn("[wallet push]", e.message));
   pushGoogle(c, { client: db.clients.find((x) => x.id === c.clientId) }).catch((e) => console.warn("[google wallet push]", e.message));
 });
+// Reservations: confirmations go only to the customer who booked (transactional).
+bookings.setOnBookingChange(bookingMailer({ baseUrl: () => publicUrl() || `http://localhost:${PORT}`, save }));
 const loyaltyCtx = {
   send, readBody, saveUpload, isAdmin: (req) => auth.isAdmin(req), clientByToken: (t) => db.clients.find((x) => x.token === t), baseUrl: (req) => base(req), clientIp,
   designProgram: async (program, opts) => {
@@ -253,6 +258,7 @@ async function route(req, res, url) {
   // --- Loyalty cards and Apple Wallet (before the portal and studio handlers) ---
   if (await handleWallet(req, res, url, seg, { send, readBody, baseUrl: base })) return;
   if (await handleLoyalty(req, res, url, seg, loyaltyCtx)) return;
+  if (await handleBookings(req, res, url, seg, loyaltyCtx)) return;
 
   // --- AI proxy for the main app ---
   if (p === "/api/ai/status") {
@@ -635,6 +641,7 @@ async function route(req, res, url) {
       await deleteMedia(db.videos.filter((x) => x.clientId === oid).flatMap(videoFiles));
       db.videos = db.videos.filter((x) => x.clientId !== oid);
       db.messages = db.messages.filter((x) => x.clientId !== oid);
+      bookings.removeClientData(oid);
       await save();
       return send(res, 200, { ok: true });
     }
