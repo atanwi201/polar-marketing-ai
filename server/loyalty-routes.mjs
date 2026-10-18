@@ -45,6 +45,12 @@ export async function handleLoyalty(req, res, url, seg, ctx) {
   try {
     // ---- public pages ----
     if (m === "GET" && seg[0] === "join" && seg.length === 2) return await joinPageRoute(req, res, seg[1], ctx);
+    if (m === "GET" && seg[0] === "loyalty" && seg[1] === "logo" && seg.length === 3 && ctx.wallet?.google?.logo) {
+      const prog = L.ldb().programs.find((x) => `${x.id}.png` === seg[2]);
+      if (!prog) return ctx.send(res, 404, { error: "not found" }), true;
+      res.writeHead(200, { "Content-Type": "image/png", "Cache-Control": "public, max-age=86400" });
+      return res.end(ctx.wallet.google.logo(prog)), true;
+    }
     if (seg[0] === "card" && seg[1]) return await cardRoutes(req, res, seg, ctx);
     if (m === "GET" && seg[0] === "staff" && seg.length === 2) return await staffPageRoute(req, res, seg[1], ctx);
     // ---- public API ----
@@ -87,7 +93,7 @@ async function cardRoutes(req, res, seg, ctx) {
   if (!customer || !program) { limits.badCard.fail(ip); return notFoundPage(res), true; }
   const base = ctx.baseUrl(req);
   const wallet = await walletInfo(ctx);
-  const view = () => L.cardView(customer, program, { baseUrl: base, walletConfigured: wallet.configured });
+  const view = () => L.cardView(customer, program, { baseUrl: base, walletConfigured: wallet.configured, googleConfigured: !!wallet.google?.configured });
   const P = await pages();
   if (seg.length === 2) { const v = view(); await save(); html(res, 200, P.cardPage({ view: v, baseUrl: base })); return true; }
   if (seg.length === 3 && seg[2] === "qr.svg") return bin(res, "image/svg+xml", await qrSvg(L.codeOf(customer))), true;
@@ -99,6 +105,11 @@ async function cardRoutes(req, res, seg, ctx) {
     if (!wallet.configured || !ctx.wallet?.buildPass) return ctx.send(res, 404, { error: "Apple Wallet is not set up yet. Use the web card." }), true;
     const buf = await ctx.wallet.buildPass(customer);
     return bin(res, "application/vnd.apple.pkpass", buf, { "Content-Disposition": `attachment; filename="card.pkpass"` }), true;
+  }
+  if (seg.length === 3 && seg[2] === "google-wallet") {
+    if (!wallet.google?.configured || !ctx.wallet?.google?.saveUrl) return ctx.send(res, 404, { error: "Google Wallet is not set up yet. Use the web card." }), true;
+    res.writeHead(302, { Location: ctx.wallet.google.saveUrl(customer, base), "Cache-Control": "no-store" });
+    return res.end(), true;
   }
   return false;
 }

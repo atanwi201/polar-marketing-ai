@@ -388,7 +388,7 @@ export function programView(program, { baseUrl = "" } = {}) {
 }
 
 /** What the customer sees on their card. Expires old points first. */
-export function cardView(customer, program, { baseUrl = "", walletConfigured = false } = {}) {
+export function cardView(customer, program, { baseUrl = "", walletConfigured = false, googleConfigured = false } = {}) {
   expirePoints(customer, program);
   const history = txnsOf(customer).slice(-20).reverse().map((t) => ({ at: t.at, type: t.type, stamps: t.stamps, points: t.points, note: t.note }));
   return {
@@ -399,7 +399,7 @@ export function cardView(customer, program, { baseUrl = "", walletConfigured = f
     rewards: program.rewards.filter((r) => r.active !== false).map((r) => { const s = rewardStatus(customer, program, r); return { id: s.id, name: s.name, cost: s.cost, kind: s.kind, available: s.available, remaining: s.remaining }; }),
     redemptions: (customer.redemptions ?? []).slice(-5).reverse(),
     history,
-    wallet: { available: !!walletConfigured, url: `${baseUrl}/card/${customer.cardToken}/pass.pkpass` },
+    wallet: { available: !!walletConfigured, url: `${baseUrl}/card/${customer.cardToken}/pass.pkpass`, google: { available: !!googleConfigured, url: `${baseUrl}/card/${customer.cardToken}/google-wallet` } },
     installUrl: `${baseUrl}/card/${customer.cardToken}`,
   };
 }

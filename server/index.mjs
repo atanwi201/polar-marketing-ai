@@ -27,6 +27,7 @@ const { handleLoyalty } = await import("./loyalty-routes.mjs");
 const loyalty = await import("./loyalty.mjs");
 const { handleWallet, pushUpdate } = await import("./wallet.mjs");
 const { walletStatus, buildPass } = await import("./pass.mjs");
+const { googleStatus, saveUrl: googleSaveUrl, pushGoogle, fallbackLogoPng } = await import("./gwallet.mjs");
 const loyaltyDesign = await import("./loyalty-design.mjs").catch(() => null);
 const PROFILE_FORM_JS = () => readFileSync(join(import.meta.dirname, "profile-form.js"), "utf8");
 
@@ -212,7 +213,10 @@ const portalView = (c) => ({
 });
 
 // Loyalty cards: every card change pushes a refresh to the customer's Apple Wallet pass.
-loyalty.setOnCardChanged((c) => pushUpdate(c).catch((e) => console.warn("[wallet push]", e.message)));
+loyalty.setOnCardChanged((c) => {
+  pushUpdate(c).catch((e) => console.warn("[wallet push]", e.message));
+  pushGoogle(c, { client: db.clients.find((x) => x.id === c.clientId) }).catch((e) => console.warn("[google wallet push]", e.message));
+});
 const loyaltyCtx = {
   send, readBody, saveUpload, isAdmin: (req) => auth.isAdmin(req), clientByToken: (t) => db.clients.find((x) => x.token === t), baseUrl: (req) => base(req), clientIp,
   designProgram: async (program, opts) => {
@@ -220,7 +224,14 @@ const loyaltyCtx = {
     return loyaltyDesign.designProgram(program, db.clients.find((c) => c.id === program.clientId) ?? {}, opts);
   },
   wallet: {
-    status: () => walletStatus(),
+    status: () => ({ ...walletStatus(), google: googleStatus() }),
+    google: {
+      saveUrl: (customer, baseUrl) => {
+        const program = loyalty.findProgram(customer.programId);
+        return googleSaveUrl({ program, customer, client: db.clients.find((c) => c.id === program.clientId) ?? {}, baseUrl });
+      },
+      logo: (program) => fallbackLogoPng(program),
+    },
     buildPass: (customer) => {
       const program = loyalty.findProgram(customer.programId);
       return buildPass({ program, customer, client: db.clients.find((c) => c.id === program.clientId) ?? {}, baseUrl: publicUrl() || `http://localhost:${PORT}` });

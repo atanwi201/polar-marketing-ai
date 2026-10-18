@@ -29,7 +29,7 @@ export interface Txn {
   stamps: number; points: number; amountEur: number; note: string; by: string; rewardId?: string;
 }
 export interface Template { id: string; clientId: string; name: string; design: Design; createdAt: string }
-export interface WalletStatus { configured: boolean; missing: string[]; passTypeId: string; pushReady: boolean; publicUrlHttps: boolean }
+export interface WalletStatus { configured: boolean; missing: string[]; passTypeId: string; pushReady: boolean; publicUrlHttps: boolean; google?: { configured: boolean; missing: string[] } }
 export interface LoyaltyList { programs: ProgramView[]; templates: Template[]; wallet: WalletStatus; publicUrl: string; baseUrl: string; clients?: { id: string; name: string }[] }
 export interface ProgramDetail extends ProgramView { customers: CustomerRow[]; txns: Txn[] }
 export interface CustomerDetail extends CustomerRow { txns: Txn[]; redemptions?: { rewardId: string; name: string; at: string; code: string }[]; marketingConsent?: boolean }

@@ -127,6 +127,13 @@ export function CardPreview({ design, type, goal = 8, businessName, tiers = [], 
 
 // ---------- Wallet banner ----------
 
+function GoogleLine({ wallet }: { wallet: WalletStatus }) {
+  const g = wallet.google;
+  if (!g) return null;
+  if (g.configured) return <span className="small muted">Google Wallet is on: Android customers get <b>Add to Google Wallet</b> and their balance updates after every scan.</span>;
+  return <span className="small muted">Google Wallet (free) is not set up: missing {g.missing.map((m) => <code key={m} className="loy-env">{m}</code>)}</span>;
+}
+
 function WalletBanner({ wallet }: { wallet: WalletStatus }) {
   if (wallet.configured) {
     return (
@@ -135,6 +142,7 @@ function WalletBanner({ wallet }: { wallet: WalletStatus }) {
           <span className="strong">Apple Wallet is on</span>
           <span className="small muted">Customers can add their card to Apple Wallet{wallet.passTypeId ? <> (<span className="mono">{wallet.passTypeId}</span>)</> : null}.
             {wallet.pushReady ? " Balance changes update on their phone straight away." : " Live balance updates need a public https address, so cards refresh when opened."}</span>
+          <GoogleLine wallet={wallet} />
         </div>
         <Badge tone="good">Wallet ready</Badge>
       </div>
@@ -148,6 +156,7 @@ function WalletBanner({ wallet }: { wallet: WalletStatus }) {
         {wallet.missing.length > 0 && (
           <span className="small">Still missing in the server settings: {wallet.missing.map((m) => <code key={m} className="loy-env">{m}</code>)}</span>
         )}
+        <GoogleLine wallet={wallet} />
         {!wallet.publicUrlHttps && <span className="small muted">Wallet also needs <code className="loy-env">PUBLIC_URL</code> set to an https address.</span>}
       </div>
       <Badge tone="warn">Web card only</Badge>

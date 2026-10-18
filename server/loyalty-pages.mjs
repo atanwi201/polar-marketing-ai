@@ -330,6 +330,7 @@ export function cardPage({ view, baseUrl = "" }) {
   const logo = safeFile(d.logoFile);
   const title = `${d.cardTitle || view.program.name} - ${view.business.name}`;
   const wallet = view.wallet?.available && view.wallet.url;
+  const google = view.wallet?.google?.available && view.wallet.google.url;
   const inactive = view.program.status && view.program.status !== "live";
   return `<!doctype html>
 <html lang="en" data-theme="light">
@@ -394,10 +395,11 @@ details.panel summary{font:700 16px/24px var(--font-display);cursor:pointer;min-
     </div>
   </div>
   ${wallet ? `<a class="apple" href="${esc(wallet)}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6.5A2.5 2.5 0 0 1 5.5 4h13A2.5 2.5 0 0 1 21 6.5V8H3V6.5zM3 10h18v7.5a2.5 2.5 0 0 1-2.5 2.5h-13A2.5 2.5 0 0 1 3 17.5V10zm12 3a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3z"/></svg>Add to Apple Wallet</a>` : ""}
+  ${google ? `<a class="apple gpay" href="${esc(google)}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6.5A2.5 2.5 0 0 1 5.5 4h13A2.5 2.5 0 0 1 21 6.5V8H3V6.5zM3 10h18v7.5a2.5 2.5 0 0 1-2.5 2.5h-13A2.5 2.5 0 0 1 3 17.5V10zm12 3a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3z"/></svg>Add to Google Wallet</a>` : ""}
   <div class="panels">
     <section class="panel cr-card"><h3>Rewards</h3><ul class="list" id="rewards">${K.rewards(view)}</ul></section>
     <section class="panel cr-card"><h3>Activity</h3><ul class="list hist" id="history">${K.history(view)}</ul></section>
-    ${wallet ? "" : `<section class="panel cr-card hint" id="hint" hidden>
+    ${wallet || google ? "" : `<section class="panel cr-card hint" id="hint" hidden>
       <h3>Keep this card on your phone</h3>
       <p class="muted sm" style="margin:0" id="hintLead">Add it to your home screen to open it in one tap.</p>
       <ol id="hintIos" hidden><li>Tap the Share button <kbd>&#8679;</kbd> in Safari.</li><li>Choose <b>Add to Home Screen</b>.</li><li>Tap <b>Add</b>.</li></ol>
