@@ -11,7 +11,7 @@ import { join, normalize } from "node:path";
 const root = join(import.meta.dirname, "..");
 loadEnv(join(root, ".env"));
 
-const { complete, freeModels, rankModels, status, aiKey, providerNames, configureAi, keySources, openrouterKey } = await import("./openrouter.mjs");
+const { complete, freeModels, rankModels, status, aiKey, providerNames, configureAi, keySources, openrouterKey, providerList, runWithProvider, listModels, puterSignIn } = await import("./openrouter.mjs");
 const { db, save, id, token, now, MEDIA_DIR, DATA_DIR } = await import("./store.mjs");
 const { startPost, runPost, publish, startScheduler, redrawImage, describeImage } = await import("./studio.mjs");
 const { buildSite, SITES_DIR, startSiteRetries, siteBase } = await import("./sitebuilder.mjs");
@@ -56,8 +56,9 @@ function aiSettingsView() {
   const s = db.settings.ai ?? {};
   const mask = (k) => (k ? "••••" + k.slice(-4) : "");
   return {
+    puter: { imageModel: s.puter?.imageModel ?? "", voiceProvider: s.puter?.voiceProvider ?? "", voice: s.puter?.voice ?? "" },
     openrouter: !!aiKey(), providers: providerNames(), order: s.order ?? "", sources: keySources(),
-    groqKey: mask(s.groqKey), mistralKey: mask(s.mistralKey), openrouterKey: mask(s.openrouterKey),
+    list: providerList().map((p) => ({ id: p.id, label: p.label, hint: p.hint, paid: p.paid, key: mask(s[p.field]), model: s.models?.[p.id] ?? "" })),
   };
 }
 
@@ -69,7 +70,7 @@ function imageSettingsView() {
     provider: e.chosen, engine: e.label, fallback: e.fallback,
     googleModel: e.google.model, googleSize: e.google.imageSize, googleKey: s.googleKey ? "••••" + s.googleKey.slice(-4) : "",
     googleKeyFromEnv: e.googleKeySource === "env", googleModels: GOOGLE_MODELS,
-    openrouterModel: e.openrouter.model, openrouterKey: !!e.openrouter.key, openrouterModels: OPENROUTER_IMAGE_MODELS,
+    openrouterModel: e.openrouter.model, openrouterKey: !!e.openrouter.key, puterKey: !!e.puter.key, openrouterModels: OPENROUTER_IMAGE_MODELS,
     pexelsKey: s.pexelsKey ? "••••" + s.pexelsKey.slice(-4) : "", pexelsKeyFromEnv: !s.pexelsKey && !!pexelsKey(),
   };
 }
@@ -112,7 +113,7 @@ const send = (res, code, body) => {
   res.end(JSON.stringify(body));
 };
 
-const MIME = { xml: "application/xml", txt: "text/plain; charset=utf-8", json: "application/json", jpg: "image/jpeg", jpeg: "image/jpeg", png: "image/png", webp: "image/webp", html: "text/html; charset=utf-8", js: "text/javascript", css: "text/css", svg: "image/svg+xml", mp4: "video/mp4", aiff: "audio/aiff" };
+const MIME = { xml: "application/xml", txt: "text/plain; charset=utf-8", json: "application/json", jpg: "image/jpeg", jpeg: "image/jpeg", png: "image/png", webp: "image/webp", html: "text/html; charset=utf-8", js: "text/javascript", css: "text/css", svg: "image/svg+xml", mp4: "video/mp4", aiff: "audio/aiff", mp3: "audio/mpeg", m4a: "audio/mp4", aac: "audio/aac", weba: "audio/webm", ogg: "audio/ogg", wav: "audio/wav" };
 
 /** Save a data-URL upload (jpeg/png/webp, max 6 MB). Returns the media file name. */
 async function saveUpload(dataUrl) {
@@ -133,7 +134,7 @@ async function addBrief(client, { text, image, imageFile }, reason = "brief") {
   return { brief, post };
 }
 
-const CLIENT_FIELDS = ["name", "kind", "town", "phone", "email", "domain", "offer", "hours", "tone", "languages", "platforms", "autopilot", "postsPerWeek", "autoPublish", "webhookUrl", "imageSize", "videosPerWeek", "videoSeconds", "videoVoice", "plan", "customPrice"];
+const CLIENT_FIELDS = ["name", "kind", "town", "phone", "email", "domain", "offer", "hours", "tone", "languages", "platforms", "autopilot", "postsPerWeek", "autoPublish", "webhookUrl", "imageSize", "videosPerWeek", "videoSeconds", "videoVoice", "plan", "customPrice", "aiProvider"];
 const POST_EDITS = { captions: 2200, short: 280 };
 const VIDEO_EDITS = { captions: 2200, title: 100, description: 4900, endCta: 60 };
 const base = (req) => publicUrl() || `http://${req.headers.host ?? `localhost:${PORT}`}`;
@@ -386,6 +387,7 @@ async function route(req, res, url) {
       if (!c) { c = { id: body.id || id(), token: token(), code: newCode(db.clients), createdAt: now() }; db.clients.push(c); }
       const isNew = !c.name;
       for (const f of CLIENT_FIELDS) if (f in body) c[f] = body[f];
+      if ("aiProvider" in body && !providerList().some((x) => x.id === c.aiProvider)) c.aiProvider = ""; // unknown id = automatic
       if (body.accounts) c.accounts = mergeAccounts(c.accounts, body.accounts);
       c.source ??= "owner";
       c.postsPerWeek = Math.max(7, Math.min(21, Number(c.postsPerWeek) || 0));
@@ -556,14 +558,36 @@ async function route(req, res, url) {
       }
       if (req.method === "DELETE") { db.posts = db.posts.filter((x) => x.id !== oid); await save(); return send(res, 200, { ok: true }); }
     }
+    if (kind === "settings" && oid === "ai" && action === "puter-login" && req.method === "POST") {
+      // Opens Puter's sign-in page in the browser of the computer this server runs on, waits, saves the token.
+      try {
+        (db.settings.ai ??= {}).puterKey = await puterSignIn();
+        await save();
+        return send(res, 200, aiSettingsView());
+      } catch (e) { return send(res, 502, { error: e.message }); }
+    }
+    if (kind === "settings" && oid === "ai" && action === "models" && req.method === "GET") {
+      try { return send(res, 200, { models: await listModels(url.searchParams.get("p") ?? "") }); }
+      catch (e) { return send(res, 502, { error: e.message }); }
+    }
     if (kind === "settings" && oid === "ai" && req.method === "GET") return send(res, 200, aiSettingsView());
     if (kind === "settings" && oid === "ai" && req.method === "POST" && !action) {
       const b = await readBody(req);
       const s = (db.settings.ai ??= {});
-      for (const k of ["groqKey", "mistralKey", "openrouterKey"]) {
-        if (typeof b[k] === "string" && !b[k].startsWith("••••")) s[k] = b[k].trim().slice(0, 300);
+      const ids = providerList().map((p) => p.id);
+      for (const p of providerList()) {
+        const v = b.keys?.[p.id];
+        if (typeof v === "string" && !v.startsWith("••••")) s[p.field] = v.trim().slice(0, 300);
       }
-      if (typeof b.order === "string") s.order = b.order.split(",").map((x) => x.trim().toLowerCase()).filter((x) => ["groq", "mistral", "openrouter"].includes(x)).join(",");
+      if (b.puter && typeof b.puter === "object") {
+        s.puter ??= {};
+        for (const k of ["imageModel", "voiceProvider", "voice"]) if (typeof b.puter[k] === "string") s.puter[k] = /^[\w.:@\/-]{0,100}$/.test(b.puter[k].trim()) ? b.puter[k].trim() : s.puter[k] ?? "";
+      }
+      if (b.models && typeof b.models === "object") {
+        s.models ??= {};
+        for (const id of ids) if (typeof b.models[id] === "string") s.models[id] = b.models[id].split(",").map((x) => x.trim()).filter((x) => /^[\w.:\/-]{1,100}$/.test(x)).join(",");
+      }
+      if (typeof b.order === "string") s.order = b.order.split(",").map((x) => x.trim().toLowerCase()).filter((x) => ids.includes(x)).join(",");
       await save();
       return send(res, 200, aiSettingsView());
     }
@@ -698,7 +722,9 @@ async function route(req, res, url) {
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url ?? "/", "http://x");
   try {
-    await route(req, res, url);
+    // The dashboard can pick one AI provider for what it starts (x-ai-provider); only the owner may.
+    const pick = auth.isAdmin(req) ? String(req.headers["x-ai-provider"] ?? "") : "";
+    await runWithProvider(/^[a-z]+$/.test(pick) ? pick : "", () => route(req, res, url));
   } catch (e) {
     if (res.headersSent) return res.end(`\u0000error:${e.message}`);
     send(res, e.status ?? 502, { error: e.message });

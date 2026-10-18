@@ -1,7 +1,7 @@
 // Free stock photos for client websites. Pexels when there's a key (best quality, free at
 // pexels.com/api); otherwise Openverse, which needs no key and returns only public-domain (CC0)
 // photographs, so nothing needs a credit line.
-import { complete, aiKey } from "./openrouter.mjs";
+import { complete, aiKey, withClientAi } from "./openrouter.mjs";
 
 const KEY = aiKey;
 const OPENVERSE = () => (process.env.OPENVERSE_URL ?? "https://api.openverse.org").replace(/\/$/, "");
@@ -137,3 +137,6 @@ export async function findStockPhotos(client, need, save, { fetchImpl = fetch } 
   }
   return out;
 }
+
+// The client's own AI provider (set in the studio) applies to everything done for them, including scheduled work.
+stockQueries = withClientAi(stockQueries);

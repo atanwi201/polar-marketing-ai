@@ -262,7 +262,9 @@ function Chat({ sc, messages, data, act }: { sc: SClient; messages: Message[]; d
             <div key={m.id} className={"oc-msg oc-" + m.role}>
               <span className="small faint">{m.role === "client" ? sc.name : m.role === "owner" ? "You" : "Assistant"} · {fmtDate(m.createdAt)} {new Date(m.createdAt).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}</span>
               {(m.attachments ?? []).length > 0 && (
-                <div className="row wrap">{m.attachments!.map((a) => a.kind === "video"
+                <div className="row wrap">{m.attachments!.map((a) => a.kind === "audio"
+                  ? <audio key={a.file} src={mediaUrl(a.file)} controls preload="none" />
+                  : a.kind === "video"
                   ? <video key={a.file} src={mediaUrl(a.file)} className="oc-att" controls preload="metadata" />
                   : <img key={a.file} src={mediaUrl(a.file)} className="oc-att" alt={a.description || "Attached photo"} />)}</div>
               )}

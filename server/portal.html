@@ -361,7 +361,7 @@ body.in-chat .app{padding-bottom:calc(170px + env(safe-area-inset-bottom))}
   </div>
   <div class="err" id="cerr" role="alert" hidden></div>
   <div class="cbar">
-    <input type="file" id="cfile" accept="image/*,video/*" class="vh">
+    <input type="file" id="cfile" accept="image/*,video/*,audio/*" class="vh">
     <label for="cfile" class="cbtn" id="cfileL"><svg aria-hidden="true"><use href="#i-plus"/></svg></label>
     <textarea id="ctext" rows="1" maxlength="2000"></textarea>
     <button class="csend" id="csend" type="submit" disabled><svg aria-hidden="true"><use href="#i-send"/></svg></button>
@@ -434,7 +434,7 @@ const T={
     assistant:"Asistente", team:"Tu equipo", thinking:"Pensando", write:"Escribe un mensaje…", send:"Enviar", attach:"Añadir foto o vídeo",
     welcome:"¡Hola! Soy tu asistente de marketing. Dime qué quieres promocionar y, si quieres, adjunta una foto o un vídeo: te devuelvo la publicación lista con la oferta escrita encima.",
     suggestions:["Quiero ofrecer plátanos a 1,50 €/kg esta semana","Haz un vídeo para Reels de nuestro negocio","Nuevo horario: de lunes a sábado de 8 a 14","¿Cuántas publicaciones tengo listas?"],
-    uploading:"Subiendo", uploadFailed:"No se ha podido subir", photoReady:"Foto lista", videoReady:"Vídeo listo", tooBig:"El vídeo es demasiado grande (máx. 250 MB).",
+    uploading:"Subiendo", uploadFailed:"No se ha podido subir", photoReady:"Foto lista", voiceReady:"Nota de voz lista", videoReady:"Vídeo listo", tooBig:"El vídeo es demasiado grande (máx. 250 MB).",
     makingPost:"Creando tu publicación…", seePost:"Ver", seeVideo:"Ver", infoUpdated:"Datos actualizados. Tu web se está actualizando.",
     sum_posts:"{n} publicaciones", sum_post1:"1 publicación",
     designing:"Estamos diseñando tu web con IA", designingS:"Una web a medida con tu logo, tus fotos y tu información. Tarda unos minutos.", translating:"Traduciendo tu web",
@@ -484,7 +484,7 @@ const T={
     assistant:"Assistant", team:"Your team", thinking:"Thinking", write:"Write a message…", send:"Send", attach:"Add a photo or video",
     welcome:"Hi! I'm your marketing assistant. Tell me what you want to promote and attach a photo or video if you like: I'll send back the post, ready, with the offer written on top.",
     suggestions:["I want to offer bananas at €1.50/kg this week","Make a Reels video about our business","New opening hours: Monday to Saturday 8 to 14","How many posts do I have ready?"],
-    uploading:"Uploading", uploadFailed:"Upload failed", photoReady:"Photo ready", videoReady:"Video ready", tooBig:"That video is too big (max 250 MB).",
+    uploading:"Uploading", uploadFailed:"Upload failed", photoReady:"Photo ready", voiceReady:"Voice note ready", videoReady:"Video ready", tooBig:"That video is too big (max 250 MB).",
     makingPost:"Making your post…", seePost:"See", seeVideo:"See", infoUpdated:"Details updated. Your website is being updated.",
     sum_posts:"{n} posts", sum_post1:"1 post",
     designing:"We're designing your website with AI", designingS:"A custom website with your logo, photos and information. It takes a few minutes.", translating:"Translating your website",
@@ -807,8 +807,8 @@ function drawAtt(){
   const box=$("#att");
   if(!att){ box.hidden=true; updateSend(); return; }
   box.hidden=false;
-  $("#attThumb").innerHTML=att.kind==="video"?`<video src="${esc(att.preview)}" muted playsinline></video>`:`<img src="${esc(att.preview)}" alt="">`;
-  $("#attName").textContent=att.status==="uploading"?t("uploading")+" "+Math.round((att.progress||0)*100)+"%":att.status==="error"?t("uploadFailed"):t(att.kind==="video"?"videoReady":"photoReady");
+  $("#attThumb").innerHTML=att.kind==="video"?`<video src="${esc(att.preview)}" muted playsinline></video>`:att.kind==="audio"?`<audio src="${esc(att.preview)}" controls style="width:100%"></audio>`:`<img src="${esc(att.preview)}" alt="">`;
+  $("#attName").textContent=att.status==="uploading"?t("uploading")+" "+Math.round((att.progress||0)*100)+"%":att.status==="error"?t("uploadFailed"):t(att.kind==="video"?"videoReady":att.kind==="audio"?"voiceReady":"photoReady");
   $("#attBar").style.width=(att.status==="ready"?100:Math.round((att.progress||0)*100))+"%";
   box.classList.toggle("bad",att.status==="error");
   updateSend();
@@ -823,11 +823,13 @@ $("#cfile").addEventListener("change",async e=>{
   if(att&&att.xhr) att.xhr.abort();
   const ext=(f.name.split(".").pop()||"").toLowerCase();
   const isVideo=(f.type||"").startsWith("video/")||VIDEO_TYPES[ext];
-  att={status:"uploading",kind:isVideo?"video":"image",preview:URL.createObjectURL(f),progress:0};
+  const isAudio=!isVideo&&((f.type||"").startsWith("audio/")||["mp3","m4a","aac","ogg","wav","weba"].includes(ext));
+  att={status:"uploading",kind:isVideo?"video":isAudio?"audio":"image",preview:URL.createObjectURL(f),progress:0};
   drawAtt();
   try{
     let blob=f, type=f.type;
-    if(isVideo){ type=VIDEO_TYPES[ext]||f.type||"video/mp4"; if(f.size>250e6) throw new Error(t("tooBig")); }
+    if(isAudio){ type=(f.type||"").replace("audio/x-m4a","audio/mp4")||"audio/mpeg"; if(f.size>25e6) throw new Error(t("tooBig")); }
+    else if(isVideo){ type=VIDEO_TYPES[ext]||f.type||"video/mp4"; if(f.size>250e6) throw new Error(t("tooBig")); }
     else { blob=await downscaleBlob(f); type="image/jpeg"; }
     const d=await uploadBlob(blob,type);
     if(!att) return;
@@ -887,7 +889,9 @@ function resultHtml(m){
 }
 function msgHtml(m){
   const time=new Date(m.createdAt).toLocaleTimeString(T[lang].locale,{hour:"2-digit",minute:"2-digit"});
-  const atts=(m.attachments||[]).map(a=>a.kind==="video"
+  const atts=(m.attachments||[]).map(a=>a.kind==="audio"
+    ?`<audio class="matt" src="/media/${encodeURI(a.file)}" controls preload="none"></audio>`
+    :a.kind==="video"
     ?`<video class="matt" src="/media/${encodeURI(a.file)}" muted playsinline preload="metadata"></video>`
     :`<img class="matt" src="/media/${encodeURI(a.file)}" alt="" loading="lazy">`).join("");
   if(m.role==="client") return `<div class="msg me" data-mid="${esc(m.id)}">${atts?`<div class="matts">${atts}</div>`:""}${m.text?`<div class="bubble">${esc(m.text)}</div>`:""}<span class="mt">${esc(time)}</span></div>`;

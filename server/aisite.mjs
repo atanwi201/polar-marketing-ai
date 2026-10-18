@@ -9,7 +9,7 @@ import { complete, aiKey } from "./openrouter.mjs";
 import { generateImage } from "./images.mjs";
 import { findStockPhotos } from "./stock.mjs";
 import { describeImage, CONTEXT } from "./studio.mjs";
-import { extractHtml, pageProblem, sanitize, assemble, readMeta } from "./webpage.mjs";
+import { extractHtml, pageProblem, sanitize, assemble, readMeta, lintPage, BOOTSTRAP_CSS, BOOTSTRAP_ICONS_CSS, BOOTSTRAP_JS, ANIMATE_CSS } from "./webpage.mjs";
 import { directionPrompt } from "./directions.mjs";
 import { cleanLogo, analysePhoto, planImages, renderPlan, imgTag, fixPageImages, FRAMES, IMAGE_CSS } from "./siteimages.mjs";
 
@@ -206,7 +206,7 @@ Rules for pictures:
 - Each picture is already cropped to its frame (16:9, 4:3, 1:1 or 4:5), so show it whole: width:100%; height:auto (or the same aspect-ratio). The only exception is a full-bleed hero, which may fill its container with height:100%.
 - Frames get the direction's corner radius and nothing else: no filters, no blur, no opacity, no borders or boxes around photos, no CSS background-image photos, no decorative empty boxes or blurred blobs standing in for pictures. If a section has no picture in the plan, design it with type and colour instead.
 - Text on a photo always sits on a gradient overlay so it reads perfectly; buttons on photos are solid (never outline-only).
-- A product card with a picture shows it at the top of the card; cards without one use a small inline SVG icon instead, and all cards in one row stay the same height.
+- A product card with a picture shows it at the top of the card; cards without one use a small icon (Bootstrap Icons or inline SVG) instead, and all cards in one row stay the same height.
 - Stock photos are illustrative: never caption or describe them as this business's own shop, team or products.
 
 ## Copy
@@ -222,7 +222,7 @@ Write every visible word in ${L}: natural, native, warm and persuasive, short se
 7. Visit us: address, opening hours as a clean list, and a Google Map: an <iframe> with exactly src="${mapsEmbed(client)}" title="Map" and loading="lazy", plus a "how to get there" button to ${directions(client)}${p.bookingUrl ? `, and a booking button to ${p.bookingUrl}` : ""}${p.menuUrl ? `, and a button to the menu/catalogue ${p.menuUrl}` : ""}.
 8. FAQ: 4 to 6 questions their customers really search for in ${L}, answered only from the facts above, using <details><summary>.
 9. Closing call to action band${wa ? " with the WhatsApp button" : ""}.
-10. Footer: logo, name, address, phone, ${social.length ? "links to their social profiles with small inline SVG icons, " : ""}© ${new Date().getFullYear()} ${client.name}.
+10. Footer: logo, name, address, phone, ${social.length ? "links to their social profiles with small icons (Bootstrap Icons like bi-instagram, bi-facebook, or inline SVG), " : ""}© ${new Date().getFullYear()} ${client.name}.
 ${wa ? "Also a floating round WhatsApp button fixed at the bottom right." : ""}
 
 ${direction ? directionPrompt(direction) + "\n\n" : ""}## Quality bar (every direction)
@@ -237,7 +237,7 @@ ${direction ? directionPrompt(direction) + "\n\n" : ""}## Quality bar (every dir
 
 ## Technical rules (strict)
 - ONE complete HTML5 document from <!doctype html> to </html>. All CSS in a single <style> in the <head>, using CSS custom properties in :root.
-- NO JavaScript of any kind: no <script>, no on* attributes, no forms. No external CSS except Google Fonts (one <link> to https://fonts.googleapis.com/css2?...&display=swap, with preconnect links). No icon fonts: icons are small inline SVGs.
+- NO inline JavaScript: no <script> blocks, no on* attributes, no forms. The one script you may load is Bootstrap's bundle (see below). External CSS is limited to: Google Fonts (one <link> to https://fonts.googleapis.com/css2?...&display=swap, with preconnect links), and you MAY use Bootstrap 5 and Bootstrap Icons through exactly these two links: <link rel="stylesheet" href="${BOOTSTRAP_CSS}"> and <link rel="stylesheet" href="${BOOTSTRAP_ICONS_CSS}"> (put them before your own <style> so your CSS wins). Bootstrap is optional: use its grid, utilities, cards, buttons and badges where they save work, but override its look with your own CSS variables, fonts and colours so the site does not look like a stock Bootstrap template. Icons: <i class="bi bi-geo-alt" aria-hidden="true"></i> style Bootstrap Icons (https://icons.getbootstrap.com names, e.g. bi-telephone, bi-whatsapp, bi-clock, bi-geo-alt, bi-star-fill, bi-instagram), or small inline SVGs. Bootstrap's JavaScript IS available through <script src="${BOOTSTRAP_JS}"></script> just before </body>, driven only by data-bs-* attributes (never write your own script): a collapsing navbar (navbar-toggler with data-bs-toggle="collapse"), a carousel for reviews or photos, an accordion for the FAQ, a modal for a photo or the menu. Optional animation: <link rel="stylesheet" href="${ANIMATE_CSS}"> (animate__animated animate__fadeInUp), or your own CSS animations and scroll-driven effects. Use any of this when it makes the site look more professional, not just because it exists. No other libraries, fonts or icon sets.
 - The very first thing inside <head> is a comment: <!-- design: one sentence describing the palette, fonts and layout -->.
 - Include <title> (max 60 characters: name, main offer, town) and <meta name="description"> (max 155 characters, with a call to action), both in ${L}.
 - Semantic HTML: header, nav, main, sections with ids, footer; exactly one h1; an h2 for each section; lists for lists; buttons and links with clear text.
@@ -320,7 +320,16 @@ export async function buildAiSite(client, { dir, langs, base, assets, design, st
     validate: (t) => pageProblem(extractHtml(t)),
   });
   models.push(out.model);
-  const main = clean(out.text);
+  let main = clean(out.text);
+  let qa = null;
+  try {
+    step("review");
+    const r = await qualityCheck(client, main, { clean, assets });
+    main = r.html; qa = r.qa;
+    if (r.model) models.push(r.model);
+  } catch (e) {
+    console.warn("Website quality check skipped:", e.message); // never fails the build
+  }
   const meta = readMeta(main);
   const pages = { [langs[0]]: main };
 
@@ -342,7 +351,67 @@ export async function buildAiSite(client, { dir, langs, base, assets, design, st
   const done = langs.filter((l) => pages[l]);
   await writePages(client, { dir, langs: done, pages, base, assets });
   await saveSources(client, { langs: done, pages, assets });
-  return { kind: "ai", langs: done, models: [...new Set(models.filter(Boolean))], design: (meta.design || design || "").slice(0, 600) };
+  return { kind: "ai", langs: done, models: [...new Set(models.filter(Boolean))], design: (meta.design || design || "").slice(0, 600), ...(qa ? { quality: qa } : {}) };
+}
+
+// ---------- Quality check ----------
+
+const PASS_SCORE = 8;
+
+function reviewPrompt(client, html, lint) {
+  return `You are a strict art director reviewing a finished website for "${client.name}" (${client.kind || "local business"}${client.town ? `, ${client.town}` : ""}) before it goes live. Judge it from the HTML and CSS as a visitor would see it on a phone and on a laptop.
+
+Check:
+- Looks professional and finished: a clear visual hierarchy, a consistent palette (max 3 colours plus neutrals), 2 fonts at most, generous spacing, aligned grids, not a stock Bootstrap template.
+- Text is readable: enough contrast against its background (especially text over photos), sensible sizes, no walls of text.
+- Content: a clear headline and call to action, real specific copy (no filler, no placeholder text), contact details, opening hours, map or address when known.
+- Layout problems that would break on phones: fixed widths, overflowing rows, tiny tap targets, missing responsive rules, sections that collapse.
+- Images: used with object-fit, alt text, no stretched or repeated pictures.
+- Icons work (Bootstrap Icons only if the icon stylesheet is linked).
+${lint.length ? `
+Automatic checks already found:
+${lint.map((l) => `- ${l}`).join("\n")}
+` : ""}
+Score 1 to 10 (8 or more means ready to publish). List the 3 to 6 most important concrete problems, each with the exact fix to make in the HTML or CSS.
+Reply with JSON only: {"score": number, "issues": ["problem and fix", ...]}
+
+${html.slice(0, 60000)}`;
+}
+
+/**
+ * After the design is written: check it looks professional (deterministic lint plus an AI art-director
+ * review) and, if it falls short, have the model fix the listed problems once. Keeps whichever version
+ * scores better. Returns { html, qa: { score, issues, revised }, model }.
+ */
+export async function qualityCheck(client, html, { clean, assets }) {
+  const ask = async (page) => {
+    const lint = lintPage(page);
+    const r = await complete({ key: KEY(), prompt: reviewPrompt(client, page, lint), system: CONTEXT, json: true, tier: "default", attempts: 2, timeoutMs: 120e3 });
+    const score = Math.max(0, Math.min(10, Number(r.json?.score) || 0));
+    const issues = [...lint, ...(Array.isArray(r.json?.issues) ? r.json.issues.map(String) : [])].slice(0, 10);
+    return { score, issues, model: r.model };
+  };
+  const first = await ask(html);
+  if (first.score >= PASS_SCORE) return { html, qa: { score: first.score, issues: first.issues, revised: false }, model: first.model };
+
+  console.log(`Website quality check for ${client.name}: ${first.score}/10, improving the page`);
+  const fixed = await complete({
+    key: KEY(), tier: "complex", system: CONTEXT, maxTokens: 16000, timeoutMs: PAGE_TIMEOUT(), attempts: 2, onDelta: () => {},
+    prompt: `Here is a website for "${client.name}" that a design review found not yet professional enough. Fix every problem below and polish the rest, keeping the same content, structure, image paths, language and the rules it already follows (one HTML document, no inline JavaScript, external files only Google Fonts and the Bootstrap, Bootstrap Icons and animate.css links already used).
+
+Problems to fix:
+${first.issues.map((i) => `- ${i}`).join("\n")}
+
+Return only the complete improved HTML document, nothing before or after it.
+
+${html}`,
+    validate: (t) => pageProblem(extractHtml(t)),
+  });
+  const better = clean(fixed.text);
+  const second = await ask(better);
+  const useNew = second.score >= first.score;
+  const kept = useNew ? second : first;
+  return { html: useNew ? better : html, qa: { score: kept.score, issues: kept.issues, revised: useNew, before: first.score }, model: fixed.model };
 }
 
 /** Turn the (safe) page bodies into the finished files: SEO head, language links, image CSS. */

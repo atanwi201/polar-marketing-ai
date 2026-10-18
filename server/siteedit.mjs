@@ -5,7 +5,7 @@
 import { readFile, writeFile, mkdir, readdir, rm, cp } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import { join } from "node:path";
-import { complete, aiKey } from "./openrouter.mjs";
+import { complete, aiKey, withClientAi } from "./openrouter.mjs";
 import { sanitize, pageProblem } from "./webpage.mjs";
 import { writePages, sourceDir } from "./aisite.mjs";
 import { fixPageImages } from "./siteimages.mjs";
@@ -169,3 +169,6 @@ export async function undoSite(client, { sitesDir, siteBase }) {
   await rm(join(versionsDir(client), last), { recursive: true, force: true });
   return { versions: all.length };
 }
+
+// The client's own AI provider (set in the studio) applies to everything done for them, including scheduled work.
+editSite = withClientAi(editSite);

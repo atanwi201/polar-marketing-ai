@@ -8,7 +8,8 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { promisify } from "node:util";
 import { db, save, id, token, now, MEDIA_DIR } from "./store.mjs";
-import { complete, aiKey } from "./openrouter.mjs";
+import { complete, aiKey, withClientAi } from "./openrouter.mjs";
+import { puterSpeech, puterConfigured } from "./puter.mjs";
 import { generateImage } from "./images.mjs";
 import { CONTEXT } from "./studio.mjs";
 import { FONT, clean, glue, fitText, boxedLines } from "./draw.mjs";
@@ -33,7 +34,7 @@ export async function capabilities() {
   let canvas = true;
   try { await import("@napi-rs/canvas"); } catch { canvas = false; }
   caps = { ffmpeg, canvas, voices: Object.keys(voices), voiceMap: voices };
-  return caps;
+  return puterConfigured() ? { ...caps, voices: ["Puter", ...caps.voices] } : caps; // Puter speaks every language, on any computer
 }
 
 const NOVELTY = /^(Albert|Bad News|Bahh|Bells|Boing|Bubbles|Cellos|Wobble|Good News|Jester|Organ|Superstar|Trinoids|Whisper|Zarvox|Fred|Junior|Ralph|Kathy|Grandma|Grandpa|Rocko|Sandy|Shelley|Reed|Eddy|Flo)\b/;
@@ -162,9 +163,24 @@ export async function endOverlay(client, cta, lang, voice, file) {
 // ---------- Voice-over ----------
 
 async function voiceOver(text, lang, file) {
-  const voice = (await capabilities()).voiceMap[lang];
-  if (!voice || !clean(text)) return null;
-  await run("say", ["-v", voice, "-r", "175", "-o", file, clean(text)], { timeout: 60e3 });
+  if (!clean(text)) return null;
+  const original = file;
+  if (puterConfigured()) {
+    try {
+      const { buffer, ext } = await puterSpeech(clean(text), lang);
+      file = file.replace(/\.\w+$/, `.${ext}`);
+      await writeFile(file, buffer);
+    } catch (e) {
+      console.warn("Puter voice failed, using the system voice:", e.message);
+      file = null;
+    }
+  } else file = null;
+  if (!file) {
+    const voice = (await capabilities()).voiceMap[lang];
+    if (!voice) return null;
+    file = original;
+    await run("say", ["-v", voice, "-r", "175", "-o", file, clean(text)], { timeout: 60e3 });
+  }
   const { stdout } = await run(FFMPEG().replace(/ffmpeg$/, "ffprobe"), ["-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", file]).catch(() => ({ stdout: "0" }));
   return { file, duration: Number(stdout) || 0 };
 }
@@ -378,3 +394,6 @@ export function videoTick(at = Date.now()) {
     startVideo(c, { text: brief.text, briefId: brief.id, imageDescription: brief.imageDescription, refImage: brief.imageFile, seconds: c.videoSeconds ?? 15, langs: (c.languages ?? []).slice(0, 2), voice: !!c.videoVoice, reason: "autopilot" });
   }
 }
+
+// The client's own AI provider (set in the studio) applies to everything done for them, including scheduled work.
+writeScript = withClientAi(writeScript);

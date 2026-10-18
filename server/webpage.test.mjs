@@ -58,3 +58,19 @@ test("a broken <title> or unclosed <style> can't blank the page", () => {
   assert.match(page, /<h1>Hola<\/h1>/);
   assert.equal(pageProblem(`<!doctype html><html><head><style>body{}</head><body><h1>x</h1>${"y".repeat(4000)}</body></html>`), "a <style> is not closed");
 });
+
+test("Bootstrap and Bootstrap Icons CSS are allowed, other CDNs are not", async () => {
+  const { sanitize, lintPage, BOOTSTRAP_CSS, BOOTSTRAP_ICONS_CSS, CSP } = await import("./webpage.mjs");
+  const out = sanitize(`<html><head><link rel="stylesheet" href="${BOOTSTRAP_CSS}"><link rel="stylesheet" href="${BOOTSTRAP_ICONS_CSS}"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/evil@1/x.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></head><body><i class="bi bi-geo-alt"></i></body></html>`);
+  assert.ok(out.includes(BOOTSTRAP_CSS) && out.includes(BOOTSTRAP_ICONS_CSS));
+  assert.ok(!out.includes("evil@1") && !out.includes("bundle"));
+  assert.match(CSP, /font-src[^;]*cdn\.jsdelivr\.net/);
+  assert.ok(lintPage("<html><body><h1>a</h1><h1>b</h1><img src=x></body></html>").length >= 4);
+});
+
+test("only Bootstrap's script is allowed, never inline or other scripts", async () => {
+  const { sanitize, BOOTSTRAP_JS } = await import("./webpage.mjs");
+  const out = sanitize(`<html><body><script src="${BOOTSTRAP_JS}"></script><script>alert(1)</script><script src="https://evil.example/a.js"></script><script src="https://cdn.jsdelivr.net/npm/other@1/x.js"></script></body></html>`);
+  assert.equal((out.match(/<script/g) ?? []).length, 1);
+  assert.ok(out.includes(BOOTSTRAP_JS) && !out.includes("alert") && !out.includes("evil"));
+});

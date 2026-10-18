@@ -4,7 +4,7 @@
 import { join } from "node:path";
 import { readFile, unlink } from "node:fs/promises";
 import { db, save, id, token, now, MEDIA_DIR } from "./store.mjs";
-import { complete, aiKey } from "./openrouter.mjs";
+import { complete, aiKey, withClientAi } from "./openrouter.mjs";
 import { generateImage } from "./images.mjs";
 import { composeOfferImage, POST_SIZE } from "./overlay.mjs";
 import { shareItem, connections, pickLang, TARGETS, LABELS } from "./social.mjs";
@@ -256,3 +256,6 @@ export function startScheduler() {
   setInterval(() => tick(), 60e3).unref();
   tick();
 }
+
+// The client's own AI provider (set in the studio) applies to everything done for them, including scheduled work.
+writePost = withClientAi(writePost);

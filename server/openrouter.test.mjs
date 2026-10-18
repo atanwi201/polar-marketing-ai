@@ -98,3 +98,29 @@ test("falls through Groq (rate limited) and Mistral (bad key) to OpenRouter", as
     for (const [k, v] of [["GROQ_API_KEY", saved.g], ["MISTRAL_API_KEY", saved.m]]) v === undefined ? delete process.env[k] : (process.env[k] = v);
   }
 });
+
+test("a provider picked in the dashboard is the only one used; paid ones never run in auto mode", async () => {
+  const { runWithProvider, resetCooling } = await import("./openrouter.mjs");
+  resetCooling();
+  const keep = { g: process.env.GROQ_API_KEY, o: process.env.OPENAI_API_KEY };
+  process.env.GROQ_API_KEY = "g"; process.env.OPENAI_API_KEY = "o";
+  try {
+    const seen = [];
+    const f = async (url) => {
+      seen.push(url);
+      if (url.endsWith("/models")) return new Response(JSON.stringify({ data: LIST }));
+      return new Response(JSON.stringify({ model: "m", choices: [{ message: { content: "ok" } }] }));
+    };
+    await runWithProvider("groq", () => complete({ key: "k", prompt: "hi", fetchImpl: f }));
+    assert.deepEqual(seen.map((u) => new URL(u).hostname), ["api.groq.com"]);
+    seen.length = 0;
+    await runWithProvider("openai", () => complete({ key: "k", prompt: "hi", fetchImpl: f }));
+    assert.deepEqual(seen.map((u) => new URL(u).hostname), ["api.openai.com"]);
+    seen.length = 0;
+    await complete({ key: "k", prompt: "hi", fetchImpl: f });
+    assert.ok(!seen.some((u) => u.includes("openai.com")));
+    await assert.rejects(runWithProvider("deepseek", () => complete({ key: "k", prompt: "hi", fetchImpl: f })), /no API key/);
+  } finally {
+    for (const [k, v] of [["GROQ_API_KEY", keep.g], ["OPENAI_API_KEY", keep.o]]) v === undefined ? delete process.env[k] : (process.env[k] = v);
+  }
+});

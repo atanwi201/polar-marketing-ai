@@ -7,10 +7,11 @@
 //   update_info new opening hours, phone or what they sell (website rebuilt)
 //   answer      a reply (and a flag for the owner when it's something only a person can do)
 import { join } from "node:path";
-import { unlink, stat } from "node:fs/promises";
+import { unlink, stat, readFile } from "node:fs/promises";
 import { createWriteStream } from "node:fs";
 import { db, save, id, token, now, MEDIA_DIR } from "./store.mjs";
-import { complete, aiKey } from "./openrouter.mjs";
+import { complete, aiKey, withClientAi } from "./openrouter.mjs";
+import { puterTranscribe, puterConfigured } from "./puter.mjs";
 import { CONTEXT, runPost, describeImage, brandLine } from "./studio.mjs";
 import { startVideo } from "./video.mjs";
 import { composeOfferVideo, probeVideo, videoFrame, MAX_CLIP_SECONDS } from "./overlay.mjs";
@@ -27,6 +28,8 @@ const busy = new Set();
 
 const UPLOAD_TYPES = {
   "image/jpeg": ["jpg", "image", 12e6], "image/png": ["png", "image", 12e6], "image/webp": ["webp", "image", 12e6],
+  "audio/mpeg": ["mp3", "audio", 25e6], "audio/mp4": ["m4a", "audio", 25e6], "audio/x-m4a": ["m4a", "audio", 25e6], "audio/aac": ["aac", "audio", 25e6],
+  "audio/webm": ["weba", "audio", 25e6], "audio/ogg": ["ogg", "audio", 25e6], "audio/wav": ["wav", "audio", 25e6], "audio/x-wav": ["wav", "audio", 25e6],
   "video/mp4": ["mp4", "video", 250e6], "video/quicktime": ["mov", "video", 250e6], "video/webm": ["webm", "video", 250e6],
 };
 
@@ -34,7 +37,7 @@ const UPLOAD_TYPES = {
 export async function receiveUpload(req) {
   const type = String(req.headers["content-type"] ?? "").split(";")[0].trim().toLowerCase();
   const spec = UPLOAD_TYPES[type];
-  if (!spec) throw Object.assign(new Error("Send a photo (JPEG, PNG, WebP) or a video (MP4, MOV, WebM)"), { status: 415 });
+  if (!spec) throw Object.assign(new Error("Send a photo (JPEG, PNG, WebP), a video (MP4, MOV, WebM) or a voice note (MP3, M4A, OGG, WAV)"), { status: 415 });
   const [ext, kind, limit] = spec;
   if (Number(req.headers["content-length"] ?? 0) > limit) throw Object.assign(new Error(kind === "video" ? "That video is too big (max 250 MB)" : "That photo is too big (max 12 MB)"), { status: 413 });
   const file = `up-${id()}.${ext}`;
@@ -52,7 +55,7 @@ export async function receiveUpload(req) {
     req.pipe(out);
   }).catch(async (e) => { await unlink(path).catch(() => {}); throw e; });
   if ((await stat(path)).size < 100) { await unlink(path).catch(() => {}); throw Object.assign(new Error("The file arrived empty"), { status: 400 }); }
-  if (kind === "image") return { file, kind };
+  if (kind === "image" || kind === "audio") return { file, kind };
   try {
     const info = await probeVideo(path);
     if (info.duration > 180) throw Object.assign(new Error("Videos can be up to 3 minutes"), { status: 400 });
@@ -83,11 +86,25 @@ export const needsOwner = (clientId) => db.messages.filter((m) => m.clientId ===
 const mainLang = (c) => c.languages?.[0] ?? "es";
 const T = (lang, es, en) => (lang === "es" ? es : en);
 
+/** What a voice note says, as text (Puter speech recognition). "" when it can't be read. */
+async function transcribeNote(file) {
+  if (!puterConfigured()) return "";
+  try {
+    const ext = file.split(".").pop();
+    const mime = { mp3: "audio/mpeg", m4a: "audio/mp4", aac: "audio/aac", weba: "audio/webm", ogg: "audio/ogg", wav: "audio/wav" }[ext] ?? "audio/mpeg";
+    return await puterTranscribe(await readFile(join(MEDIA_DIR, file)), mime);
+  } catch (e) {
+    console.warn("Voice note not transcribed:", e.message);
+    return "";
+  }
+}
+
 /** Describe what's attached so the model can write about it. */
 async function describeAttachments(atts) {
   const out = [];
   for (const a of atts) {
     if (a.kind === "image") out.push({ ...a, description: a.description ?? (await describeImage(a.file)) });
+    else if (a.kind === "audio") out.push({ ...a, description: a.description ?? (await transcribeNote(a.file)) });
     else {
       let description = a.description;
       if (description == null) {
@@ -130,7 +147,7 @@ async function interpret(client, msg, atts, uiLang) {
     `What you know about their account: ${facts(client)}\n` +
     (history ? `Conversation so far:\n${history}\n` : "") +
     `New message from the business:\n"""${msg.text || "(no text)"}"""\n` +
-    (atts.length ? `Attached: ${atts.map((a) => `${a.kind}${a.description ? ` (shows: ${a.description})` : ""}`).join("; ")}\n` : "No attachment.\n") +
+    (atts.length ? `Attached: ${atts.map((a) => `${a.kind}${a.description ? (a.kind === "audio" ? ` (says: ${a.description})` : ` (shows: ${a.description})`) : ""}`).join("; ")}\n` : "No attachment.\n") +
     `Decide the action:\n` +
     `- media_post: they attached a photo or video and want to promote or show something. We put the offer text on top of THEIR photo or video.\n` +
     `- ai_post: they want to promote something but attached nothing. We draw a new image and put the offer text on it.\n` +
@@ -193,6 +210,9 @@ async function handle(replyId) {
     const uiLang = msg.lang === "en" ? "en" : msg.lang === "es" ? "es" : mainLang(client);
     const atts = await describeAttachments(msg.attachments ?? []);
     msg.attachments = atts;
+    // A voice note is a message: what was said becomes the text when they typed nothing.
+    const said = atts.filter((a) => a.kind === "audio" && a.description).map((a) => a.description).join(" ");
+    if (said && !msg.text) msg.text = said.slice(0, 2000);
     const d = await interpret(client, msg, atts, uiLang);
     const overlay = {
       badge: String(d.overlay?.badge ?? "").slice(0, 24), headline: String(d.overlay?.headline || d.concept || client.name).slice(0, 80),
@@ -297,3 +317,6 @@ export function startAssistant() {
 /** What the business's dashboard shows of the conversation. */
 export const portalMessages = (clientId) => db.messages.filter((m) => m.clientId === clientId).slice(-80)
   .map(({ id, role, text, attachments, status, postId, videoId, createdAt, updated }) => ({ id, role, text, attachments: (attachments ?? []).map(({ file, kind }) => ({ file, kind })), status, postId, videoId, createdAt, updated }));
+
+// The client's own AI provider (set in the studio) applies to everything done for them, including scheduled work.
+interpret = withClientAi(interpret);

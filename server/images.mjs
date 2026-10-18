@@ -3,6 +3,7 @@
 // a small logo in the bottom corner, so we ask it for a slightly taller picture, cut that strip off
 // and scale the result to exactly the size asked for.
 import { writeFile, readFile } from "node:fs/promises";
+import { puterImage, puterConfigured } from "./puter.mjs";
 
 const BASE = process.env.POLLINATIONS_BASE_URL ?? "https://image.pollinations.ai";
 const KEY = process.env.POLLINATIONS_KEY ?? "";
@@ -253,7 +254,7 @@ let settingsOf = () => ({});
 /** index.mjs passes a getter for the owner's image settings (stored in the studio data). */
 export function configureImages(getter) { settingsOf = getter; }
 
-export const PROVIDERS = ["free", "openrouter", "google"];
+export const PROVIDERS = ["free", "openrouter", "google", "puter"];
 
 /**
  * The image engine in use. "free" (default): Pollinations, no key. "openrouter": paid image models
@@ -268,12 +269,19 @@ export function imageEngine() {
   const google = { key: googleKey, model: s.googleModel || process.env.GOOGLE_IMAGE_MODEL || GOOGLE_MODELS[0].id, imageSize: s.googleSize === "2K" ? "2K" : "1K" };
   const openrouter = { key: openrouterKey, model: s.openrouterModel || process.env.OPENROUTER_IMAGE_MODEL || OPENROUTER_IMAGE_MODELS[0].id };
   // A paid engine without its key quietly uses the free one.
-  const provider = chosen === "google" && !googleKey ? "free" : chosen === "openrouter" && !openrouterKey ? "free" : chosen;
+  const puterKey = puterConfigured();
+  const provider = chosen === "google" && !googleKey ? "free" : chosen === "openrouter" && !openrouterKey ? "free" : chosen === "puter" && !puterKey ? "free" : chosen;
   return {
-    chosen, provider, google, openrouter, fallback: s.fallback !== false,
+    chosen, provider, google, openrouter, puter: { key: puterKey }, fallback: s.fallback !== false,
     googleKeySource: s.googleKey ? "studio" : googleKey ? "env" : "",
-    label: provider === "google" ? `google/${google.model}` : provider === "openrouter" ? `openrouter/${openrouter.model}` : "free",
+    label: provider === "puter" ? "puter" : provider === "google" ? `google/${google.model}` : provider === "openrouter" ? `openrouter/${openrouter.model}` : "free",
   };
+}
+
+/** The client's photo as a data URL (for Puter's image-to-image). */
+async function referenceUrl(path) {
+  const buf = await readFile(path).catch(() => null);
+  return buf ? `data:image/${path.endsWith(".png") ? "png" : path.endsWith(".webp") ? "webp" : "jpeg"};base64,${buf.toString("base64")}` : undefined;
 }
 
 /** Check the chosen paid engine's key and model without generating anything. */
@@ -281,6 +289,7 @@ export async function checkEngine(fetchImpl = fetch) {
   const e = imageEngine();
   if (e.chosen === "openrouter") return checkOpenrouter(e.openrouter, fetchImpl);
   if (e.chosen === "google") return checkGoogle(e.google, fetchImpl);
+  if (e.chosen === "puter") return e.puter.key ? { ok: true, model: "Puter", note: "Token saved. The first picture shows whether your Puter account can draw." } : { ok: false, error: "Add your Puter auth token in AI providers first" };
   return { ok: true, model: "free image service", note: "No key needed." };
 }
 
@@ -296,7 +305,9 @@ export async function generateImage(prompt, file, { size = [1080, 1080], referen
     try {
       const buf = eng.provider === "google"
         ? await googleImage(prompt, size, { ...eng.google, reference, fetchImpl })
-        : await openrouterImage(prompt, size, { ...eng.openrouter, reference, fetchImpl });
+        : eng.provider === "puter"
+          ? await puterImage(prompt, size, { reference: reference ? await referenceUrl(reference) : undefined })
+          : await openrouterImage(prompt, size, { ...eng.openrouter, reference, fetchImpl });
       await writeFile(file, buf);
       return { engine: eng.label };
     } catch (e) {

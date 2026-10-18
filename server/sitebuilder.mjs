@@ -6,7 +6,7 @@
 import { mkdir, writeFile, rm, rename } from "node:fs/promises";
 import { join } from "node:path";
 import { db, save, now } from "./store.mjs";
-import { aiKey } from "./openrouter.mjs";
+import { aiKey, withClientAi } from "./openrouter.mjs";
 import { buildAiSite, prepareAssets } from "./aisite.mjs";
 import { pickDirection } from "./directions.mjs";
 
@@ -127,3 +127,6 @@ export function startSiteRetries() {
   for (const c of db.clients) if (c.site?.status === "building") void buildSite(c);
   return setInterval(() => retrySites(), 60e3).unref();
 }
+
+// The client's own AI provider (set in the studio) applies to everything done for them, including scheduled work.
+buildSite = withClientAi(buildSite);

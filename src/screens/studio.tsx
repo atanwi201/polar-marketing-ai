@@ -10,7 +10,7 @@ import type { Client as AppClient, Lang } from "../core/types";
 
 import {
   type SClient, type Post, type PostStatus, type StudioData, type Act, type Platform, type ImageSettings, type ImageProvider, type AiSettings,
-  readToken, saveToken, apiOrigin, mediaUrl, siteUrl, call, downscale, tagLine,
+  readToken, saveToken, readAiProvider, saveAiProvider, apiOrigin, mediaUrl, siteUrl, call, downscale, tagLine,
 } from "./studio-api";
 import { ShareModal } from "./studio-share";
 import { VideosTab } from "./studio-videos";
@@ -47,6 +47,7 @@ export default function Studio() {
   const [editing, setEditing] = useState<SClient | null>(null);
   const [imgSettings, setImgSettings] = useState(false);
   const [aiSettings, setAiSettings] = useState(false);
+  const [aiPick, setAiPick] = useState(readAiProvider());
   const [feedClient, setFeedClient] = useState("");
   const [briefClient, setBriefClient] = useState("");
   const alive = useRef(true);
@@ -95,6 +96,11 @@ export default function Studio() {
     <Page title="Content Studio" plan="Autopilot"
       intro="Clients get a website, fresh posts with a new AI image and caption every time, and short video ads for Reels and Shorts. Share them to Instagram, Facebook, X and YouTube, or let autopilot post on its own."
       actions={<>
+        <select className="input" style={{ width: "auto", padding: "4px 8px" }} aria-label="AI to use" title="Which AI does the work you start here"
+          value={aiPick} onChange={(e) => { setAiPick(e.target.value); saveAiProvider(e.target.value); }}>
+          <option value="">AI: Auto (free, in order)</option>
+          {data.ai.list.filter((p) => p.key || data.ai.sources[p.id]).map((p) => <option key={p.id} value={p.id}>{p.label}{p.paid ? " (paid)" : ""} only</option>)}
+        </select>
         <Button small kind="ghost" onClick={() => setAiSettings(true)} title="Choose the AI text providers and add keys">
           {data.ai.openrouter ? `AI: ${data.ai.providers.join(" › ")}` : "AI: template captions (no key)"} ›
         </Button>
@@ -291,6 +297,9 @@ function ClientEditor({ client, data, onClose, act }: { client: SClient; data: S
           <Field label="Opening hours"><Input id="s-hours" value={c.hours} onChange={(v) => set("hours", v)} /></Field>
           <Field label="Tone of voice"><Input id="s-tone" value={c.tone} onChange={(v) => set("tone", v)} placeholder="friendly, relaxed" /></Field>
           <Field label="Languages (first is the main one)" wide><LangPicker value={c.languages as Lang[]} onChange={(v) => set("languages", v)} /></Field>
+          <Field label="AI for this client" hint="Which AI writes their posts, videos, website and chat, including scheduled work. Auto uses the free ones in order. Only you see this.">
+            <Select id="s-ai" value={c.aiProvider ?? ""} onChange={(v) => set("aiProvider", v)} options={[{ value: "", label: "Auto (free, in order)" }, ...data.ai.list.filter((p) => p.key || data.ai.sources[p.id]).map((p) => ({ value: p.id, label: `${p.label}${p.paid ? " (paid)" : ""} only` }))]} />
+          </Field>
           <Field label="Plan" hint="Sets their posts and videos a week. Prices are in Plans & prices." wide>
             <div className="plan-pick" role="radiogroup" aria-label="Plan">
               {(["trial", ...PLAN_IDS] as const).map((v) => (
@@ -605,33 +614,58 @@ export function AccountsEditor({ c, setC, data, act, saved }: {
 
 // ---- AI text providers: keys saved in the dashboard, tried in order ----
 export function AiSettingsModal({ s, act, onClose }: { s: AiSettings; act: Act; onClose: () => void }) {
-  const [groq, setGroq] = useState(s.groqKey);
-  const [mistral, setMistral] = useState(s.mistralKey);
-  const [or, setOr] = useState(s.openrouterKey);
-  const [order, setOrder] = useState(s.order || "groq,mistral,openrouter");
+  const [keys, setKeys] = useState<Record<string, string>>(() => Object.fromEntries(s.list.map((p) => [p.id, p.key])));
+  const [order, setOrder] = useState(s.order || s.providers.join(","));
+  const [models, setModels] = useState<Record<string, string>>(() => Object.fromEntries(s.list.map((p) => [p.id, p.model])));
+  const [puter, setPuter] = useState(s.puter);
+  const [avail, setAvail] = useState<Record<string, string[]>>({});
+  const loadModels = async (id: string) => {
+    if (avail[id]) return;
+    const r = await call<{ models: string[] }>("GET", `/settings/ai/models?p=${id}`);
+    setAvail((a) => ({ ...a, [id]: r.kind === "ok" ? r.data.models : [] }));
+  };
   const [busy, setBusy] = useState(false);
-  const hint = (id: "groq" | "mistral" | "openrouter", get: string) => s.sources[id] === "env" ? `Using the key from .env. Enter one here to override it.` : get;
   return (
     <Modal open title="AI providers" onClose={onClose}
       footer={<><span style={{ flex: 1 }} /><Button onClick={onClose}>Close</Button>
         <Button kind="primary" busy={busy} onClick={async () => {
           setBusy(true);
-          const r = await act("POST", "/settings/ai", { groqKey: groq, mistralKey: mistral, openrouterKey: or, order }, "AI providers saved");
+          const r = await act("POST", "/settings/ai", { keys, order, models, puter }, "AI providers saved");
           setBusy(false);
           if (r !== undefined) onClose();
         }}>Save</Button></>}>
       <div className="stack">
-        <p className="small muted" style={{ margin: 0 }}>Posts, sites and chat use the first provider with a key. When one hits its limit, the next one answers. One key is enough. Keys stay on your server.</p>
-        <Field label="Groq API key" hint={hint("groq", "Free at console.groq.com/keys")}><Input id="ai-groq" type="password" value={groq} onChange={setGroq} placeholder={s.sources.groq === "env" ? "Set in .env" : "gsk_..."} /></Field>
-        <Field label="Mistral API key" hint={hint("mistral", "Free at console.mistral.ai/api-keys")}><Input id="ai-mistral" type="password" value={mistral} onChange={setMistral} placeholder={s.sources.mistral === "env" ? "Set in .env" : "Mistral key"} /></Field>
-        <Field label="OpenRouter API key" hint={hint("openrouter", "Free at openrouter.ai/keys. Only free models are used.")}><Input id="ai-or" type="password" value={or} onChange={setOr} placeholder={s.sources.openrouter === "env" ? "Set in .env" : "sk-or-..."} /></Field>
-        <Field label="Order tried" hint="Comma separated, first is used first.">
-          <Select id="ai-order" value={order} onChange={setOrder} options={[
-            { value: "groq,mistral,openrouter", label: "Groq, Mistral, OpenRouter" },
-            { value: "mistral,groq,openrouter", label: "Mistral, Groq, OpenRouter" },
-            { value: "openrouter,groq,mistral", label: "OpenRouter, Groq, Mistral" },
-            { value: "openrouter,mistral,groq", label: "OpenRouter, Mistral, Groq" },
-          ]} />
+        <p className="small muted" style={{ margin: 0 }}>Posts, sites and chat use the first provider that has a key. When one hits its limit or fails, the next one answers. One key is enough. Keys stay on your server and override .env.</p>
+        {s.list.map((p) => (
+          <Field key={p.id} label={`${p.label} API key`} hint={s.sources[p.id] === "env" && !keys[p.id] ? "Using the key from .env. Enter one here to override it." : p.hint}>
+            <Input id={`ai-${p.id}`} type="password" value={keys[p.id] ?? ""} onChange={(v) => setKeys({ ...keys, [p.id]: v })} placeholder={s.sources[p.id] === "env" ? "Set in .env" : "API key"} />
+            <input id={`ai-model-${p.id}`} className="input" style={{ marginTop: 6 }} list={`ai-models-${p.id}`} value={models[p.id] ?? ""}
+              onFocus={() => void loadModels(p.id)} onChange={(e) => setModels({ ...models, [p.id]: e.target.value })}
+              placeholder="Model (empty = automatic). Click to list this provider's models" aria-label={`${p.label} model`} />
+            <datalist id={`ai-models-${p.id}`}>{(avail[p.id] ?? []).map((m) => <option key={m} value={m} />)}</datalist>
+          </Field>
+        ))}
+        <div className="box stack-sm">
+          <span className="strong">Puter: pictures, voice and speech recognition</span>
+          <div className="row wrap">
+            <Button small busy={busy} onClick={async () => {
+              setBusy(true);
+              toast("A Puter sign-in page opens on the computer running this app. Finish it there.");
+              const r = (await act("POST", "/settings/ai/puter-login", {}, "Signed in to Puter")) as AiSettings | undefined;
+              setBusy(false);
+              if (r) onClose();
+            }}>{s.sources.puter ? "Sign in with Puter again" : "Sign in with Puter"}</Button>
+            <span className="small faint">{s.sources.puter ? "Token saved." : "No developer key needed, it uses your own Puter account."}</span>
+          </div>
+          <span className="small muted">Once signed in, Puter can also draw post pictures (choose Puter under Images), speak video voice-overs in any language, and turn voice notes from clients into text.</span>
+          <div className="form-grid">
+            <Field label="Image model" hint="Empty = Puter's default"><Input id="puter-img" value={puter.imageModel} onChange={(v) => setPuter({ ...puter, imageModel: v })} placeholder="gpt-image-2" /></Field>
+            <Field label="Voice provider" hint="openai (default), elevenlabs, gemini, aws-polly"><Input id="puter-vp" value={puter.voiceProvider} onChange={(v) => setPuter({ ...puter, voiceProvider: v })} placeholder="openai" /></Field>
+            <Field label="Voice" hint="Provider's voice id, empty = default"><Input id="puter-voice" value={puter.voice} onChange={(v) => setPuter({ ...puter, voice: v })} placeholder="alloy" /></Field>
+          </div>
+        </div>
+        <Field label="Order tried" hint={`Provider ids separated by commas, first is used first: ${s.list.map((p) => p.id).join(", ")}. Any you leave out go last.`}>
+          <Input id="ai-order" value={order} onChange={setOrder} placeholder="groq,google,mistral,..." />
         </Field>
         <span className="small faint">Now using: <span className="mono">{s.providers.join(" › ") || "none (template captions)"}</span></span>
       </div>
@@ -672,6 +706,7 @@ function ImageSettingsModal({ s, act, onClose }: { s: ImageSettings; act: Act; o
     { id: "free", title: "Free", text: "No key, no cost. One image every 45 seconds, simpler pictures." },
     { id: "openrouter", title: "OpenRouter", text: s.openrouterKey ? "Uses your OpenRouter key. Paid per image (from about 1.5 cents)." : "Needs OPENROUTER_API_KEY in .env." },
     { id: "google", title: "Google", text: "Uses your own Google AI Studio key. Paid per image." },
+    { id: "puter", title: "Puter", text: s.puterKey ? "Draws with your Puter account (pick the image model under AI providers)." : "Needs your Puter auth token in AI providers." },
   ];
   return (
     <Modal open title="Image engine" onClose={onClose}

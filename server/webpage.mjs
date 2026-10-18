@@ -1,7 +1,7 @@
 // Turning a web page written by a model into a safe, complete page: pull the HTML out of the reply,
 // check it isn't cut off, strip anything that could run code or load outside content, and add the
 // SEO head (canonical, hreflang, Open Graph, JSON-LD), a strict CSP and the language switcher.
-// The page is plain HTML + CSS: no JavaScript at all.
+// The page is HTML + CSS; the only JavaScript allowed is Bootstrap's bundle from jsDelivr (no inline scripts).
 
 /** The HTML document in a model reply (fenced or bare). Null when there isn't one. */
 export function extractHtml(text) {
@@ -30,6 +30,15 @@ export function pageProblem(html, { minLength = 3500 } = {}) {
 
 const MAPS = /^https:\/\/(www\.google\.com\/maps\/embed|maps\.google\.com\/maps\?|www\.google\.com\/maps\?)/i;
 const FONTS = /^https:\/\/fonts\.(googleapis|gstatic)\.com\//i;
+/** Bootstrap 5 and Bootstrap Icons, CSS only (the pages have no JavaScript), pinned on jsDelivr. */
+export const BOOTSTRAP_CSS = "https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css";
+export const BOOTSTRAP_ICONS_CSS = "https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css";
+export const BOOTSTRAP_JS = "https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js";
+export const ANIMATE_CSS = "https://cdn.jsdelivr.net/npm/animate.css@4.1.1/animate.min.css";
+const BOOTSTRAP = /^https:\/\/cdn\.jsdelivr\.net\/npm\/(bootstrap@5(\.\d+){0,2}\/dist\/css|bootstrap-icons@1(\.\d+){0,2}\/font|animate\.css@4(\.\d+){0,2})\/[\w.-]+\.css$/i;
+// The only script allowed: Bootstrap's bundle, loaded by URL. It is driven by data-bs-* attributes
+// (navbar toggle, carousel, accordion, modal, dropdown), so pages never need inline JavaScript.
+const BOOTSTRAP_SCRIPT = /^https:\/\/cdn\.jsdelivr\.net\/npm\/bootstrap@5(\.\d+){0,2}\/dist\/js\/bootstrap(\.bundle)?(\.min)?\.js$/i;
 
 /**
  * Remove everything that can run code or pull in outside content. Images must be one of `images`
@@ -43,7 +52,11 @@ export function sanitize(html, { images = [], fallbackImage = "" } = {}) {
   h = h.replace(/<title\b[^>]*>[^<]*(?:<\/title\s*>)?/gi, (m) => `<title>${m.replace(/<\/?title\b[^>]*>/gi, "").trim()}</title>`).replace(/<\/meta\s*>/gi, "");
   h = h.replace(/<(textarea|xmp|plaintext|noembed|noframes)\b[\s\S]*?(<\/\1\s*>|$)/gi, "");
   // Whole elements that never belong in these pages.
-  h = h.replace(/<script\b[\s\S]*?<\/script\s*>/gi, "").replace(/<script\b[^>]*>/gi, "");
+  const keepScripts = [];
+  h = h.replace(/<script\b([^>]*)>[\s\S]*?<\/script\s*>/gi, (m, attrs) => {
+    const src = /\ssrc\s*=\s*["']([^"']+)["']/i.exec(" " + attrs)?.[1] ?? "";
+    return BOOTSTRAP_SCRIPT.test(src) ? `\u0001SCRIPT${keepScripts.push(src) - 1}\u0001` : "";
+  }).replace(/<script\b[^>]*>/gi, "").replace(/\u0001SCRIPT(\d+)\u0001/g, (m, i) => `<script src="${keepScripts[i]}" defer></script>`);
   h = h.replace(/<(object|embed|applet|frameset|frame)\b[\s\S]*?<\/\1\s*>/gi, "").replace(/<(object|embed|applet|base|frame)\b[^>]*>/gi, "");
   h = h.replace(/<foreignObject\b[\s\S]*?<\/foreignObject\s*>/gi, "");
   h = h.replace(/<meta\b[^>]*http-equiv[^>]*>/gi, "");
@@ -63,11 +76,11 @@ export function sanitize(html, { images = [], fallbackImage = "" } = {}) {
     maps.push(`<iframe src="${src.replace(/"/g, "&quot;")}" title="${title}"${cls ? ` class="${cls}"` : ""} style="${style}" loading="lazy" referrerpolicy="no-referrer-when-downgrade" allowfullscreen></iframe>`);
     return `\u0000MAP${maps.length - 1}\u0000`;
   }).replace(/<\/?iframe\b[^>]*>/gi, "").replace(/\u0000MAP(\d+)\u0000/g, (m, i) => maps[i]);
-  // Stylesheets: only Google Fonts. Preconnects to the font hosts are fine.
+  // Stylesheets: only Google Fonts and Bootstrap. Preconnects to the font hosts are fine.
   h = h.replace(/<link\b[^>]*>/gi, (tag) => {
     const href = /\shref\s*=\s*["']([^"']+)["']/i.exec(tag)?.[1] ?? "";
     const rel = /\srel\s*=\s*["']([^"']+)["']/i.exec(tag)?.[1] ?? "";
-    return FONTS.test(href) && /stylesheet|preconnect|preload/i.test(rel) ? tag : "";
+    return (FONTS.test(href) && /stylesheet|preconnect|preload/i.test(rel)) || (BOOTSTRAP.test(href) && /stylesheet/i.test(rel)) ? tag : "";
   });
   // CSS: no imports except Google Fonts, no expressions, only our own images in url().
   const cssClean = (css) => css
@@ -100,7 +113,7 @@ export function readMeta(html) {
   return { title, description, design };
 }
 
-export const CSP = "default-src 'none'; img-src 'self' data:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com data:; frame-src https://www.google.com https://maps.google.com; base-uri 'none'; form-action 'none'";
+export const CSP = "default-src 'none'; img-src 'self' data:; script-src https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net; font-src https://fonts.gstatic.com https://cdn.jsdelivr.net data:; frame-src https://www.google.com https://maps.google.com; base-uri 'none'; form-action 'none'";
 
 /**
  * Finish a sanitized page: lang, our SEO head, image paths for sub-folders, language switcher.
@@ -145,4 +158,26 @@ export function assemble(html, { lang, langs, urls, title, description, ogImage,
     else h = h.replace(/<\/body>/i, `<nav aria-label="Language" style="position:fixed;top:12px;right:12px;z-index:99;display:flex;gap:4px;background:rgba(255,255,255,.92);padding:6px 8px;border-radius:999px;box-shadow:0 2px 10px rgba(0,0,0,.15);font:600 13px system-ui,sans-serif">${links.replace(/<a /g, '<a style="color:#111;text-decoration:none;padding:2px 6px" ')}</nav>\n</body>`);
   }
   return h.startsWith("<!") ? h : `<!doctype html>\n${h}`;
+}
+
+/**
+ * Cheap, deterministic problems that make a page look unprofessional. Fed to the AI quality check
+ * so it doesn't have to spot them by eye. Returns a list of short messages (empty when clean).
+ */
+export function lintPage(html) {
+  const out = [];
+  if (!/<meta\b[^>]*name\s*=\s*["']viewport["']/i.test(html)) out.push("no viewport meta tag, so phones show a zoomed-out desktop page");
+  const h1 = (html.match(/<h1[\s>]/gi) ?? []).length;
+  if (h1 !== 1) out.push(`${h1} <h1> headings (should be exactly one)`);
+  const imgs = html.match(/<img\b[^>]*>/gi) ?? [];
+  if (imgs.some((t) => !/\salt\s*=/i.test(t))) out.push("some images have no alt text");
+  if (!/@media/i.test(html) && !/bootstrap(\.min)?\.css/i.test(html)) out.push("no responsive rules (@media or Bootstrap grid)");
+  const text = html.replace(/<style[\s\S]*?<\/style>/gi, "").replace(/<svg[\s\S]*?<\/svg>/gi, "").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ");
+  if (text.length < 1500) out.push("very little text on the page");
+  if (/lorem ipsum|\[(your|name|insert)[^\]]*\]|TODO|placeholder/i.test(text)) out.push("placeholder text left in the page");
+  if (!/<footer\b/i.test(html)) out.push("no footer");
+  if (imgs.length < 2) out.push("fewer than two pictures");
+  if (/data-bs-/.test(html) && !/bootstrap(\.bundle)?(\.min)?\.js/i.test(html)) out.push("uses data-bs-* components without loading the Bootstrap script");
+  if (/\bbi bi-/.test(html) && !/bootstrap-icons/i.test(html)) out.push("uses Bootstrap Icons classes without loading the icon stylesheet");
+  return out;
 }

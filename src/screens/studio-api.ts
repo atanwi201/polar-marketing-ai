@@ -24,7 +24,7 @@ export interface SClient {
   id: string; token: string; code?: string; name: string; kind: string; town: string; phone: string; email: string; domain: string;
   offer: string; hours: string; tone: string; languages: string[]; platforms: string[]; autopilot: boolean;
   postsPerWeek: number; autoPublish: boolean; webhookUrl: string; siteSlug?: string; site?: Site; createdAt: string;
-  source?: string;
+  source?: string; aiProvider?: string;
   accounts?: Accounts; connections?: Connections; videosPerWeek?: number; videoSeconds?: number; videoVoice?: boolean;
   approvalStatus?: "approved" | "pending" | "declined"; approval?: { status: string; at: string };
   usage?: { used: number; cap: number; custom: boolean; nextFreeAt: string | null }; postCap?: number;
@@ -50,20 +50,20 @@ export interface Video {
   renders?: Record<string, Render>; model?: string; error?: string; publishNote?: string; publishedAt?: string; shareKey?: string;
   shares?: Record<string, ShareResult>; kind?: "clip";
 }
-export type ImageProvider = "free" | "openrouter" | "google";
+export type ImageProvider = "free" | "openrouter" | "google" | "puter";
 export interface AiSettings {
-  openrouter: boolean; providers: string[]; order: string;
-  sources: Record<"groq" | "mistral" | "openrouter", "saved" | "env" | "">;
-  groqKey: string; mistralKey: string; openrouterKey: string;
+  openrouter: boolean; providers: string[]; order: string; puter: { imageModel: string; voiceProvider: string; voice: string };
+  sources: Record<string, "saved" | "env" | "">;
+  list: { id: string; label: string; hint: string; paid: boolean; key: string; model: string }[];
 }
 export interface ImageSettings {
   provider: ImageProvider; engine: string; fallback: boolean;
   googleModel: string; googleSize: "1K" | "2K"; googleKey: string; googleKeyFromEnv: boolean; pexelsKey: string; pexelsKeyFromEnv: boolean; googleModels: { id: string; label: string }[];
-  openrouterModel: string; openrouterKey: boolean; openrouterModels: { id: string; label: string }[];
+  openrouterModel: string; openrouterKey: boolean; puterKey: boolean; openrouterModels: { id: string; label: string }[];
 }
 export interface Message {
   id: string; clientId: string; role: "client" | "assistant" | "owner"; text: string; createdAt: string;
-  attachments?: { file: string; kind: "image" | "video"; description?: string }[];
+  attachments?: { file: string; kind: "image" | "video" | "audio"; description?: string }[];
   status?: "thinking" | "done" | "failed"; action?: string; postId?: string; videoId?: string; updated?: string[];
   needsOwner?: boolean; seenByOwner?: boolean; model?: string; error?: string;
 }
@@ -80,6 +80,10 @@ export type Act = (method: string, path: string, body?: unknown, okMsg?: string)
 
 const TOKEN_KEY = "isla:adminToken";
 export const readToken = () => { try { return localStorage.getItem(TOKEN_KEY) ?? ""; } catch { return ""; } };
+const AI_KEY = "isla:aiProvider";
+/** Which AI provider the dashboard asks the server to use: "" = automatic (free ones, in order). */
+export const readAiProvider = () => { try { return localStorage.getItem(AI_KEY) ?? ""; } catch { return ""; } };
+export const saveAiProvider = (v: string) => { try { localStorage.setItem(AI_KEY, v); } catch { /* ignore */ } };
 export const saveToken = (t: string) => { try { localStorage.setItem(TOKEN_KEY, t); } catch { /* ignore */ } };
 
 // Served by our server (or Vite, which forwards to it): same origin. As a claude.ai artifact: the local server.
@@ -96,6 +100,8 @@ export async function call<T>(method: string, path: string, body?: unknown): Pro
     if (body !== undefined) headers["Content-Type"] = "application/json";
     const tok = readToken();
     if (tok) headers["x-admin-token"] = tok;
+    const ai = readAiProvider();
+    if (ai) headers["x-ai-provider"] = ai;
     const res = await fetch("/api/studio" + path, { method, headers, body: body === undefined ? undefined : JSON.stringify(body) });
     if (res.status === 401) return { kind: "auth" };
     const text = await res.text();
