@@ -168,7 +168,7 @@ textarea:focus{outline:none;box-shadow:0 0 0 3px var(--brand-soft);background:va
 
 /* bottom navigation */
 .nav{position:fixed;left:0;right:0;bottom:0;z-index:5;display:flex;justify-content:center;padding:8px 12px calc(8px + env(safe-area-inset-bottom));background:var(--nav);border-top:1px solid var(--line)}
-.nav div{display:grid;grid-template-columns:repeat(4,1fr);width:100%;max-width:560px}
+.nav div{display:grid;grid-template-columns:repeat(5,1fr);width:100%;max-width:560px}
 .nav button{border:0;background:none;display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px 0;font-size:11.5px;font-weight:600;color:var(--faint)}
 .nav button svg{width:24px;height:24px;display:block}
 .nav button[aria-current=page]{color:var(--ink)}
@@ -272,6 +272,112 @@ body.in-chat .app{padding-bottom:calc(170px + env(safe-area-inset-bottom))}
 .todo2 li.ok i{background:var(--ok-soft);color:var(--ok)}
 .todo2 li.no i{background:var(--fill-2);color:var(--muted)}
 .todo2 li.ok{color:var(--muted)}
+/* loyalty */
+.lc{--bg:#1f2937;--fg:#fff;--lb:#cbd5e1;--ac:#f4c542;position:relative;border-radius:24px;overflow:hidden;background:var(--bg);color:var(--fg);box-shadow:0 22px 44px -20px rgba(0,0,0,.5),0 2px 6px rgba(0,0,0,.12);max-width:380px;margin:0 auto;isolation:isolate;text-align:left}
+.lc-bgimg{position:absolute;inset:0;z-index:-1;background-size:cover;background-position:center}
+.lc-bgimg::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,color-mix(in srgb,var(--bg) 35%,transparent),color-mix(in srgb,var(--bg) 80%,transparent))}
+.lc-head{display:flex;align-items:center;gap:12px;padding:18px 20px 14px}
+.lc-logo{width:42px;height:42px;border-radius:50%;flex:none;background:var(--ac) center/cover no-repeat;color:var(--bg);display:grid;place-items:center;font-weight:800;font-size:18px;overflow:hidden}
+.lc-title{font-weight:700;font-size:20px;line-height:1.15;letter-spacing:-.01em;min-width:0;overflow-wrap:anywhere}
+.lc-kind{margin-left:auto;text-align:right;flex:none}
+.lc-kind small{display:block;color:var(--lb);font-size:10.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase}
+.lc-kind b{font-size:19px;line-height:1.1}
+.lc-strip{height:104px;background:linear-gradient(135deg,var(--ac),var(--bg)) center/cover no-repeat}
+.lc-tag{padding:12px 20px 0;font-size:14px;color:var(--fg);opacity:.92}
+.lc-body{padding:14px 20px 4px}
+.lc-stamps{display:grid;gap:8px}
+.lc-stamp{width:100%;max-width:56px;justify-self:center;aspect-ratio:1;border-radius:50%;display:grid;place-items:center;font-size:18px;line-height:1;border:2px dashed color-mix(in srgb,var(--lb) 65%,transparent);color:var(--lb)}
+.lc-stamp.on{background:var(--ac);border:2px solid var(--ac);color:var(--bg)}
+.lc-pts{display:flex;align-items:baseline;gap:8px;margin-bottom:10px}
+.lc-pts b{font-size:44px;line-height:1;letter-spacing:-.02em}
+.lc-pts span{color:var(--lb);font-size:13px;font-weight:600}
+.lc-bar{height:7px;border-radius:4px;background:color-mix(in srgb,var(--lb) 30%,transparent);overflow:hidden;margin:2px 0 8px}
+.lc-bar i{display:block;height:100%;background:var(--ac);border-radius:4px}
+.lc-foot{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;padding:14px 20px 18px}
+.lc-foot small{display:block;color:var(--lb);font-size:10.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase}
+.lc-foot b{font-size:16px}
+.lc-qr{width:62px;height:62px;background:#fff;border-radius:10px;padding:5px;flex:none}
+.lc-qr svg{width:100%;height:100%;display:block}
+.lcap{text-align:center;margin:10px 0 0}
+.lstat{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:700;padding:5px 11px;border-radius:999px}
+.lstat i{width:8px;height:8px;border-radius:50%;background:currentColor}
+.lstat.live{background:var(--ok-soft);color:var(--ok)}
+.lstat.paused{background:var(--fill-2);color:var(--muted)}
+.lstat.draft{background:color-mix(in srgb,var(--sun) 25%,transparent);color:var(--ink)}
+.lbar{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin:0 0 14px}
+.lpick{margin:0 0 14px;display:flex;gap:8px;align-items:center}
+.lpick .seg{flex:1;min-width:0;scrollbar-width:none}.lpick .seg::-webkit-scrollbar{display:none}
+.lgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:0 0 14px}
+.lgrid div{background:var(--card);border-radius:var(--r-lg);padding:14px 10px;text-align:center;box-shadow:var(--shadow)}
+.lgrid b{display:block;font:800 28px/1 var(--display);letter-spacing:-.02em;margin-bottom:5px}
+.lgrid span{font-size:12.5px;color:var(--muted);font-weight:600;line-height:1.2;display:block}
+.lbtns{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:16px 0 18px}
+.lbtns .btn{min-height:46px}
+.lbtn-wide{grid-column:1/-1}
+.card h3.lh{font:700 18px var(--display);letter-spacing:-.01em;margin:0 0 4px}
+.card .lsub{margin:0 0 12px;color:var(--muted);font-size:14px}
+.lsep{border:0;border-top:1px solid var(--line);margin:16px 0}
+.btn.wa{background:#25d366;color:#07300f}
+.btn.ghost{background:none;color:var(--accent-text);padding:0 8px}
+.lsteps{list-style:none;margin:16px 0 4px;padding:0;display:flex;flex-direction:column;gap:12px;text-align:left}
+.lsteps li{display:flex;gap:12px;align-items:center;font-size:15px;font-weight:500}
+.lsteps li i{width:30px;height:30px;border-radius:50%;flex:none;display:grid;place-items:center;font:800 14px var(--display);font-style:normal;background:var(--accent-soft);color:var(--accent-text)}
+.lempty{text-align:center;padding:24px 18px 22px}
+.lempty h2{font:800 26px/1.15 var(--display);letter-spacing:-.02em;margin:22px 0 8px}
+.lempty>p{margin:0 auto;color:var(--muted);font-size:15px;max-width:420px}
+.cust{display:flex;align-items:center;gap:12px;width:100%;border:0;background:none;text-align:left;padding:10px 0;color:inherit;border-top:1px solid var(--line)}
+.cust:first-child{border-top:0}
+.cust .av{width:40px;height:40px;border-radius:50%;flex:none;display:grid;place-items:center;background:var(--accent-soft);color:var(--accent-text);font:700 15px var(--display)}
+.cust .tx{flex:1;min-width:0}
+.cust .tx b{display:block;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cust .tx small{display:block;color:var(--muted);font-size:13px}
+.cust .bal{font:700 15px var(--display);text-align:right;flex:none}
+.inp{width:100%;min-height:46px;border:0;border-radius:var(--r-md);background:var(--fill);padding:0 14px;font-size:16px}
+.inp:focus{outline:none;box-shadow:0 0 0 3px var(--brand-soft);background:var(--surface)}
+select.inp{appearance:auto}
+textarea.inp{min-height:84px;padding:12px 14px}
+input[type=color].inp{padding:4px;height:46px;cursor:pointer}
+.fld{display:block;margin:0 0 12px}
+.fld>span{display:block;font-size:13.5px;font-weight:600;margin:0 0 6px}
+.fld>small{display:block;color:var(--muted);font-size:12.5px;margin-top:4px}
+.frow{display:grid;grid-template-columns:1fr 1fr;gap:0 10px;align-items:start}
+.lh2{font:700 17px var(--display);letter-spacing:-.01em;margin:20px 0 10px}
+.lh2:first-child{margin-top:4px}
+.opts{display:grid;gap:8px}
+.opt{display:flex;gap:12px;align-items:center;text-align:left;width:100%;border:2px solid transparent;background:var(--fill);border-radius:var(--r-lg);padding:12px 14px;color:var(--ink)}
+.opt b{display:block;font-size:15px}
+.opt small{display:block;color:var(--muted);font-size:13px;margin-top:1px}
+.opt .ic{width:38px;height:38px;border-radius:50%;flex:none;display:grid;place-items:center;background:var(--card);font-size:18px}
+.opt[aria-pressed=true]{border-color:var(--accent);background:var(--accent-soft)}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chips .chipbtn{text-align:left;line-height:1.3;padding:9px 14px;min-height:40px}
+.chips .chipbtn[aria-pressed=true]{background:var(--accent);color:var(--accent-ink)}
+.lsheet{position:fixed;left:0;right:0;bottom:0;z-index:12;margin:0 auto;max-width:600px;height:min(92vh,880px);display:flex;flex-direction:column;background:var(--card);border-radius:28px 28px 0 0;transform:translateY(100%);transition:transform .25s cubic-bezier(.2,.8,.2,1)}
+.lsheet.on{transform:none}
+.lshead{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:16px 18px 12px;border-bottom:1px solid var(--line)}
+.lshead b{font:700 19px var(--display);letter-spacing:-.01em}
+.lsbody{flex:1;overflow:auto;padding:16px 18px 24px}
+.lsfoot{padding:12px 18px calc(12px + env(safe-area-inset-bottom));border-top:1px solid var(--line)}
+.lsfoot .primary{margin-top:0}
+.lsfoot .err{margin:0 0 10px}
+#lpv{position:sticky;top:-16px;z-index:2;background:var(--card);padding:16px 0 10px;margin:-16px 0 0}
+#lpv .lc{zoom:.62}
+.lwait{text-align:center;padding:50px 10px}
+.lwait .spin{width:30px;height:30px;border-width:3px}
+.lwait h3{font:700 20px var(--display);margin:18px 0 6px}
+.lrow{display:flex;gap:10px;align-items:center;padding:10px 0;border-top:1px solid var(--line);font-size:14.5px}
+.lrow:first-child{border-top:0}
+.lrow>div{flex:1;min-width:0}
+.lrow small{color:var(--muted);display:block;font-size:12.5px}
+.lrow b.p{font:700 15px var(--display);flex:none}
+.lbox{border:1px solid var(--line);border-radius:var(--r-lg);padding:12px 12px 2px;margin:0 0 10px}
+.lbox .del{float:right}
+.linkdanger{color:var(--bad);font-weight:600;font-size:14px;background:none;border:0;padding:8px;display:block;margin:6px auto 0}
+.ltiles{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:12px 0}
+.ltiles div{background:var(--fill);border-radius:var(--r-md);padding:10px 6px;text-align:center}
+.ltiles b{display:block;font:800 22px/1 var(--display)}
+.ltiles span{font-size:12px;color:var(--muted);font-weight:600}
+.nav button{font-size:11px}
 /* invalid link / loading */
 .state{padding:56px 12px;text-align:center}
 .state h1{font:800 28px/1.15 var(--display);letter-spacing:-.02em;margin:14px 0 8px}
@@ -304,6 +410,9 @@ body.in-chat .app{padding-bottom:calc(170px + env(safe-area-inset-bottom))}
   <symbol id="i-send" viewBox="0 0 24 24"><path d="M4.5 12L20 4.5 13 20l-2.2-6.6z" fill="currentColor"/></symbol>
   <symbol id="i-chat" viewBox="0 0 24 24"><path d="M5 5.5h14a1.5 1.5 0 011.5 1.5v8a1.5 1.5 0 01-1.5 1.5h-7.5L7 20v-3.5H5A1.5 1.5 0 013.5 15V7A1.5 1.5 0 015 5.5z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M8 10.5h8M8 13h5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
   <symbol id="i-open" viewBox="0 0 24 24"><path d="M14 4h6v6M20 4l-9 9M18 14v4a2 2 0 01-2 2H6a2 2 0 01-2-2V8a2 2 0 012-2h4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-card" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="3.5" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="8.5" cy="12" r="1.6" fill="currentColor"/><circle cx="13" cy="12" r="1.6" fill="currentColor"/><circle cx="17.5" cy="12" r="1.6" fill="none" stroke="currentColor" stroke-width="1.6"/></symbol>
+  <symbol id="i-wa" viewBox="0 0 24 24"><path d="M4 20l1.2-4.1A8 8 0 1112 20a8 8 0 01-3.9-1z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M9.2 8.6c.3 2.8 2.6 5 5.4 5.3l1-1.3-1.8-.9-.8.6a3.7 3.7 0 01-1.8-1.8l.6-.8-.9-1.8z" fill="currentColor"/></symbol>
+  <symbol id="i-scan" viewBox="0 0 24 24"><path d="M4 8V6a2 2 0 012-2h2M16 4h2a2 2 0 012 2v2M20 16v2a2 2 0 01-2 2h-2M8 20H6a2 2 0 01-2-2v-2M4 12h16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
 </svg>
 
 <div class="app">
@@ -351,6 +460,12 @@ body.in-chat .app{padding-bottom:calc(170px + env(safe-area-inset-bottom))}
       <div class="card" id="profileCard"></div>
       <div class="card codecard" id="codeCard" hidden></div>
     </section>
+
+    <!-- Loyalty -->
+    <section data-view="loyalty" hidden>
+      <h1 class="page-h" id="loyH"></h1>
+      <div id="loy" aria-live="polite"></div>
+    </section>
   </main>
 </div>
 
@@ -375,6 +490,7 @@ body.in-chat .app{padding-bottom:calc(170px + env(safe-area-inset-bottom))}
     <button type="button" data-view-go="posts"><span class="dot"><svg aria-hidden="true"><use href="#i-grid"/></svg><b id="nPostsBadge" hidden></b></span><span id="nPosts"></span></button>
     <button type="button" data-view-go="videos"><span class="dot"><svg aria-hidden="true"><use href="#i-video"/></svg><b id="nVideosBadge" hidden></b></span><span id="nVideos"></span></button>
     <button type="button" data-view-go="web"><svg aria-hidden="true"><use href="#i-globe"/></svg><span id="nWeb"></span></button>
+    <button type="button" data-view-go="loyalty"><svg aria-hidden="true"><use href="#i-card"/></svg><span id="nLoy"></span></button>
   </div>
 </nav>
 
@@ -390,6 +506,12 @@ body.in-chat .app{padding-bottom:calc(170px + env(safe-area-inset-bottom))}
   <p class="sub" id="sheetSub"></p>
   <div class="sgrid" id="sgrid"></div>
   <button class="close" type="button" id="sheetClose"></button>
+</div>
+<div class="back" id="lback" hidden></div>
+<div class="lsheet" id="lsheet" role="dialog" aria-modal="true" aria-labelledby="lsT" hidden>
+  <div class="lshead"><b id="lsT" tabindex="-1" style="outline:none"></b><button type="button" class="pfclose" id="lsX"></button></div>
+  <div class="lsbody" id="lsBody"></div>
+  <div class="lsfoot"><div class="err" id="lsErr" role="alert" hidden></div><button type="button" class="primary" id="lsGo"></button></div>
 </div>
 <div class="toast" id="toast" role="status"></div>
 
@@ -511,7 +633,7 @@ const API="/api/portal/"+encodeURIComponent(token);
 let data=null, timer=null;
 const tabSel={};          // item id -> caption language
 const pending=new Set();  // post ids with an "again" request in flight
-const VIEWS=["home","posts","videos","web"];
+const VIEWS=["home","posts","videos","web","loyalty"];
 // Views live in the hash as "#/posts" (not "#posts", which would jump to the element with that id).
 const hashView=()=>location.hash.replace(/^#\/?/,"");
 let view=VIEWS.includes(hashView())?hashView():"home";
@@ -544,7 +666,7 @@ function staticText(){
 }
 $$(".seg button[data-lang]").forEach(b=>b.addEventListener("click",()=>{
   lang=b.dataset.lang; try{localStorage.setItem("crier:lang",lang);}catch(e){}
-  staticText(); if(data) render(true);
+  staticText(); if(data) render(true); if(typeof langChanged==="function") langChanged();
 }));
 
 // ---------- views ----------
@@ -556,6 +678,7 @@ function showView(v,scrollTo){
   $$(".nav [data-view-go]").forEach(b=>b.dataset.viewGo===v?b.setAttribute("aria-current","page"):b.removeAttribute("aria-current"));
   if(location.hash!=="#/"+v) history.replaceState(null,"","#/"+v);
   if(scrollTo){ const el=document.querySelector(`[data-view="${v}"] [data-id="${CSS.escape(scrollTo)}"]`); if(el){ el.scrollIntoView({block:"start"}); window.scrollBy(0,-12); return; } }
+  if(v==="loyalty"&&typeof loadLoyalty==="function") loadLoyalty();
   window.scrollTo(0,0);
 }
 document.addEventListener("click",e=>{
@@ -1050,7 +1173,443 @@ document.addEventListener("error",e=>{
   else if(i.classList.contains("th")){ const s=document.createElement("span");s.className="th";s.innerHTML=icon("image");i.replaceWith(s); }
 },true);
 
-staticText();
+// ---------- loyalty ----------
+Object.assign(T.es,{
+  nav_loy:"Fidelidad", l_h:"Tarjeta de fidelidad", l_loading:"Cargando tus tarjetas…", l_err:"No hemos podido cargar tus tarjetas.", l_retry:"Intentar de nuevo",
+  l_e_t:"Convierte a tus clientes en habituales", l_e_p:"Una tarjeta de fidelidad digital con la imagen de tu negocio. Tus clientes la guardan en el móvil, tú les sumas sellos o puntos al cobrar y ellos ganan premios.",
+  l_e1:"La IA diseña tu tarjeta con una frase", l_e2:"Tus clientes la añaden al móvil con un QR", l_e3:"Escaneas su tarjeta en caja y suman",
+  l_create:"Crear mi tarjeta", l_new:"Nueva tarjeta",
+  l_st_live:"Activa", l_st_paused:"En pausa", l_st_draft:"Borrador", l_golive:"Activar tarjeta", l_pause:"Pausar", l_resume:"Reanudar",
+  l_draftNote:"Tu tarjeta todavía no está abierta. Actívala para que tus clientes puedan unirse.", l_pausedNote:"Tarjeta en pausa: nadie puede unirse ni sumar hasta que la reanudes.",
+  l_cap:"Así la verán tus clientes", l_editDesign:"Editar diseño", l_rules:"Reglas y premios",
+  l_s_cust:"Clientes", l_s_visits:"Visitas este mes", l_s_rew:"Premios canjeados",
+  l_share_h:"Consigue clientes", l_join_h:"Enlace para unirse", l_join_p:"Compártelo o imprime el QR para el mostrador. Quien lo abra tiene su tarjeta en 10 segundos.",
+  l_copy:"Copiar", l_qrdl:"Descargar QR para imprimir (PNG)", l_wa:"Enviar por WhatsApp", l_wa_msg:"Únete a la tarjeta de fidelidad de {biz} y gana premios: {url}",
+  l_staff_h:"Escáner para el personal", l_staff_p:"Abre este enlace en el móvil de la caja. Escanea la tarjeta del cliente para sumar visitas o canjear premios. No lo compartas con clientes.",
+  l_staff_open:"Abrir escáner", l_staff_new:"Crear enlace nuevo", l_staff_new_c:"El enlace anterior dejará de funcionar. ¿Continuar?", l_staff_done:"Enlace nuevo creado",
+  l_wallet_on:"Tus clientes pueden añadir la tarjeta a Apple Wallet.", l_wallet_off:"Tus clientes guardan la tarjeta desde una página web y pueden añadirla a la pantalla de inicio del móvil.",
+  l_c_h:"Tus clientes", l_c_none:"Aún no hay clientes. Comparte el enlace o el QR para que se unan.", l_search:"Buscar cliente", l_c_nores:"Nadie coincide con la búsqueda.",
+  l_c_stamps:"{n} de {g} sellos", l_c_pts:"{n} puntos", l_c_last:"Última visita {x}", l_c_never:"Sin visitas aún",
+  l_cs_stamps:"Sellos", l_cs_pts:"Puntos", l_cs_visits:"Visitas", l_hist:"Historial", l_hist_none:"Sin movimientos todavía",
+  l_t_join:"Se unió a la tarjeta", l_t_visit:"Visita", l_t_purchase:"Compra", l_t_redeem:"Premio canjeado", l_t_adjust:"Ajuste manual",
+  l_adj_h:"Ajustar saldo", l_adj_p:"Para corregir un error o regalar un detalle. Queda anotado en el historial.", l_adj_what:"Qué ajustar", l_adj_amt:"Cantidad", l_adj_note:"Motivo (opcional)",
+  l_adj_add:"Añadir", l_adj_rm:"Quitar", l_adj_done:"Saldo actualizado", l_adj_zero:"Escribe una cantidad.", l_stamps:"sellos", l_points:"puntos", l_stampsU:"Sellos", l_pointsU:"Puntos",
+  l_new_t:"Crear tarjeta de fidelidad", l_k_h:"¿Qué tipo de tarjeta?", l_k_stamps:"Sellos", l_k_stamps_d:"Compra varias veces y el siguiente es gratis", l_k_points:"Puntos", l_k_points_d:"Suman por cada euro gastado", l_k_custom:"Niveles", l_k_custom_d:"Puntos con niveles: Bronce, Plata y Oro",
+  l_p_h:"Elige un punto de partida", l_fine:"Ajusta los números", l_f_goal:"Sellos para el premio", l_f_reward:"Premio", l_f_perEuro:"Puntos por cada 1 €", l_f_perVisit:"Puntos por visita", l_f_cost:"Puntos para el premio",
+  l_name_h:"Nombre de la tarjeta", l_look_h:"Describe cómo quieres que se vea", l_look_ph:"Ej.: Cálida y rústica, marrón y crema, con granos de café", l_look_note:"La IA la diseña en aproximadamente un minuto. Después puedes cambiar lo que quieras.",
+  l_make:"Crear mi tarjeta", l_making:"Diseñando tu tarjeta…", l_making_p:"Puede tardar hasta un minuto. No cierres esta pantalla.", l_made:"Tarjeta creada. Revísala y actívala cuando quieras.",
+  l_d_t:"Editar diseño", l_d_ai:"Pide un diseño nuevo a la IA", l_d_ai_ph:"Ej.: Más colorida y alegre, con frutas tropicales", l_d_ai_btn:"Rediseñar con IA", l_d_keepc:"Mantener colores", l_d_keept:"Mantener textos", l_d_busy:"Rediseñando… puede tardar un minuto", l_d_done:"Diseño nuevo listo. Pulsa Guardar para quedártelo.",
+  l_d_manual:"O cámbialo a mano", l_d_title:"Título", l_d_tag:"Frase corta", l_d_bg:"Fondo", l_d_fg:"Texto", l_d_lb:"Etiquetas", l_d_ac:"Detalles", l_d_layout:"Estilo", l_d_stripe:"Con banner", l_d_full:"Imagen de fondo", l_d_minimal:"Liso",
+  l_d_font:"Letra", l_d_modern:"Moderna", l_d_serif:"Clásica", l_d_rounded:"Redonda", l_d_mono:"Técnica", l_d_icon:"Icono del sello", l_save:"Guardar cambios", l_saved:"Guardado", l_saving:"Guardando…",
+  l_r_t:"Reglas y premios", l_r_name:"Nombre de la tarjeta", l_r_earn:"Cómo se gana", l_r_stampsPer:"Sellos por visita", l_r_min:"Gasto mínimo para sellar (€)", l_r_min_h:"0 = sin mínimo", l_r_tiers:"Niveles", l_r_tn:"Nombre", l_r_tmin:"Desde (puntos)", l_r_tperk:"Ventaja",
+  l_r_addTier:"Añadir nivel", l_r_rewards:"Premios", l_r_rn:"Premio", l_r_cost:"Cuesta", l_r_exp:"Válido (días)", l_r_exp_h:"Vacío = sin caducidad", l_r_active:"Activo", l_r_addRew:"Añadir premio", l_r_tier:"Desde el nivel", l_r_anyone:"Todos",
+  l_r_welcome:"Regalo de bienvenida", l_r_terms:"Condiciones (opcional)", l_r_pexp:"Los puntos caducan a los (días)", l_r_pexp_h:"Vacío = nunca caducan", l_remove:"Quitar", l_r_kind:"Se paga con", l_r_newrew:"Premio nuevo", l_r_newtier:"Nivel nuevo",
+  l_del:"Eliminar esta tarjeta", l_del_c:"¿Eliminar esta tarjeta y todos sus datos? No se puede deshacer.", l_deleted:"Tarjeta eliminada", l_member:"Socio", l_stampsLbl:"Sellos", l_pointsLbl:"Puntos", l_close:"Cerrar", l_copied:"Copiado", l_sample:"Lucía",
+  l_pr_s:[["Compra 8 cafés, el 9º gratis",8,"Café gratis"],["10 cortes de pelo, el siguiente gratis",10,"Corte gratis"],["5 menús, postre gratis",5,"Postre gratis"]],
+  l_pr_p:[["1 punto por 1 €, 100 puntos = 5 € de descuento",1,0,100,"5 € de descuento"],["10 puntos por visita, 100 puntos = regalo de la casa",0,10,100,"Regalo de la casa"]],
+  l_pr_c:[["Bronce, Plata y Oro: 1 punto por 1 €",1,0,100,"5 € de descuento"]],
+  l_ex:["Cálida y rústica, marrón y crema, con granos de café","Fresca y colorida, con frutas tropicales","Minimalista en blanco y negro, elegante"],
+  l_biz:"Mi tarjeta", l_tiers0:[["Bronce",0,"Acumula puntos"],["Plata",200,"5 % de descuento"],["Oro",500,"10 % de descuento"]]
+});
+Object.assign(T.en,{
+  nav_loy:"Loyalty", l_h:"Loyalty card", l_loading:"Loading your cards…", l_err:"We could not load your cards.", l_retry:"Try again",
+  l_e_t:"Turn customers into regulars", l_e_p:"A digital loyalty card with your business's look. Customers keep it on their phone, you add stamps or points at the till, and they earn rewards.",
+  l_e1:"AI designs your card from one sentence", l_e2:"Customers add it to their phone with a QR", l_e3:"You scan their card at the till and they earn",
+  l_create:"Create my loyalty card", l_new:"New card",
+  l_st_live:"Live", l_st_paused:"Paused", l_st_draft:"Draft", l_golive:"Go live", l_pause:"Pause", l_resume:"Resume",
+  l_draftNote:"Your card isn't open yet. Go live so customers can join.", l_pausedNote:"Card paused: nobody can join or earn until you resume it.",
+  l_cap:"This is how customers will see it", l_editDesign:"Edit design", l_rules:"Rules and rewards",
+  l_s_cust:"Customers", l_s_visits:"Visits this month", l_s_rew:"Rewards redeemed",
+  l_share_h:"Get customers", l_join_h:"Join link", l_join_p:"Share it or print the QR for your counter. Anyone who opens it has their card in 10 seconds.",
+  l_copy:"Copy", l_qrdl:"Download print-ready QR (PNG)", l_wa:"Share on WhatsApp", l_wa_msg:"Join the {biz} loyalty card and earn rewards: {url}",
+  l_staff_h:"Staff scanner", l_staff_p:"Open this link on the phone at the till. Scan a customer's card to add visits or redeem rewards. Don't share it with customers.",
+  l_staff_open:"Open scanner", l_staff_new:"Make a new link", l_staff_new_c:"The old link will stop working. Continue?", l_staff_done:"New link created",
+  l_wallet_on:"Customers can add the card to Apple Wallet.", l_wallet_off:"Customers keep the card on a web page and can add it to their phone's home screen.",
+  l_c_h:"Your customers", l_c_none:"No customers yet. Share the link or QR so they can join.", l_search:"Search customers", l_c_nores:"Nobody matches your search.",
+  l_c_stamps:"{n} of {g} stamps", l_c_pts:"{n} points", l_c_last:"Last visit {x}", l_c_never:"No visits yet",
+  l_cs_stamps:"Stamps", l_cs_pts:"Points", l_cs_visits:"Visits", l_hist:"History", l_hist_none:"Nothing yet",
+  l_t_join:"Joined the card", l_t_visit:"Visit", l_t_purchase:"Purchase", l_t_redeem:"Reward redeemed", l_t_adjust:"Manual adjustment",
+  l_adj_h:"Adjust balance", l_adj_p:"To fix a mistake or give a treat. It is recorded in the history.", l_adj_what:"What to adjust", l_adj_amt:"Amount", l_adj_note:"Reason (optional)",
+  l_adj_add:"Add", l_adj_rm:"Remove", l_adj_done:"Balance updated", l_adj_zero:"Enter an amount.", l_stamps:"stamps", l_points:"points", l_stampsU:"Stamps", l_pointsU:"Points",
+  l_new_t:"Create a loyalty card", l_k_h:"What kind of card?", l_k_stamps:"Stamps", l_k_stamps_d:"Buy a few times, the next one is free", l_k_points:"Points", l_k_points_d:"Earned on every euro spent", l_k_custom:"Levels", l_k_custom_d:"Points with levels: Bronze, Silver and Gold",
+  l_p_h:"Pick a starting point", l_fine:"Fine-tune the numbers", l_f_goal:"Stamps to earn the reward", l_f_reward:"Reward", l_f_perEuro:"Points per €1", l_f_perVisit:"Points per visit", l_f_cost:"Points to earn the reward",
+  l_name_h:"Card name", l_look_h:"Describe how it should look", l_look_ph:"E.g. Warm and rustic, brown and cream, with coffee beans", l_look_note:"AI designs it in about a minute. You can change anything afterwards.",
+  l_make:"Create my card", l_making:"Designing your card…", l_making_p:"This can take up to a minute. Keep this screen open.", l_made:"Card created. Check it and go live when you're ready.",
+  l_d_t:"Edit design", l_d_ai:"Ask AI for a new design", l_d_ai_ph:"E.g. More colourful and cheerful, with tropical fruit", l_d_ai_btn:"Redesign with AI", l_d_keepc:"Keep colours", l_d_keept:"Keep texts", l_d_busy:"Redesigning… this can take a minute", l_d_done:"New design ready. Press Save to keep it.",
+  l_d_manual:"Or change it by hand", l_d_title:"Title", l_d_tag:"Short line", l_d_bg:"Background", l_d_fg:"Text", l_d_lb:"Labels", l_d_ac:"Highlights", l_d_layout:"Style", l_d_stripe:"With banner", l_d_full:"Full image", l_d_minimal:"Plain",
+  l_d_font:"Lettering", l_d_modern:"Modern", l_d_serif:"Classic", l_d_rounded:"Rounded", l_d_mono:"Technical", l_d_icon:"Stamp icon", l_save:"Save changes", l_saved:"Saved", l_saving:"Saving…",
+  l_r_t:"Rules and rewards", l_r_name:"Card name", l_r_earn:"How customers earn", l_r_stampsPer:"Stamps per visit", l_r_min:"Minimum spend to earn a stamp (€)", l_r_min_h:"0 = no minimum", l_r_tiers:"Levels", l_r_tn:"Name", l_r_tmin:"From (points)", l_r_tperk:"Perk",
+  l_r_addTier:"Add a level", l_r_rewards:"Rewards", l_r_rn:"Reward", l_r_cost:"Costs", l_r_exp:"Valid for (days)", l_r_exp_h:"Empty = never expires", l_r_active:"Active", l_r_addRew:"Add a reward", l_r_tier:"From level", l_r_anyone:"Everyone",
+  l_r_welcome:"Welcome gift", l_r_terms:"Terms (optional)", l_r_pexp:"Points expire after (days)", l_r_pexp_h:"Empty = never expire", l_remove:"Remove", l_r_kind:"Paid with", l_r_newrew:"New reward", l_r_newtier:"New level",
+  l_del:"Delete this card", l_del_c:"Delete this card and all its data? This cannot be undone.", l_deleted:"Card deleted", l_member:"Member", l_stampsLbl:"Stamps", l_pointsLbl:"Points", l_close:"Close", l_copied:"Copied", l_sample:"Lucy",
+  l_pr_s:[["Buy 8 coffees, get the 9th free",8,"Free coffee"],["10 haircuts, the next one is free",10,"Free haircut"],["5 meals, free dessert",5,"Free dessert"]],
+  l_pr_p:[["1 point per €1, 100 points = €5 off",1,0,100,"€5 off"],["10 points per visit, 100 points = gift from us",0,10,100,"Gift from us"]],
+  l_pr_c:[["Bronze, Silver and Gold: 1 point per €1",1,0,100,"€5 off"]],
+  l_ex:["Warm and rustic, brown and cream, with coffee beans","Fresh and colourful, with tropical fruit","Minimal black and white, elegant"],
+  l_biz:"My card", l_tiers0:[["Bronze",0,"Collect points"],["Silver",200,"5% off"],["Gold",500,"10% off"]]
+});
+const LS={loaded:false,loading:false,err:"",programs:[],wallet:null,sel:null,detail:null,qr:{},sheet:null,q:""};
+const FF={modern:'"Figtree",system-ui,sans-serif',serif:'"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif',rounded:'"Nunito","Varela Round",ui-rounded,"SF Pro Rounded",system-ui,sans-serif',mono:'"IBM Plex Mono",ui-monospace,Menlo,monospace'};
+const hex=(v,d)=>/^#[0-9a-f]{6}$/i.test(v||"")?v:d;
+const tl=k=>{const v=T[lang][k]; return v==null?k:v;};
+const fmt=(s,o)=>String(s).replace(/\{(\w+)\}/g,(m,k)=>o[k]!=null?o[k]:m);
+const prog=()=>LS.programs.find(p=>p.id===LS.sel)||null;
+async function lapi(method,path,body){
+  const r=await fetch(API+"/loyalty"+path,{method,headers:body?{"content-type":"application/json"}:undefined,body:body?JSON.stringify(body):undefined});
+  let d={}; try{d=await r.json();}catch(_){}
+  if(!r.ok) throw new Error(d.error||t("generic"));
+  return d;
+}
+const errMsg=e=>e instanceof TypeError?t("net"):(e&&e.message)||t("generic");
+const qrPattern=(seed)=>{ // decorative stand-in for the real QR on the preview
+  let h=0; for(const c of String(seed)) h=(h*31+c.charCodeAt(0))>>>0; const n=11; let o="";
+  const f=(x,y)=>(x<3&&y<3)||(x>n-4&&y<3)||(x<3&&y>n-4);
+  for(let y=0;y<n;y++) for(let x=0;x<n;x++){ h=(h*1103515245+12345)>>>0; if(f(x,y)||((h>>16)&1)) o+=`<rect x="${x}" y="${y}" width="1" height="1"/>`; }
+  return `<svg viewBox="0 0 ${n} ${n}" fill="#111" shape-rendering="crispEdges" aria-hidden="true">${o}</svg>`;
+};
+// The card as customers see it: reproduces the Design (colours, font, layout, images, stamps or points).
+function cardHtml(p,d,o){
+  d=d||{}; o=o||{};
+  const bg=hex(d.background,"#1f2937"), fg=hex(d.foreground,"#ffffff"), lb=hex(d.label,"#cbd5e1"), ac=hex(d.accent,"#f4c542");
+  const layout=["stripe","full","minimal"].includes(d.layout)?d.layout:"minimal";
+  const goal=Math.max(1,Math.min(20,+(p.stamps&&p.stamps.goal)||8)), type=p.type;
+  const filled=o.filled!=null?o.filled:Math.max(1,Math.round(goal*.4)), pts=o.points!=null?o.points:120;
+  const cols=goal<=5?goal:goal<=10?Math.ceil(goal/2):6;
+  const tiers=p.tiers||[], tier=o.tier||(tiers[0]&&tiers[0].name)||"", next=tiers[1];
+  const img=f=>f?`url('/media/${encodeURI(f)}')`:"";
+  const title=d.cardTitle||p.name||"", ini=(title.trim()[0]||"★").toUpperCase();
+  const kind=type==="points"?"":type==="stamps"?`<small>${esc(tl("l_stampsLbl"))}</small><b>${Math.min(filled,goal)}/${goal}</b>`:`<small>${esc(tier||tl("l_pointsLbl"))}</small><b>${pts}</b>`;
+  let body="";
+  if(type!=="points"){
+    const on=d.stampIcon||"★", off=d.stampEmptyIcon||"";
+    body+=`<div class="lc-stamps" style="grid-template-columns:repeat(${cols},1fr)">${Array.from({length:goal},(_,i)=>i<filled?`<span class="lc-stamp on">${esc(on)}</span>`:`<span class="lc-stamp">${esc(off)}</span>`).join("")}</div>`;
+  }
+  if(type!=="stamps"){
+    const pct=next&&next.minPoints?Math.min(100,Math.round(pts/next.minPoints*100)):65;
+    body=`<div class="lc-pts"><b>${pts}</b><span>${esc(tl("l_pointsLbl").toLowerCase())}${tier?" · "+esc(tier):""}</span></div><div class="lc-bar"><i style="width:${pct}%"></i></div>`+(type==="custom"?`<div style="height:8px"></div>`+body:"");
+  }
+  return `<div class="lc" style="--bg:${bg};--fg:${fg};--lb:${lb};--ac:${ac};font-family:${FF[d.fontStyle]||FF.modern}">
+    ${layout==="full"?`<div class="lc-bgimg" style="background-image:${img(d.backgroundFile||d.stripFile)||`linear-gradient(135deg,${ac},${bg})`}"></div>`:""}
+    <div class="lc-head"><div class="lc-logo" style="${d.logoFile?`background-image:${img(d.logoFile)}`:""}">${d.logoFile?"":esc(ini)}</div><div class="lc-title">${esc(title)}</div><div class="lc-kind">${kind}</div></div>
+    ${layout==="stripe"?`<div class="lc-strip" style="${d.stripFile?`background-image:${img(d.stripFile)}`:""}"></div>`:""}
+    ${d.tagline?`<div class="lc-tag">${esc(d.tagline)}</div>`:""}
+    <div class="lc-body">${body}</div>
+    <div class="lc-foot"><div><small>${esc(tl("l_member"))}</small><b>${esc(o.name||tl("l_sample"))}</b></div><div class="lc-qr">${qrPattern(p.id||"x")}</div></div>
+  </div>`;
+}
+const joinShort=u=>String(u||"").replace(/^https?:\/\//,"");
+const lcStatus=s=>`<span class="lstat ${esc(s)}"><i></i>${esc(tl("l_st_"+s))}</span>`;
+const balText=(p,c)=>p.type==="stamps"?fmt(tl("l_c_stamps"),{n:c.stamps,g:(p.stamps&&p.stamps.goal)||0}):p.type==="points"?fmt(tl("l_c_pts"),{n:c.points}):fmt(tl("l_c_pts"),{n:c.points})+(c.tier?" · "+c.tier:"");
+
+async function loadLoyalty(force){
+  if(LS.loading) return; if(LS.loaded&&!force) return renderLoyalty();
+  LS.loading=true; LS.err=""; renderLoyalty();
+  try{
+    const d=await lapi("GET","/");
+    LS.programs=d.programs||[]; LS.wallet=d.wallet||null; LS.loaded=true;
+    if(!prog()) LS.sel=LS.programs[0]?LS.programs[0].id:null;
+  }catch(e){ LS.err=errMsg(e); }
+  LS.loading=false; renderLoyalty();
+  if(LS.sel&&!LS.err) loadDetail();
+}
+async function loadDetail(){
+  const id=LS.sel; if(!id) return;
+  try{
+    const d=await lapi("GET","/programs/"+encodeURIComponent(id));
+    if(LS.sel!==id) return;
+    LS.programs=LS.programs.map(p=>p.id===id?{...p,...d,customers:undefined,txns:undefined}:p);
+    LS.detail={id,customers:d.customers||[],txns:d.txns||[]};
+    if(!LS.qr[id]){ try{ LS.qr[id]=await lapi("GET","/programs/"+encodeURIComponent(id)+"/qr"); }catch(_){ LS.qr[id]={svg:""}; } }
+    renderLoyalty();
+  }catch(e){ /* keep what we have */ }
+}
+function setProgram(v){ LS.programs=LS.programs.map(p=>p.id===v.id?{...p,...v}:p); if(!LS.programs.find(p=>p.id===v.id)) LS.programs.push(v); }
+
+function monthVisits(){
+  const D=LS.detail; if(!D||D.id!==LS.sel) return (prog()&&prog().stats&&prog().stats.visits)||0;
+  const n=new Date(); return D.txns.filter(x=>(x.type==="visit"||x.type==="purchase")&&(d=>d.getMonth()===n.getMonth()&&d.getFullYear()===n.getFullYear())(new Date(x.at))).length;
+}
+function custListHtml(p){
+  const D=LS.detail&&LS.detail.id===p.id?LS.detail:null; if(!D) return `<div class="empty"><span class="spin" aria-hidden="true"></span></div>`;
+  const q=LS.q.trim().toLowerCase(), list=D.customers.filter(c=>!q||(c.name+" "+(c.email||"")+" "+(c.phone||"")).toLowerCase().includes(q));
+  if(!D.customers.length) return `<div class="empty">${esc(tl("l_c_none"))}</div>`;
+  if(!list.length) return `<div class="empty">${esc(tl("l_c_nores"))}</div>`;
+  return list.map(c=>`<button type="button" class="cust" data-la="cust" data-id="${esc(c.id)}"><span class="av" aria-hidden="true">${esc(initials(c.name))}</span><span class="tx"><b>${esc(c.name||"-")}</b><small>${esc(c.lastVisitAt?fmt(tl("l_c_last"),{x:ago(c.lastVisitAt)}):tl("l_c_never"))}</small></span><span class="bal">${esc(balText(p,c))}</span></button>`).join("");
+}
+function renderLoyalty(){
+  const el=$("#loy"); if(!el) return;
+  const p=prog(); let h="";
+  if(LS.err&&!LS.loaded) h=`<div class="card empty">${esc(LS.err)}<div><button type="button" class="btn blue" data-la="retry" style="margin-top:12px">${esc(tl("l_retry"))}</button></div></div>`;
+  else if(!LS.loaded) h=`<div class="card empty"><span class="spin" aria-hidden="true"></span><div style="margin-top:8px">${esc(tl("l_loading"))}</div></div>`;
+  else if(!p){
+    const demo={id:"demo",type:"stamps",stamps:{goal:8},tiers:[]};
+    const d={background:"#3b2412",foreground:"#fff7ea",label:"#e8c58a",accent:"#f4c542",fontStyle:"serif",layout:"minimal",cardTitle:(data&&data.client&&data.client.name)||tl("l_biz"),tagline:"",stampIcon:"★",stampEmptyIcon:""};
+    h=`<div class="card lempty">${cardHtml(demo,d,{filled:3})}<h2>${esc(tl("l_e_t"))}</h2><p>${esc(tl("l_e_p"))}</p>
+      <ol class="lsteps"><li><i>1</i>${esc(tl("l_e1"))}</li><li><i>2</i>${esc(tl("l_e2"))}</li><li><i>3</i>${esc(tl("l_e3"))}</li></ol>
+      <button type="button" class="primary" data-la="create">${icon("plus")}${esc(tl("l_create"))}</button></div>`;
+  } else {
+    const st=p.stats||{}, D=LS.detail&&LS.detail.id===p.id?LS.detail:null, qr=LS.qr[p.id];
+    const plink=`/programs/${encodeURIComponent(p.id)}`;
+    h=`<div class="lpick">${LS.programs.length>1?`<div class="seg" role="group">${LS.programs.map(x=>`<button type="button" data-la="sel" data-id="${esc(x.id)}" aria-pressed="${x.id===p.id}">${esc(x.name)}</button>`).join("")}</div>`:`<b style="flex:1;font:700 18px var(--display)">${esc(p.name)}</b>`}<button type="button" class="btn" data-la="create">${icon("plus")}${esc(tl("l_new"))}</button></div>
+      <div class="lbar">${lcStatus(p.status)}<button type="button" class="btn ${p.status==="live"?"":"blue"}" data-la="${p.status==="live"?"pause":p.status==="paused"?"resume":"golive"}">${esc(tl(p.status==="live"?"l_pause":p.status==="paused"?"l_resume":"l_golive"))}</button></div>
+      ${p.status==="draft"?`<div class="rnote" style="margin-bottom:14px">${icon("alert")}${esc(tl("l_draftNote"))}</div>`:p.status==="paused"?`<div class="rnote" style="margin-bottom:14px;background:var(--fill);color:var(--muted)">${icon("alert")}${esc(tl("l_pausedNote"))}</div>`:""}
+      ${cardHtml(p,p.design)}<p class="muted lcap">${esc(tl("l_cap"))}</p>
+      <div class="lbtns"><button type="button" class="btn" data-la="design">${icon("image")}${esc(tl("l_editDesign"))}</button><button type="button" class="btn" data-la="rules">${icon("grid")}${esc(tl("l_rules"))}</button></div>
+      <div class="lgrid"><div><b>${+st.customers||0}</b><span>${esc(tl("l_s_cust"))}</span></div><div><b>${monthVisits()}</b><span>${esc(tl("l_s_visits"))}</span></div><div><b>${+st.rewardsRedeemed||0}</b><span>${esc(tl("l_s_rew"))}</span></div></div>
+      <div class="card"><h3 class="lh">${esc(tl("l_share_h"))}</h3><p class="lsub">${esc(tl("l_join_p"))}</p>
+        <div class="urlbox"><span>${esc(joinShort(p.joinUrl))}</span><button type="button" class="btn" data-la="copy" data-v="${esc(p.joinUrl)}">${icon("copy")}${esc(tl("l_copy"))}</button></div>
+        <div class="qrbox"><div class="qr" role="img" aria-label="QR">${qr&&qr.svg?qr.svg:""}</div><div><a class="btn" href="${esc(API)}/loyalty${plink}/qr.png" download="qr-${esc(p.joinCode)}.png">${icon("down")}${esc(tl("l_qrdl"))}</a></div></div>
+        <div class="btns"><a class="btn wa" target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent(fmt(tl("l_wa_msg"),{biz:(data.client&&data.client.name)||p.name,url:p.joinUrl}))}">${icon("wa")}${esc(tl("l_wa"))}</a></div>
+        <p class="note" style="text-align:left;margin-top:14px">${esc(tl(LS.wallet&&LS.wallet.configured?"l_wallet_on":"l_wallet_off"))}</p>
+        <hr class="lsep"><h3 class="lh">${icon("scan").replace("<svg",'<svg style="width:20px;height:20px;vertical-align:-4px;margin-right:6px"')}${esc(tl("l_staff_h"))}</h3><p class="lsub">${esc(tl("l_staff_p"))}</p>
+        <div class="urlbox"><span>${esc(joinShort(p.staffUrl))}</span><button type="button" class="btn" data-la="copy" data-v="${esc(p.staffUrl)}">${icon("copy")}${esc(tl("l_copy"))}</button></div>
+        <div class="btns"><a class="btn blue" href="${esc(p.staffUrl)}" target="_blank" rel="noopener">${icon("open")}${esc(tl("l_staff_open"))}</a><button type="button" class="btn ghost" data-la="staffnew">${icon("redo")}${esc(tl("l_staff_new"))}</button></div>
+      </div>
+      <div class="card"><h3 class="lh">${esc(tl("l_c_h"))}</h3>
+        ${D&&D.customers.length>8?`<input class="inp" id="lcq" type="search" placeholder="${esc(tl("l_search"))}" value="${esc(LS.q)}" style="margin:6px 0 8px">`:""}
+        <div id="lclist">${custListHtml(p)}</div></div>
+      ${p.status!=="live"?`<button type="button" class="linkdanger" data-la="delete">${esc(tl("l_del"))}</button>`:""}`;
+  }
+  const sig=lang+h; if(el.dataset.sig===sig) return;
+  const q=el.querySelector("#lcq"), had=q&&document.activeElement===q;
+  el.innerHTML=h; el.dataset.sig=sig;
+  if(had){ const n=el.querySelector("#lcq"); n.focus(); n.setSelectionRange(n.value.length,n.value.length); }
+}
+function langChanged(){ $("#loy").dataset.sig=""; staticLoy(); renderLoyalty(); if(LS.sheet) drawSheet(); }
+function staticLoy(){ const a=$("#loyH"),b=$("#nLoy"); if(a) a.textContent=tl("l_h"); if(b) b.textContent=tl("nav_loy"); $("#lsX").textContent=tl("l_close"); }
+
+// ----- sheets (create, design, rules, customer) -----
+const getP=(o,path)=>path.split(".").reduce((a,k)=>a==null?a:a[k],o);
+function setP(o,path,v){ const k=path.split("."); let a=o; for(let i=0;i<k.length-1;i++) a=a[k[i]]; a[k[k.length-1]]=v; }
+const num=(path,v,att)=>`<input class="inp" data-f="${path}" data-t="num" type="number" inputmode="decimal" min="0" step="any" value="${esc(v==null?"":v)}" ${att||""}>`;
+const numnull=(path,v)=>`<input class="inp" data-f="${path}" data-t="numnull" type="number" inputmode="numeric" min="0" step="1" value="${esc(v==null?"":v)}">`;
+const txt=(path,v,att)=>`<input class="inp" data-f="${path}" type="text" value="${esc(v==null?"":v)}" ${att||""}>`;
+const fld=(label,inner,hint)=>`<label class="fld"><span>${esc(label)}</span>${inner}${hint?`<small>${esc(hint)}</small>`:""}</label>`;
+const newId=()=>"r"+Date.now().toString(36)+Math.floor(Math.random()*1e4).toString(36);
+function openSheet2(sheet){
+  LS.sheet=sheet; sheet.lastFocus=document.activeElement;
+  const b=$("#lback"), s=$("#lsheet"); b.hidden=false; s.hidden=false; document.body.style.overflow="hidden";
+  $("#lsBody").dataset.sig=""; $("#lsBody").scrollTop=0; drawSheet();
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{b.classList.add("on");s.classList.add("on");}));
+  setTimeout(()=>$("#lsT").focus(),80);
+}
+function closeSheet2(force){
+  if(LS.sheet&&LS.sheet.busy&&!force) return;
+  const b=$("#lback"), s=$("#lsheet"); b.classList.remove("on"); s.classList.remove("on"); document.body.style.overflow="";
+  const f=LS.sheet&&LS.sheet.lastFocus; LS.sheet=null;
+  setTimeout(()=>{ if(!LS.sheet){ b.hidden=true; s.hidden=true; } },230); if(f&&f.focus) f.focus();
+}
+function sheetErr(m){ const e=$("#lsErr"); e.textContent=m||""; e.hidden=!m; }
+function drawSheet(){
+  const S=LS.sheet; if(!S) return; const body=$("#lsBody"), top=body.scrollTop; sheetErr(S.err||"");
+  const go=$("#lsGo"); let h="", title="", label=""; go.hidden=false;
+  if(S.kind==="create"){ title=tl("l_new_t"); label=tl("l_make"); h=S.busy?waitHtml("l_making","l_making_p"):createHtml(S); }
+  else if(S.kind==="design"){ title=tl("l_d_t"); label=tl("l_save"); h=designHtml(S); }
+  else if(S.kind==="rules"){ title=tl("l_r_t"); label=tl("l_save"); h=rulesHtml(S); }
+  else if(S.kind==="cust"){ title=S.cust?S.cust.name:""; label=tl("l_close"); h=custHtml(S); }
+  $("#lsT").textContent=title; go.textContent=S.busy&&S.kind==="create"?tl("l_making"):S.saving?tl("l_saving"):label; go.disabled=!!(S.busy||S.saving);
+  go.style.background=S.kind==="cust"?"var(--fill)":""; go.style.color=S.kind==="cust"?"var(--ink)":"";
+  if(body.dataset.sig!==lang+h){ body.innerHTML=h; body.dataset.sig=lang+h; body.scrollTop=top; }
+}
+const waitHtml=(a,b)=>`<div class="lwait"><span class="spin" aria-hidden="true"></span><h3>${esc(tl(a))}</h3><p class="muted">${esc(tl(b))}</p></div>`;
+function createHtml(S){
+  const D=S.draft, T3=D.type, presets=T3==="stamps"?tl("l_pr_s"):T3==="points"?tl("l_pr_p"):tl("l_pr_c");
+  const kinds=[["stamps","☕"],["points","★"],["custom","♛"]];
+  let fine="";
+  if(T3==="stamps") fine=`<div class="frow">${fld(tl("l_f_goal"),num("stamps.goal",D.stamps.goal,'min="1" max="20" step="1"'))}${fld(tl("l_f_reward"),txt("rewards.0.name",D.rewards[0].name,'maxlength="60"'))}</div>`;
+  else fine=`<div class="frow">${fld(tl("l_f_perEuro"),num("points.perEuro",D.points.perEuro))}${fld(tl("l_f_perVisit"),num("points.perVisit",D.points.perVisit))}</div><div class="frow">${fld(tl("l_f_cost"),num("rewards.0.cost",D.rewards[0].cost,'min="1"'))}${fld(tl("l_f_reward"),txt("rewards.0.name",D.rewards[0].name,'maxlength="60"'))}</div>`;
+  return `<h3 class="lh2">${esc(tl("l_k_h"))}</h3><div class="opts">${kinds.map(([k,ic])=>`<button type="button" class="opt" data-la="k" data-v="${k}" aria-pressed="${k===T3}"><span class="ic" aria-hidden="true">${ic}</span><span><b>${esc(tl("l_k_"+k))}</b><small>${esc(tl("l_k_"+k+"_d"))}</small></span></button>`).join("")}</div>
+    <h3 class="lh2">${esc(tl("l_p_h"))}</h3><div class="chips">${presets.map((x,i)=>`<button type="button" class="chipbtn" data-la="preset" data-i="${i}" aria-pressed="${S.preset===i}">${esc(x[0])}</button>`).join("")}</div>
+    <h3 class="lh2">${esc(tl("l_fine"))}</h3>${fine}
+    <h3 class="lh2">${esc(tl("l_name_h"))}</h3>${txt("name",D.name,'maxlength="60"')}
+    <h3 class="lh2">${esc(tl("l_look_h"))}</h3><textarea class="inp" data-f="prompt" maxlength="400" placeholder="${esc(tl("l_look_ph"))}">${esc(D.prompt)}</textarea>
+    <div class="chips" style="margin-top:8px">${tl("l_ex").map((x,i)=>`<button type="button" class="chipbtn" data-la="ex" data-i="${i}">${esc(x)}</button>`).join("")}</div>
+    <p class="muted" style="margin-top:12px">${esc(tl("l_look_note"))}</p>`;
+}
+function presetApply(D,type,i){
+  const x=(type==="stamps"?tl("l_pr_s"):type==="points"?tl("l_pr_p"):tl("l_pr_c"))[i]; if(!x) return;
+  if(type==="stamps"){ D.stamps={goal:x[1],perVisit:1,minSpendEur:0}; D.rewards=[{name:x[2],description:"",kind:"stamps",cost:x[1],expiresDays:null,minTier:"",active:true}]; }
+  else { D.points={perEuro:x[1],perVisit:x[2]}; D.rewards=[{name:x[4],description:"",kind:"points",cost:x[3],expiresDays:null,minTier:"",active:true}]; D.tiers=type==="custom"?tl("l_tiers0").map(([name,minPoints,perk])=>({name,minPoints,perk})):[]; }
+}
+function openCreate(){
+  const D={name:(data&&data.client&&data.client.name?data.client.name+" · ":"")+tl("l_biz"),type:"stamps",prompt:"",stamps:{goal:8,perVisit:1,minSpendEur:0},points:{perEuro:1,perVisit:0},tiers:[],rewards:[]};
+  D.name=(data&&data.client&&data.client.name)||tl("l_biz");
+  presetApply(D,"stamps",0); openSheet2({kind:"create",draft:D,preset:0});
+}
+async function makeProgram(){
+  const S=LS.sheet, D=S.draft; if(!D.name.trim()) D.name=tl("l_biz");
+  const rewards=D.rewards.map(r=>({...r,id:newId(),kind:D.type==="stamps"?"stamps":"points",cost:r.cost||1}));
+  const b={name:D.name.trim(),type:D.type,prompt:D.prompt.trim()||undefined,stamps:D.stamps,points:D.points,tiers:D.type==="custom"?D.tiers:[],rewards};
+  S.busy=true; S.err=""; drawSheet();
+  try{
+    const v=await lapi("POST","/programs",b);
+    setProgram(v); LS.sel=v.id; LS.detail=null; LS.loaded=true; S.busy=false; closeSheet2(true); toast(tl("l_made"),true); renderLoyalty(); window.scrollTo(0,0); loadDetail();
+  }catch(e){ S.busy=false; S.err=errMsg(e); drawSheet(); }
+}
+// design
+const COLS=[["background","l_d_bg"],["foreground","l_d_fg"],["label","l_d_lb"],["accent","l_d_ac"]];
+function designHtml(S){
+  const p=prog(), d=S.draft;
+  return `<div id="lpv">${cardHtml(p,d)}</div>
+    <h3 class="lh2">${esc(tl("l_d_ai"))}</h3>
+    <textarea class="inp" data-f="_prompt" maxlength="400" placeholder="${esc(tl("l_d_ai_ph"))}" ${S.ai?"disabled":""}>${esc(S.prompt||"")}</textarea>
+    <div class="chips" style="margin-top:8px"><button type="button" class="chipbtn" data-la="keep" data-v="c" aria-pressed="${!!S.keepC}">${esc(tl("l_d_keepc"))}</button><button type="button" class="chipbtn" data-la="keep" data-v="t" aria-pressed="${!!S.keepT}">${esc(tl("l_d_keept"))}</button></div>
+    <button type="button" class="primary" data-la="ai" style="margin-top:12px" ${S.ai?"disabled":""}>${S.ai?`<span class="spin" aria-hidden="true"></span>${esc(tl("l_d_busy"))}`:esc(tl("l_d_ai_btn"))}</button>
+    ${S.note?`<p class="note">${esc(S.note)}</p>`:""}
+    <h3 class="lh2">${esc(tl("l_d_manual"))}</h3>
+    <div class="frow">${fld(tl("l_d_title"),txt("cardTitle",d.cardTitle,'maxlength="40"'))}${fld(tl("l_d_tag"),txt("tagline",d.tagline,'maxlength="80"'))}</div>
+    <div class="frow">${COLS.map(([k,l])=>fld(tl(l),`<input class="inp" type="color" data-f="${k}" value="${esc(hex(d[k],"#000000"))}">`)).join("")}</div>
+    <div class="fld"><span>${esc(tl("l_d_layout"))}</span><div class="chips">${["stripe","full","minimal"].map(k=>`<button type="button" class="chipbtn" data-la="layout" data-v="${k}" aria-pressed="${d.layout===k}">${esc(tl("l_d_"+k))}</button>`).join("")}</div></div>
+    <div class="fld"><span>${esc(tl("l_d_font"))}</span><div class="chips">${["modern","serif","rounded","mono"].map(k=>`<button type="button" class="chipbtn" data-la="font" data-v="${k}" aria-pressed="${d.fontStyle===k}" style="font-family:${FF[k]}">${esc(tl("l_d_"+k))}</button>`).join("")}</div></div>
+    ${p.type!=="points"?fld(tl("l_d_icon"),txt("stampIcon",d.stampIcon,'maxlength="4" style="max-width:120px"')):""}`;
+}
+function openDesign(){ const p=prog(); openSheet2({kind:"design",draft:JSON.parse(JSON.stringify(p.design||{})),prompt:(p.design&&p.design.prompt)||"",keepC:false,keepT:false}); }
+async function aiDesign(){
+  const S=LS.sheet, p=prog(); const prompt=(S.prompt||"").trim(); if(!prompt){ S.err=tl("l_d_ai_ph"); return drawSheet(); }
+  const keep=[...(S.keepC?["background","foreground","label","accent"]:[]),...(S.keepT?["cardTitle","tagline"]:[])];
+  S.ai=true; S.err=""; S.note=""; drawSheet();
+  try{
+    const v=await lapi("POST","/programs/"+encodeURIComponent(p.id)+"/design",{prompt,keep});
+    setProgram(v); S.draft=JSON.parse(JSON.stringify(v.design||{})); S.note=tl("l_d_done");
+  }catch(e){ S.err=errMsg(e); }
+  S.ai=false; if(LS.sheet===S) drawSheet(); renderLoyalty();
+}
+async function saveDesign(){
+  const S=LS.sheet, p=prog(); S.saving=true; S.err=""; drawSheet();
+  try{ const v=await lapi("PATCH","/programs/"+encodeURIComponent(p.id),{design:S.draft}); setProgram(v); S.saving=false; closeSheet2(true); toast(tl("l_saved")); renderLoyalty(); }
+  catch(e){ S.saving=false; S.err=errMsg(e); drawSheet(); }
+}
+// rules
+function rulesHtml(S){
+  const D=S.draft, T3=D.type, unit=T3==="stamps"?tl("l_stamps"):tl("l_points");
+  let h=fld(tl("l_r_name"),txt("name",D.name,'maxlength="60"'));
+  h+=`<h3 class="lh2">${esc(tl("l_r_earn"))}</h3>`;
+  if(T3!=="points") h+=`<div class="frow">${fld(tl("l_f_goal"),num("stamps.goal",D.stamps.goal,'min="1" max="20" step="1"'))}${fld(tl("l_r_stampsPer"),num("stamps.perVisit",D.stamps.perVisit,'min="1" step="1"'))}</div>${fld(tl("l_r_min"),num("stamps.minSpendEur",D.stamps.minSpendEur),tl("l_r_min_h"))}`;
+  if(T3!=="stamps") h+=`<div class="frow">${fld(tl("l_f_perEuro"),num("points.perEuro",D.points.perEuro))}${fld(tl("l_f_perVisit"),num("points.perVisit",D.points.perVisit))}</div>${fld(tl("l_r_pexp"),numnull("pointsExpireDays",D.pointsExpireDays),tl("l_r_pexp_h"))}`;
+  if(T3==="custom") h+=`<h3 class="lh2">${esc(tl("l_r_tiers"))}</h3>${D.tiers.map((x,i)=>`<div class="lbox"><button type="button" class="btn ghost del" data-la="deltier" data-i="${i}">${esc(tl("l_remove"))}</button><div style="clear:both"></div>${fld(tl("l_r_tn"),txt(`tiers.${i}.name`,x.name,'maxlength="30"'))}<div class="frow">${fld(tl("l_r_tmin"),num(`tiers.${i}.minPoints`,x.minPoints))}${fld(tl("l_r_tperk"),txt(`tiers.${i}.perk`,x.perk,'maxlength="60"'))}</div></div>`).join("")}<button type="button" class="btn" data-la="addtier">${icon("plus")}${esc(tl("l_r_addTier"))}</button>`;
+  h+=`<h3 class="lh2">${esc(tl("l_r_rewards"))}</h3>`+D.rewards.map((r,i)=>{
+    const kind=T3==="custom"?r.kind:T3;
+    return `<div class="lbox"><button type="button" class="btn ghost del" data-la="delrew" data-i="${i}">${esc(tl("l_remove"))}</button><div style="clear:both"></div>
+      ${fld(tl("l_r_rn"),txt(`rewards.${i}.name`,r.name,'maxlength="60"'))}
+      <div class="frow">${fld(`${tl("l_r_cost")} (${kind==="stamps"?tl("l_stamps"):tl("l_points")})`,num(`rewards.${i}.cost`,r.cost,'min="1" step="1"'))}${fld(tl("l_r_exp"),numnull(`rewards.${i}.expiresDays`,r.expiresDays),tl("l_r_exp_h"))}</div>
+      ${T3==="custom"?`<div class="frow">${fld(tl("l_r_kind"),`<select class="inp" data-f="rewards.${i}.kind"><option value="stamps" ${r.kind==="stamps"?"selected":""}>${esc(tl("l_stampsU"))}</option><option value="points" ${r.kind==="points"?"selected":""}>${esc(tl("l_pointsU"))}</option></select>`)}${D.tiers.length?fld(tl("l_r_tier"),`<select class="inp" data-f="rewards.${i}.minTier"><option value="">${esc(tl("l_r_anyone"))}</option>${D.tiers.map(x=>`<option ${r.minTier===x.name?"selected":""}>${esc(x.name)}</option>`).join("")}</select>`):""}</div>`:""}
+      <label class="switch"><span>${esc(tl("l_r_active"))}</span><input type="checkbox" data-f="rewards.${i}.active" data-t="bool" ${r.active!==false?"checked":""}></label></div>`;
+  }).join("")+`<button type="button" class="btn" data-la="addrew">${icon("plus")}${esc(tl("l_r_addRew"))}</button>`;
+  h+=`<h3 class="lh2">${esc(tl("l_r_welcome"))}</h3><div class="frow">${T3!=="points"?fld(tl("l_stampsU"),num("welcomeBonus.stamps",D.welcomeBonus.stamps,'step="1"')):""}${T3!=="stamps"?fld(tl("l_pointsU"),num("welcomeBonus.points",D.welcomeBonus.points,'step="1"')):""}</div>
+    ${fld(tl("l_r_terms"),`<textarea class="inp" data-f="terms" maxlength="600">${esc(D.terms||"")}</textarea>`)}`;
+  return h;
+}
+function openRules(){
+  const p=prog(); const pick=["name","type","stamps","points","tiers","rewards","terms","pointsExpireDays","welcomeBonus"], D={};
+  pick.forEach(k=>D[k]=JSON.parse(JSON.stringify(p[k]==null?(k==="tiers"||k==="rewards"?[]:k==="welcomeBonus"?{stamps:0,points:0}:k==="stamps"?{goal:8,perVisit:1,minSpendEur:0}:k==="points"?{perEuro:1,perVisit:0}:k==="terms"?"":null):p[k])));
+  D.welcomeBonus={stamps:0,points:0,...D.welcomeBonus};
+  openSheet2({kind:"rules",draft:D});
+}
+async function saveRules(){
+  const S=LS.sheet, p=prog(), D=S.draft; S.err="";
+  if(!D.rewards.length||D.rewards.some(r=>!String(r.name||"").trim())){ S.err=tl("l_r_rn")+"?"; return drawSheet(); }
+  const b={...D,rewards:D.rewards.map(r=>({...r,id:r.id||newId(),kind:D.type==="custom"?r.kind:D.type,cost:Math.max(1,+r.cost||1)}))}; delete b.type;
+  S.saving=true; drawSheet();
+  try{ const v=await lapi("PATCH","/programs/"+encodeURIComponent(p.id),b); setProgram(v); S.saving=false; closeSheet2(true); toast(tl("l_saved")); renderLoyalty(); }
+  catch(e){ S.saving=false; S.err=errMsg(e); drawSheet(); }
+}
+// customer
+function txnText(x){
+  const bits=[]; if(x.stamps) bits.push((x.stamps>0?"+":"")+x.stamps+" "+tl("l_stamps")); if(x.points) bits.push((x.points>0?"+":"")+x.points+" "+tl("l_points"));
+  const amt=x.amountEur?" "+Number(x.amountEur).toLocaleString(T[lang].locale,{style:"currency",currency:"EUR"}):"";
+  return {t:tl("l_t_"+x.type)===("l_t_"+x.type)?x.type:tl("l_t_"+x.type)+amt,s:[x.note,ago(x.at)].filter(Boolean).join(" · "),p:bits.join(" · ")};
+}
+function custHtml(S){
+  const c=S.cust; if(!c) return waitHtml("l_loading","l_loading");
+  const p=prog(), tiles=[];
+  if(p.type!=="points") tiles.push([c.stamps,tl("l_cs_stamps")]); if(p.type!=="stamps") tiles.push([c.points,tl("l_cs_pts")]); tiles.push([c.visits,tl("l_cs_visits")]);
+  const kinds=p.type==="custom"?`<label class="fld"><span>${esc(tl("l_adj_what"))}</span><select class="inp" data-f="unit"><option value="stamps" ${S.unit==="stamps"?"selected":""}>${esc(tl("l_stampsU"))}</option><option value="points" ${S.unit==="points"?"selected":""}>${esc(tl("l_pointsU"))}</option></select></label>`:"";
+  return `<div class="ltiles" style="grid-template-columns:repeat(${tiles.length},1fr)">${tiles.map(([n,l])=>`<div><b>${+n||0}</b><span>${esc(l)}</span></div>`).join("")}</div>
+    <p class="muted">${[c.tier,c.email&&`<a href="mailto:${esc(c.email)}">${esc(c.email)}</a>`,c.phone&&`<a href="tel:${esc(c.phone)}">${esc(c.phone)}</a>`].filter(Boolean).map((x,i)=>i===0&&c.tier?esc(x):x).join(" · ")}</p>
+    <h3 class="lh2">${esc(tl("l_adj_h"))}</h3><p class="muted" style="margin-bottom:10px">${esc(tl("l_adj_p"))}</p>
+    ${kinds}<div class="frow">${fld(tl("l_adj_amt"),`<input class="inp" data-f="amt" data-t="num" type="number" inputmode="numeric" min="1" step="1" value="${esc(S.amt||"")}">`)}${fld(tl("l_adj_note"),`<input class="inp" data-f="note" type="text" maxlength="80" value="${esc(S.note||"")}">`)}</div>
+    <div class="btns" style="margin:0 0 6px"><button type="button" class="btn blue" data-la="adj" data-v="1" ${S.adjBusy?"disabled":""}>${icon("plus")}${esc(tl("l_adj_add"))}</button><button type="button" class="btn" data-la="adj" data-v="-1" ${S.adjBusy?"disabled":""}>− ${esc(tl("l_adj_rm"))}</button></div>
+    <h3 class="lh2">${esc(tl("l_hist"))}</h3>${(S.txns||[]).length?S.txns.map(x=>{const r=txnText(x);return `<div class="lrow"><div><b style="font-weight:600">${esc(r.t)}</b><small>${esc(r.s)}</small></div><b class="p">${esc(r.p)}</b></div>`;}).join(""):`<div class="empty">${esc(tl("l_hist_none"))}</div>`}`;
+}
+async function openCust(id){
+  const p=prog(), row=(LS.detail&&LS.detail.customers||[]).find(c=>c.id===id)||{id,name:""};
+  openSheet2({kind:"cust",cust:row,txns:null,unit:p.type==="points"?"points":"stamps",amt:"",note:""});
+  await refreshCust(id);
+}
+async function refreshCust(id){
+  const S=LS.sheet; if(!S||S.kind!=="cust") return;
+  try{ const d=await lapi("GET","/programs/"+encodeURIComponent(LS.sel)+"/customers/"+encodeURIComponent(id)); const {txns,...c}=d; S.cust=c; S.txns=txns||[]; }
+  catch(e){ S.err=errMsg(e); S.txns=S.txns||[]; }
+  if(LS.sheet===S) drawSheet();
+}
+async function doAdjust(sign){
+  const S=LS.sheet, amt=Math.floor(+S.amt||0); if(amt<1){ S.err=tl("l_adj_zero"); return drawSheet(); }
+  S.err=""; S.adjBusy=true; drawSheet();
+  const b={[S.unit]:sign*amt,note:(S.note||"").trim()};
+  try{ await lapi("POST","/programs/"+encodeURIComponent(LS.sel)+"/customers/"+encodeURIComponent(S.cust.id)+"/adjust",b); S.amt=""; S.note=""; toast(tl("l_adj_done")); await refreshCust(S.cust.id); loadDetail(); }
+  catch(e){ S.err=errMsg(e); }
+  S.adjBusy=false; if(LS.sheet===S){ $("#lsBody").dataset.sig=""; drawSheet(); }
+}
+// bindings
+$("#lsBody").addEventListener("input",e=>{
+  const f=e.target.dataset&&e.target.dataset.f; const S=LS.sheet; if(!f||!S) return;
+  const ty=e.target.dataset.t; let v=e.target.value;
+  if(ty==="num") v=v===""?0:+v; else if(ty==="numnull") v=v===""?null:+v; else if(ty==="bool") v=e.target.checked;
+  if(S.kind==="design"){ if(f==="_prompt") S.prompt=v; else setP(S.draft,f,v); const pv=$("#lpv"); if(pv&&f!=="_prompt") pv.innerHTML=cardHtml(prog(),S.draft); S.dirty=true; $("#lsBody").dataset.sig=lang+"x"+Math.random(); return; }
+  if(S.kind==="cust"){ S[f]=v; return; }
+  setP(S.draft,f,v); $("#lsBody").dataset.sig=lang+"x"+Math.random();
+});
+$("#lsBody").addEventListener("change",e=>{ // selects re-render so dependent bits (units, tiers) update
+  if(e.target.tagName==="SELECT"&&LS.sheet&&LS.sheet.kind==="rules"){ $("#lsBody").dataset.sig=""; drawSheet(); }
+});
+$("#lsX").addEventListener("click",()=>closeSheet2());
+$("#lback").addEventListener("click",()=>closeSheet2());
+document.addEventListener("keydown",e=>{ if(e.key==="Escape"&&LS.sheet) closeSheet2(); });
+$("#lsGo").addEventListener("click",()=>{
+  const S=LS.sheet; if(!S) return;
+  if(S.kind==="create") makeProgram(); else if(S.kind==="design") saveDesign(); else if(S.kind==="rules") saveRules(); else closeSheet2();
+});
+async function setStatus(status){
+  const p=prog(); try{ const v=await lapi("PATCH","/programs/"+encodeURIComponent(p.id),{status}); setProgram(v); renderLoyalty(); }catch(e){ toast(errMsg(e),true); }
+}
+document.addEventListener("click",async e=>{
+  const b=e.target.closest("[data-la]"); if(!b) return;
+  const a=b.dataset.la, S=LS.sheet, redraw=()=>{ $("#lsBody").dataset.sig=""; drawSheet(); };
+  if(a==="retry") return loadLoyalty(true);
+  if(a==="create") return openCreate();
+  if(a==="sel"){ LS.sel=b.dataset.id; LS.detail=null; LS.q=""; renderLoyalty(); return loadDetail(); }
+  if(a==="golive") return setStatus("live"); if(a==="pause") return setStatus("paused"); if(a==="resume") return setStatus("live");
+  if(a==="design") return openDesign(); if(a==="rules") return openRules();
+  if(a==="copy"){ const ok=await copySilent(b.dataset.v); return toast(ok?tl("l_copied"):b.dataset.v.slice(0,40)); }
+  if(a==="staffnew"){
+    if(!confirm(tl("l_staff_new_c"))) return;
+    try{ await lapi("POST","/programs/"+encodeURIComponent(LS.sel)+"/regenerate-staff-token"); toast(tl("l_staff_done")); await loadDetail(); LS.detail&&0; const d=await lapi("GET","/programs/"+encodeURIComponent(LS.sel)); setProgram({...d,customers:undefined,txns:undefined}); renderLoyalty(); }catch(err){ toast(errMsg(err),true); }
+    return;
+  }
+  if(a==="delete"){
+    if(!confirm(tl("l_del_c"))) return;
+    try{ await lapi("DELETE","/programs/"+encodeURIComponent(LS.sel),{confirm:true}); LS.programs=LS.programs.filter(x=>x.id!==LS.sel); LS.sel=LS.programs[0]?LS.programs[0].id:null; LS.detail=null; toast(tl("l_deleted")); renderLoyalty(); if(LS.sel) loadDetail(); }catch(err){ toast(errMsg(err),true); }
+    return;
+  }
+  if(a==="cust") return openCust(b.dataset.id);
+  if(!S) return;
+  if(a==="k"){ S.draft.type=b.dataset.v; S.preset=0; presetApply(S.draft,S.draft.type,0); return redraw(); }
+  if(a==="preset"){ S.preset=+b.dataset.i; presetApply(S.draft,S.draft.type,S.preset); return redraw(); }
+  if(a==="ex"){ S.draft.prompt=tl("l_ex")[+b.dataset.i]; return redraw(); }
+  if(a==="keep"){ S[b.dataset.v==="c"?"keepC":"keepT"]=!S[b.dataset.v==="c"?"keepC":"keepT"]; return redraw(); }
+  if(a==="ai") return aiDesign();
+  if(a==="layout"){ S.draft.layout=b.dataset.v; return redraw(); }
+  if(a==="font"){ S.draft.fontStyle=b.dataset.v; return redraw(); }
+  if(a==="addrew"){ S.draft.rewards.push({name:tl("l_r_newrew"),description:"",kind:S.draft.type==="custom"?"points":S.draft.type,cost:S.draft.type==="stamps"?(S.draft.stamps.goal||8):100,expiresDays:null,minTier:"",active:true}); return redraw(); }
+  if(a==="delrew"){ S.draft.rewards.splice(+b.dataset.i,1); return redraw(); }
+  if(a==="addtier"){ const t=S.draft.tiers; t.push({name:tl("l_r_newtier"),minPoints:(t.length?t[t.length-1].minPoints:0)+200,perk:""}); return redraw(); }
+  if(a==="deltier"){ S.draft.tiers.splice(+b.dataset.i,1); return redraw(); }
+  if(a==="adj") return doAdjust(+b.dataset.v);
+});
+document.addEventListener("input",e=>{ if(e.target.id==="lcq"){ LS.q=e.target.value; const p=prog(); if(p){ $("#lclist").innerHTML=custListHtml(p); $("#loy").dataset.sig=""; } } });
+staticLoy();
+
+staticText(); staticLoy();
 if(!token){ $("#loading").hidden=true; $("#bad").hidden=false; } else load();
 })();
 </script>
