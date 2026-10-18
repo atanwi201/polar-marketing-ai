@@ -6,6 +6,8 @@
 import { mkdir, writeFile, rm, rename } from "node:fs/promises";
 import { join } from "node:path";
 import { db, save, now } from "./store.mjs";
+import { readSiteZip, writeSiteFiles, zipSite } from "./sitezip.mjs";
+import { referenceBlock } from "./reference.mjs";
 import { aiKey, withClientAi } from "./openrouter.mjs";
 import { buildAiSite, prepareAssets } from "./aisite.mjs";
 import { pickDirection } from "./directions.mjs";
@@ -81,7 +83,9 @@ export async function buildSite(client, { newDesign = false } = {}) {
       : pickDirection({ style: client.profile?.style, images: assets.list.filter((a) => a.kind !== "logo").length, current: prev.direction, newDesign: newDesign || !design });
     let result;
     try {
-      result = await buildAiSite(client, { dir: work, langs, base, assets, design, step, direction });
+      step("reference");
+      const reference = await referenceBlock(client);
+      result = await buildAiSite(client, { dir: work, langs, base, assets, design, step, direction, reference });
     } catch (e) {
       throw e.fatal || e.ai ? e : aiError(e.message);
     }
@@ -112,6 +116,42 @@ export async function buildSite(client, { newDesign = false } = {}) {
     building.delete(client.id);
     void save();
   }
+}
+
+/**
+ * Replace the live site with an uploaded zip (checked first). The previous site is kept as
+ * sites/.<slug>.previous (one level) in case the upload was a mistake.
+ */
+export async function installUploadedSite(client, buf) {
+  if (building.has(client.id)) throw Object.assign(new Error("The website is being built right now. Try again in a few minutes."), { status: 409 });
+  const files = readSiteZip(buf); // throws a readable message when the zip isn't a usable site
+  building.add(client.id);
+  try {
+    client.siteSlug = siteSlug(client);
+    const dir = join(SITES_DIR, client.siteSlug);
+    const work = join(SITES_DIR, `.${client.siteSlug}.uploading`);
+    const backup = join(SITES_DIR, `.${client.siteSlug}.previous`);
+    await rm(work, { recursive: true, force: true });
+    await writeSiteFiles(files, work);
+    await rm(backup, { recursive: true, force: true });
+    await rename(dir, backup).catch(() => {});
+    await rename(work, dir);
+    const at = now();
+    const langs = [...new Set(["", ...Object.keys(files).map((p) => p.split("/")).filter((p) => p.length === 2 && p[1] === "index.html" && /^[a-z]{2}$/.test(p[0])).map((p) => p[0])])].filter(Boolean);
+    client.site = {
+      status: "ready", builtAt: at, path: `sites/${client.siteSlug}/`, url: `/sites/${client.siteSlug}/`, kind: "upload",
+      languages: langs.length ? ["main", ...langs] : ["main"], attempts: 0, design: "uploaded by the owner", uploadedAt: at,
+    };
+    await save();
+    return client.site;
+  } finally {
+    building.delete(client.id);
+  }
+}
+
+/** The live site as a zip Buffer. */
+export async function downloadSite(client) {
+  return zipSite(join(SITES_DIR, client.siteSlug || siteSlug(client)));
 }
 
 /** Retry every site whose wait is over. Called from the scheduler. */

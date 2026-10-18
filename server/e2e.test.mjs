@@ -120,7 +120,7 @@ before(async () => {
       ...process.env, OPENROUTER_API_KEY: "test", OPENROUTER_BASE_URL: "http://localhost:9901/v1", POLLINATIONS_BASE_URL: "http://localhost:9901", OPENVERSE_URL: "http://localhost:9901/openverse", PEXELS_API_KEY: "",
       PORT: "8799", DATA_DIR: dir, SITES_DIR: join(dir, "sites"), PUBLIC_URL: "https://studio.example", ADMIN_TOKEN: "",
       META_GRAPH_URL: "http://localhost:9901/graph", X_API_URL: "http://localhost:9901/x", GOOGLE_TOKEN_URL: "http://localhost:9901/token",
-      YOUTUBE_API_URL: "http://localhost:9901/yt", GOOGLE_API_KEY: "", GEMINI_API_KEY: "", X_API_KEY: "ck", X_API_SECRET: "cs", YOUTUBE_CLIENT_ID: "gid", YOUTUBE_CLIENT_SECRET: "gs", SOCIAL_POLL_MS: "50",
+      YOUTUBE_API_URL: "http://localhost:9901/yt", GOOGLE_API_KEY: "", GEMINI_API_KEY: "", GROQ_API_KEY: "", MISTRAL_API_KEY: "", SILICONFLOW_API_KEY: "", DEEPSEEK_API_KEY: "", DASHSCOPE_API_KEY: "", OPENAI_API_KEY: "", PUTER_AUTH_TOKEN: "", AI_PROVIDERS: "openrouter", X_API_KEY: "ck", X_API_SECRET: "cs", YOUTUBE_CLIENT_ID: "gid", YOUTUBE_CLIENT_SECRET: "gs", SOCIAL_POLL_MS: "50",
     },
     stdio: "ignore",
   });
@@ -428,6 +428,25 @@ test("the website chat changes the live site in every language, and undo puts it
   assert.equal(undo.status, 200);
   assert.match(await (await fetch(`${B}${site.url}`)).text(), /<h1>Pescado fresco en Los Cristianos<\/h1>/);
   assert.equal((await api("POST", `/api/studio/clients/${clientId}/site-undo`)).status, 400, "nothing left to undo");
+});
+
+test("the owner downloads a site as a zip and uploads a replacement", async () => {
+  const { unzipSync, zipSync } = await import("fflate");
+  const c = (await api("GET", "/api/studio")).data.clients.find((x) => x.site?.status === "ready");
+  assert.ok(c, "a client with a live site");
+  const dl = await fetch(`${B}/api/studio/clients/${c.id}/site.zip`);
+  assert.equal(dl.status, 200);
+  assert.equal(dl.headers.get("content-type"), "application/zip");
+  assert.ok(Object.keys(unzipSync(new Uint8Array(await dl.arrayBuffer()))).includes("index.html"));
+  const bad = await fetch(`${B}/api/studio/clients/${c.id}/site-upload`, { method: "POST", body: Buffer.from("nope") });
+  assert.equal(bad.status, 400);
+  const mine = Buffer.from(zipSync({ "my/index.html": new TextEncoder().encode("<!doctype html><h1>Uploaded by hand</h1>"), "my/style.css": new TextEncoder().encode("h1{color:red}") }));
+  const up = await fetch(`${B}/api/studio/clients/${c.id}/site-upload`, { method: "POST", body: mine });
+  assert.equal(up.status, 200);
+  const live = await fetch(`${B}${c.site.url}`);
+  assert.match(await live.text(), /Uploaded by hand/);
+  assert.equal((await fetch(`${B}${c.site.url}style.css`)).headers.get("content-type"), "text/css");
+  assert.equal((await api("GET", "/api/studio")).data.clients.find((x) => x.id === c.id).site.kind, "upload");
 });
 
 test("landing page: the owner creates a password and signs in, a business enters with its code", async () => {

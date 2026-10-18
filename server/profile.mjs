@@ -37,6 +37,7 @@ export function applyProfile(client, body = {}) {
     p.social = { ...(p.social ?? {}) };
     for (const k of SOCIAL) { const v = url(body.social[k]); if (v !== undefined) p.social[k] = v; }
   }
+  if (Array.isArray(body.examples)) p.examples = body.examples.map(url).filter(Boolean).slice(0, 3);
   if (body.colors && typeof body.colors === "object") {
     p.colors = { ...(p.colors ?? {}) };
     for (const k of ["primary", "accent"]) { const v = hex(body.colors[k]); if (v !== undefined) p.colors[k] = v; }

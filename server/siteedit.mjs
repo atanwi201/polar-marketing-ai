@@ -123,6 +123,7 @@ async function publish(client, site, pages) {
  */
 export async function editSite(client, request, { sitesDir, siteBase, onStep = () => {} }) {
   if (!KEY()) throw Object.assign(new Error("The website chat needs the OpenRouter key."), { status: 503 });
+  if (client.site?.kind === "upload") throw Object.assign(new Error("This website was uploaded as a zip, so the website chat can't edit it. Upload a new version, or press Rebuild website to have the AI make a new one."), { status: 409 });
   const site = await loadSite(client, { sitesDir, siteBase });
   const images = (site.assets.list ?? []).map((a) => a.path);
   const clean = (html) => fixPageImages(sanitize(html, { images, fallbackImage: site.assets.hero ?? "" }), site.assets.plan?.slots ?? []);

@@ -10,7 +10,7 @@ import type { Client as AppClient, Lang } from "../core/types";
 
 import {
   type SClient, type Post, type PostStatus, type StudioData, type Act, type Platform, type ImageSettings, type ImageProvider, type AiSettings,
-  readToken, saveToken, readAiProvider, saveAiProvider, apiOrigin, mediaUrl, siteUrl, call, downscale, tagLine,
+  readToken, saveToken, readAiProvider, saveAiProvider, downloadSiteZip, uploadSiteZip, apiOrigin, mediaUrl, siteUrl, call, downscale, tagLine,
 } from "./studio-api";
 import { ShareModal } from "./studio-share";
 import { VideosTab } from "./studio-videos";
@@ -220,6 +220,8 @@ function ClientEditor({ client, data, onClose, act }: { client: SClient; data: S
   const appClients = useCollection<AppClient>("clients");
   const offer = useOffer();
   const isNew = !client.id;
+  const zipRef = useRef<HTMLInputElement>(null);
+  const [exText, setExText] = useState((client.exampleUrls ?? []).join("\n"));
   const set = <K extends keyof SClient>(k: K, v: SClient[K]) => setC((p) => ({ ...p, [k]: v }));
   const portal = c.token ? `${apiOrigin}/portal/${c.token}` : "";
 
@@ -266,6 +268,16 @@ function ClientEditor({ client, data, onClose, act }: { client: SClient; data: S
       footer={<>
         {!isNew && <ConfirmButton label="Delete" confirm="Delete for good" onConfirm={async () => { await act("DELETE", `/clients/${c.id}`, undefined, "Client deleted"); onClose(); }} />}
         {!isNew && <Button small kind="ghost" onClick={() => void act("POST", `/clients/${c.id}/site`, undefined, "Rebuilding the website")}>Rebuild website</Button>}
+        {!isNew && c.site?.url && <Button small kind="ghost" onClick={async () => { try { await downloadSiteZip(c.id, c.name); } catch (e) { toast((e as Error).message); } }}>Download site (zip)</Button>}
+        {!isNew && <>
+          <input ref={zipRef} type="file" accept=".zip,application/zip" hidden onChange={async (e) => {
+            const f = e.target.files?.[0]; e.target.value = ""; if (!f) return;
+            toast("Uploading the website…");
+            const err = await uploadSiteZip(c.id, f);
+            if (err) toast(err); else { toast("New website is live"); onClose(); }
+          }} />
+          <Button small kind="ghost" onClick={() => zipRef.current?.click()} title="Replace the live website with your own zip (needs index.html at the top)">Upload site (zip)</Button>
+        </>}
         {!isNew && <ConfirmButton label="New portal link" confirm="Replace link (old one stops working)" onConfirm={async () => { await act("POST", `/clients/${c.id}/token`, undefined, "New portal link created"); onClose(); }} />}
         <span style={{ flex: 1 }} />
         <Button onClick={onClose}>Cancel</Button>
@@ -299,6 +311,9 @@ function ClientEditor({ client, data, onClose, act }: { client: SClient; data: S
           <Field label="Languages (first is the main one)" wide><LangPicker value={c.languages as Lang[]} onChange={(v) => set("languages", v)} /></Field>
           <Field label="AI for this client" hint="Which AI writes their posts, videos, website and chat, including scheduled work. Auto uses the free ones in order. Only you see this.">
             <Select id="s-ai" value={c.aiProvider ?? ""} onChange={(v) => set("aiProvider", v)} options={[{ value: "", label: "Auto (free, in order)" }, ...data.ai.list.filter((p) => p.key || data.ai.sources[p.id]).map((p) => ({ value: p.id, label: `${p.label}${p.paid ? " (paid)" : ""} only` }))]} />
+          </Field>
+          <Field label="Example websites" hint={`Links to sites whose look you or the client like, one per line (up to 3). The AI takes inspiration from their layout and style, never their content.${c.profile?.examples?.length ? ` The client also added: ${c.profile.examples.join(", ")}` : ""}`} wide>
+            <TextArea id="s-examples" rows={3} value={exText} onChange={(v) => { setExText(v); set("exampleUrls", v.split(/\s*\n\s*/).filter(Boolean)); }} />
           </Field>
           <Field label="Plan" hint="Sets their posts and videos a week. Prices are in Plans & prices." wide>
             <div className="plan-pick" role="radiogroup" aria-label="Plan">

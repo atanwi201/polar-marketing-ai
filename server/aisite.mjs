@@ -146,7 +146,7 @@ export function mapsEmbed(client) {
 export const directions = (client) => client.profile?.mapsUrl || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent([client.name, client.profile?.address, client.town, "Tenerife"].filter(Boolean).join(", "))}`;
 const waLink = (c) => (c.phone ? `https://wa.me/${c.phone.replace(/\D/g, "")}` : "");
 
-export function designPrompt(client, { lang, assets, design, langs, direction }) {
+export function designPrompt(client, { lang, assets, design, langs, direction, reference = "" }) {
   const p = client.profile ?? {};
   const L = LANG_NAMES[lang] ?? lang;
   const style = p.style && STYLE[p.style] ? p.style : "modern";
@@ -225,7 +225,7 @@ Write every visible word in ${L}: natural, native, warm and persuasive, short se
 10. Footer: logo, name, address, phone, ${social.length ? "links to their social profiles with small icons (Bootstrap Icons like bi-instagram, bi-facebook, or inline SVG), " : ""}© ${new Date().getFullYear()} ${client.name}.
 ${wa ? "Also a floating round WhatsApp button fixed at the bottom right." : ""}
 
-${direction ? directionPrompt(direction) + "\n\n" : ""}## Quality bar (every direction)
+${direction ? directionPrompt(direction) + "\n\n" : ""}${reference ? reference + "\n" : ""}## Quality bar (every direction)
 - Header: sticky and slim, logo left, short anchor links, the language switcher and a solid WhatsApp button; a translucent background with backdrop-filter blur once over content.
 - Hero images: if text sits on a photo, layer the image (z-index 0), a gradient overlay (z-index 1) and the text (z-index 2) inside a position:relative container; never use a negative z-index. Text on photos must stay readable.
 - Typography: base body size 17-18px, line-height 1.6; a clear type scale; h2 about clamp(2rem, 4vw, 3.4rem). Each section starts with a small eyebrow label above the h2. Always wrap the eyebrow, the h2 and its intro line together in one <div class="section-head">, so a grid or flex layout never splits them into separate columns.
@@ -305,7 +305,7 @@ function structuredData(client, { lang, url, base, assets, html, description }) 
 // ---------- Build ----------
 
 /** Design the page with the model, translate it, and write the finished pages. Throws if the design fails. */
-export async function buildAiSite(client, { dir, langs, base, assets, design, step, direction }) {
+export async function buildAiSite(client, { dir, langs, base, assets, design, step, direction, reference = "" }) {
   const allowed = assets.list.map((a) => a.path);
   const fallbackImage = assets.hero ?? allowed.find((x) => !x.endsWith("logo.png")) ?? "";
   const urls = Object.fromEntries(langs.map((l) => [l, `${base}/${l === langs[0] ? "" : `${l}/`}`]));
@@ -315,7 +315,7 @@ export async function buildAiSite(client, { dir, langs, base, assets, design, st
 
   step("design");
   const out = await complete({
-    key: KEY(), prompt: designPrompt(client, { lang: langs[0], assets, design, langs, direction }), system: CONTEXT, tier: "complex",
+    key: KEY(), prompt: designPrompt(client, { lang: langs[0], assets, design, langs, direction, reference }), system: CONTEXT, tier: "complex",
     maxTokens: 16000, timeoutMs: PAGE_TIMEOUT(), attempts: 3, onDelta: () => {},
     validate: (t) => pageProblem(extractHtml(t)),
   });

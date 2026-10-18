@@ -18,7 +18,7 @@ const T = {
     address: "Dirección", addressPh: "Calle, número, local · o el nombre del mercado o centro comercial",
     hours: "Horario", hoursPh: "Lun-Sáb 8:00-14:00 · Dom cerrado",
     booking: "Enlace para reservar (opcional)", menu: "Enlace a carta o catálogo (opcional)",
-    social: "Redes sociales y reseñas", payment: "Formas de pago", paymentPh: "Efectivo, tarjeta, Bizum",
+    social: "Redes sociales y reseñas", examples: "Webs que te gustan (ejemplos)", examplesHint: "Pega hasta 3 enlaces, uno por línea. Nos inspiramos en su estilo, no copiamos nada.", payment: "Formas de pago", paymentPh: "Efectivo, tarjeta, Bizum",
     extras: "Otros datos útiles", extrasPh: "Aparcamiento, entrega a domicilio, accesible, se admiten perros, idiomas…",
     photosHint: "Fotos reales de tu negocio, productos, equipo o local. Las fotos reales hacen la web mucho mejor; si faltan, usamos fotos de stock.", addPhotos: "Añadir fotos", max: "Máximo {n} fotos",
     optional: "opcional",
@@ -37,7 +37,7 @@ const T = {
     address: "Address", addressPh: "Street, number, unit · or the market or shopping centre",
     hours: "Opening hours", hoursPh: "Mon-Sat 8:00-14:00 · Sun closed",
     booking: "Booking link (optional)", menu: "Menu or catalogue link (optional)",
-    social: "Social media and reviews", payment: "Payment methods", paymentPh: "Cash, card, Bizum",
+    social: "Social media and reviews", examples: "Websites you like (examples)", examplesHint: "Paste up to 3 links, one per line. We take inspiration from their style, we never copy anything.", payment: "Payment methods", paymentPh: "Cash, card, Bizum",
     extras: "Other useful details", extrasPh: "Parking, home delivery, accessible, dogs welcome, languages…",
     photosHint: "Real photos of your business, products, team or place. Real photos make the website much better; we fill any gaps with stock photos.", addPhotos: "Add photos", max: "Up to {n} photos",
     optional: "optional",
@@ -129,6 +129,7 @@ function mount(root, { lang = "es", values = {}, sections = ["brand", "offer", "
       <div class="pf-f"><span class="l">${t("colors")}</span>
         <label class="pf-check"><input type="checkbox" id="pf-uselogo" ${st.useLogoColors ? "checked" : ""}> ${t("useLogo")}</label>
         <div class="pf-colors" id="pf-colors" ${st.useLogoColors ? "hidden" : ""}><label><input type="color" id="pf-primary" value="${esc(st.primary)}"> ${t("primary")}</label><label><input type="color" id="pf-accent" value="${esc(st.accent)}"> ${t("accent")}</label></div></div>
+      <label class="pf-f"><span class="l">${t("examples")} <small>(${t("optional")})</small></span><textarea id="pf-examples" rows="3" maxlength="900" placeholder="https://…">${esc((values.profile?.examples ?? []).join("\n"))}</textarea><p class="pf-hint">${t("examplesHint")}</p></label>
     </section>`,
     offer: () => `<section class="pf-sec" data-sec="offer"><h3>${t("offer")}</h3>
       <label class="pf-f"><span class="l">${t("offerLbl")}${requireOffer ? " *" : ""}</span><textarea id="pf-offer" maxlength="2000" placeholder="${esc(t("offerPh"))}">${esc(values.offer ?? "")}</textarea></label>
@@ -211,7 +212,7 @@ function mount(root, { lang = "es", values = {}, sections = ["brand", "offer", "
       const set = (k, id) => { const x = val(id); if (x !== undefined) profile[k] = x; };
       set("tagline", "pf-tagline"); set("usps", "pf-usps"); set("story", "pf-story"); set("since", "pf-since");
       set("address", "pf-address"); set("bookingUrl", "pf-booking"); set("menuUrl", "pf-menu"); set("payment", "pf-payment"); set("extras", "pf-extras");
-      if (sections.includes("brand")) { if (st.style) profile.style = st.style; profile.colors = st.useLogoColors ? { primary: "", accent: "" } : { primary: val("pf-primary"), accent: val("pf-accent") }; }
+      if (sections.includes("brand")) { profile.examples = (val("pf-examples") ?? "").split(/\s*\n\s*/).filter(Boolean).slice(0, 3); if (st.style) profile.style = st.style; profile.colors = st.useLogoColors ? { primary: "", accent: "" } : { primary: val("pf-primary"), accent: val("pf-accent") }; }
       if (sections.includes("offer")) profile.services = st.services.filter((s) => s.name);
       if (sections.includes("place")) { profile.social = {}; root.querySelectorAll("[data-social]").forEach((i) => { profile.social[i.dataset.social] = i.value.trim(); }); }
       const out = { profile };

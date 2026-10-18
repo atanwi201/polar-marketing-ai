@@ -10,7 +10,7 @@ export interface Service { name: string; price: string; description: string }
 export interface Profile {
   tagline?: string; story?: string; usps?: string; since?: string; address?: string; mapsUrl?: string; bookingUrl?: string; menuUrl?: string;
   payment?: string; extras?: string; services?: Service[]; social?: Record<string, string>; colors?: { primary?: string; accent?: string };
-  style?: "modern" | "warm" | "bold" | "elegant" | "natural";
+  style?: "modern" | "warm" | "bold" | "elegant" | "natural"; examples?: string[];
 }
 export interface Accounts {
   facebook: { pageId: string; token: string };
@@ -24,7 +24,7 @@ export interface SClient {
   id: string; token: string; code?: string; name: string; kind: string; town: string; phone: string; email: string; domain: string;
   offer: string; hours: string; tone: string; languages: string[]; platforms: string[]; autopilot: boolean;
   postsPerWeek: number; autoPublish: boolean; webhookUrl: string; siteSlug?: string; site?: Site; createdAt: string;
-  source?: string; aiProvider?: string;
+  source?: string; aiProvider?: string; exampleUrls?: string[];
   accounts?: Accounts; connections?: Connections; videosPerWeek?: number; videoSeconds?: number; videoVoice?: boolean;
   approvalStatus?: "approved" | "pending" | "declined"; approval?: { status: string; at: string };
   usage?: { used: number; cap: number; custom: boolean; nextFreeAt: string | null }; postCap?: number;
@@ -170,3 +170,29 @@ export function download(file: string) {
 }
 
 export const fmtSize = (b: number) => (b > 1e6 ? `${(b / 1e6).toFixed(1)} MB` : `${Math.round(b / 1e3)} KB`);
+
+/** Download a client's live website as a zip. Throws a readable message. */
+export async function downloadSiteZip(clientId: string, name: string) {
+  const headers: Record<string, string> = {};
+  const tok = readToken();
+  if (tok) headers["x-admin-token"] = tok;
+  const r = await fetch(`/api/studio/clients/${clientId}/site.zip`, { headers });
+  if (!r.ok) throw new Error(((await r.json().catch(() => null)) as { error?: string } | null)?.error ?? `Download failed (${r.status})`);
+  const url = URL.createObjectURL(await r.blob());
+  const a = document.createElement("a");
+  a.href = url; a.download = `${name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "website"}.zip`;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 10000);
+}
+
+/** Replace a client's live website with an uploaded zip. Returns an error message, or "" when done. */
+export async function uploadSiteZip(clientId: string, file: File): Promise<string> {
+  const headers: Record<string, string> = { "Content-Type": "application/zip" };
+  const tok = readToken();
+  if (tok) headers["x-admin-token"] = tok;
+  try {
+    const r = await fetch(`/api/studio/clients/${clientId}/site-upload`, { method: "POST", headers, body: file });
+    if (r.ok) return "";
+    return ((await r.json().catch(() => null)) as { error?: string } | null)?.error ?? `Upload failed (${r.status})`;
+  } catch { return "The server is not reachable."; }
+}

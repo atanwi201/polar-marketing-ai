@@ -14,7 +14,7 @@ loadEnv(join(root, ".env"));
 const { complete, freeModels, rankModels, status, aiKey, providerNames, configureAi, keySources, openrouterKey, providerList, runWithProvider, listModels, puterSignIn } = await import("./openrouter.mjs");
 const { db, save, id, token, now, MEDIA_DIR, DATA_DIR } = await import("./store.mjs");
 const { startPost, runPost, publish, startScheduler, redrawImage, describeImage } = await import("./studio.mjs");
-const { buildSite, SITES_DIR, startSiteRetries, siteBase } = await import("./sitebuilder.mjs");
+const { buildSite, SITES_DIR, startSiteRetries, siteBase, installUploadedSite, downloadSite } = await import("./sitebuilder.mjs");
 const { editSite, undoSite, versionCount } = await import("./siteedit.mjs");
 const { approval, blockReason, usage, DEFAULT_WEEKLY } = await import("./limits.mjs");
 const { shareItem, checkAccounts, connections, maskAccounts, mergeAccounts, publicUrl, isPublic, TARGETS } = await import("./social.mjs");
@@ -113,7 +113,7 @@ const send = (res, code, body) => {
   res.end(JSON.stringify(body));
 };
 
-const MIME = { xml: "application/xml", txt: "text/plain; charset=utf-8", json: "application/json", jpg: "image/jpeg", jpeg: "image/jpeg", png: "image/png", webp: "image/webp", html: "text/html; charset=utf-8", js: "text/javascript", css: "text/css", svg: "image/svg+xml", mp4: "video/mp4", aiff: "audio/aiff", mp3: "audio/mpeg", m4a: "audio/mp4", aac: "audio/aac", weba: "audio/webm", ogg: "audio/ogg", wav: "audio/wav" };
+const MIME = { xml: "application/xml", txt: "text/plain; charset=utf-8", json: "application/json", jpg: "image/jpeg", jpeg: "image/jpeg", png: "image/png", webp: "image/webp", html: "text/html; charset=utf-8", js: "text/javascript", css: "text/css", svg: "image/svg+xml", mp4: "video/mp4", aiff: "audio/aiff", mp3: "audio/mpeg", m4a: "audio/mp4", aac: "audio/aac", weba: "audio/webm", ogg: "audio/ogg", wav: "audio/wav", gif: "image/gif", ico: "image/x-icon", avif: "image/avif", bmp: "image/bmp", woff: "font/woff", woff2: "font/woff2", ttf: "font/ttf", otf: "font/otf", eot: "application/vnd.ms-fontobject", mjs: "text/javascript", htm: "text/html; charset=utf-8", webmanifest: "application/manifest+json", pdf: "application/pdf", vtt: "text/vtt", map: "application/json", webm: "video/webm" };
 
 /** Save a data-URL upload (jpeg/png/webp, max 6 MB). Returns the media file name. */
 async function saveUpload(dataUrl) {
@@ -134,7 +134,7 @@ async function addBrief(client, { text, image, imageFile }, reason = "brief") {
   return { brief, post };
 }
 
-const CLIENT_FIELDS = ["name", "kind", "town", "phone", "email", "domain", "offer", "hours", "tone", "languages", "platforms", "autopilot", "postsPerWeek", "autoPublish", "webhookUrl", "imageSize", "videosPerWeek", "videoSeconds", "videoVoice", "plan", "customPrice", "aiProvider"];
+const CLIENT_FIELDS = ["name", "kind", "town", "phone", "email", "domain", "offer", "hours", "tone", "languages", "platforms", "autopilot", "postsPerWeek", "autoPublish", "webhookUrl", "imageSize", "videosPerWeek", "videoSeconds", "videoVoice", "plan", "customPrice", "aiProvider", "exampleUrls"];
 const POST_EDITS = { captions: 2200, short: 280 };
 const VIDEO_EDITS = { captions: 2200, title: 100, description: 4900, endCta: 60 };
 const base = (req) => publicUrl() || `http://${req.headers.host ?? `localhost:${PORT}`}`;
@@ -387,6 +387,7 @@ async function route(req, res, url) {
       if (!c) { c = { id: body.id || id(), token: token(), code: newCode(db.clients), createdAt: now() }; db.clients.push(c); }
       const isNew = !c.name;
       for (const f of CLIENT_FIELDS) if (f in body) c[f] = body[f];
+      if ("exampleUrls" in body) c.exampleUrls = (Array.isArray(body.exampleUrls) ? body.exampleUrls : []).map((x) => { try { const u = new URL(/^https?:\/\//i.test(String(x).trim()) ? String(x).trim() : `https://${String(x).trim()}`); return /^https?:$/.test(u.protocol) && u.hostname.includes(".") ? u.href : ""; } catch { return ""; } }).filter(Boolean).slice(0, 3);
       if ("aiProvider" in body && !providerList().some((x) => x.id === c.aiProvider)) c.aiProvider = ""; // unknown id = automatic
       if (body.accounts) c.accounts = mergeAccounts(c.accounts, body.accounts);
       c.source ??= "owner";
@@ -399,6 +400,24 @@ async function route(req, res, url) {
       await save();
       if (body.buildSite || (isNew && c.offer)) void buildSite(c);
       return send(res, 200, studioClient(c));
+    }
+    if (kind === "clients" && oid && action === "site.zip" && req.method === "GET") {
+      const c = db.clients.find((x) => x.id === oid);
+      if (!c) return send(res, 404, { error: "Client not found" });
+      try {
+        const zip = await downloadSite(c);
+        res.writeHead(200, { "Content-Type": "application/zip", "Content-Length": zip.length, "Content-Disposition": `attachment; filename="${(c.siteSlug || "website").replace(/[^\w.-]/g, "")}.zip"` });
+        return res.end(zip);
+      } catch (e) { return send(res, 404, { error: e.message }); }
+    }
+    if (kind === "clients" && oid && action === "site-upload" && req.method === "POST") {
+      const c = db.clients.find((x) => x.id === oid);
+      if (!c) return send(res, 404, { error: "Client not found" });
+      const chunks = [];
+      let size = 0;
+      for await (const ch of req) { size += ch.length; if (size > 80e6) return send(res, 413, { error: "That zip is too big (max 80 MB)" }); chunks.push(ch); }
+      try { return send(res, 200, await installUploadedSite(c, Buffer.concat(chunks))); }
+      catch (e) { return send(res, e.status ?? 400, { error: e.message }); }
     }
     if (kind === "clients" && oid && action === "site" && req.method === "POST") {
       const c = db.clients.find((x) => x.id === oid);
