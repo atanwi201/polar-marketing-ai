@@ -43,7 +43,7 @@ export function declinedPage(c, want) {
 <style>
 body{margin:0;min-height:100vh;display:grid;place-items:center;padding:24px;background:var(--bg);color:var(--ink);font-family:var(--font-sans)}
 main{width:100%;max-width:460px;background:var(--surface);border-radius:var(--radius-lg,24px);padding:32px 28px;box-shadow:var(--shadow-card);text-align:center}
-.pm-logo img{display:block}
+.pm-logo{display:inline-block}.pm-logo img{display:block}
 h1{margin:20px 0 10px;font:700 26px/32px var(--font-display,var(--font-sans))}
 p{margin:0 0 24px;color:var(--ink-2)}
 .mail{display:block;margin-top:14px;font-weight:600;color:var(--ink);word-break:break-all}
