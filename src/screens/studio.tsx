@@ -10,7 +10,7 @@ import type { Client as AppClient, Lang } from "../core/types";
 
 import {
   type SClient, type Post, type PostStatus, type StudioData, type Act, type Platform, type ImageSettings, type ImageProvider, type AiSettings,
-  readToken, saveToken, readAiProvider, saveAiProvider, downloadSiteZip, uploadSiteZip, apiOrigin, mediaUrl, siteUrl, call, downscale, tagLine,
+  readToken, saveToken, readAiProvider, saveAiProvider, downloadSiteZip, uploadSiteZip, downloadQrPng, type SiteQr, apiOrigin, mediaUrl, siteUrl, call, downscale, tagLine,
 } from "./studio-api";
 import { ShareModal } from "./studio-share";
 import { VideosTab } from "./studio-videos";
@@ -213,6 +213,35 @@ function ClientsTab({ data, onEdit }: { data: StudioData; onEdit: (c: SClient) =
 }
 
 // ---- Client editor ----
+/** QR code of the client's website, to print or share. Points at their own domain when they have one. */
+function SiteQrCard({ client }: { client: SClient }) {
+  const [where, setWhere] = useState<"domain" | "studio">("domain");
+  const [qr, setQr] = useState<SiteQr | null>(null);
+  useEffect(() => {
+    let alive = true;
+    void call<SiteQr>("GET", `/clients/${client.id}/qr?where=${where}`).then((r) => { if (alive && r.kind === "ok") setQr(r.data); });
+    return () => { alive = false; };
+  }, [client.id, where]);
+  if (!qr) return null;
+  return (
+    <div className="row" style={{ alignItems: "flex-start", gap: 16, flexWrap: "wrap" }}>
+      <div style={{ width: 132, height: 132, background: "#fff", borderRadius: 12, padding: 6, flex: "none" }} aria-label={`QR code for ${qr.url}`} role="img"
+        dangerouslySetInnerHTML={{ __html: qr.svg.replace("<svg ", '<svg style="width:100%;height:100%" ') }} />
+      <div className="stack-sm" style={{ minWidth: 200, flex: 1 }}>
+        <span className="strong">QR code</span>
+        <span className="small muted">Scan it to open <span className="mono" style={{ wordBreak: "break-all" }}>{qr.url}</span>. Print it for the shop window, menus or cards.</span>
+        {qr.hasDomain && (
+          <label className="row small"><input type="checkbox" checked={where === "studio"} onChange={(e) => setWhere(e.target.checked ? "studio" : "domain")} /> Use the studio link instead of their domain (works before the domain is live)</label>
+        )}
+        <div className="row wrap">
+          <Button small onClick={async () => { try { await downloadQrPng(client.id, client.name, where); } catch (e) { toast((e as Error).message); } }}>Download PNG</Button>
+          <CopyButton text={qr.url} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function ClientEditor({ client, data, onClose, act }: { client: SClient; data: StudioData; onClose: () => void; act: Act }) {
   const [c, setC] = useState<SClient>(client);
   const [busy, setBusy] = useState(false);
@@ -294,6 +323,7 @@ function ClientEditor({ client, data, onClose, act }: { client: SClient; data: S
               {c.site?.url ? <>Live at <a href={siteUrl(c.site.url)} target="_blank" rel="noreferrer">{siteUrl(c.site.url)}</a>{c.site.kind === "upload" ? ". Uploaded by you." : c.site.kind === "ai" ? ". Designed by the AI." : "."}</> : "No website yet."}
               {" "}Download it, change it on your computer and upload it again, or let the AI rebuild it.
             </span>
+            <SiteQrCard client={c} />
             <input ref={zipRef} type="file" accept=".zip,application/zip" hidden onChange={async (e) => {
               const f = e.target.files?.[0]; e.target.value = ""; if (!f) return;
               toast("Uploading the website…");

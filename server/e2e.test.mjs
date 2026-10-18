@@ -438,6 +438,11 @@ test("the owner downloads a site as a zip and uploads a replacement", async () =
   assert.equal(dl.status, 200);
   assert.equal(dl.headers.get("content-type"), "application/zip");
   assert.ok(Object.keys(unzipSync(new Uint8Array(await dl.arrayBuffer()))).includes("index.html"));
+  const qr = (await api("GET", `/api/studio/clients/${c.id}/qr`)).data;
+  assert.match(qr.svg, /^<svg/);
+  assert.ok(qr.url.startsWith("http"));
+  const qrPng = await fetch(`${B}/api/studio/clients/${c.id}/qr.png`);
+  assert.equal(qrPng.headers.get("content-type"), "image/png");
   const bad = await fetch(`${B}/api/studio/clients/${c.id}/site-upload`, { method: "POST", body: Buffer.from("nope") });
   assert.equal(bad.status, 400);
   const mine = Buffer.from(zipSync({ "my/index.html": new TextEncoder().encode("<!doctype html><h1>Uploaded by hand</h1>"), "my/style.css": new TextEncoder().encode("h1{color:red}") }));

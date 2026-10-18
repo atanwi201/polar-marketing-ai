@@ -196,3 +196,19 @@ export async function uploadSiteZip(clientId: string, file: File): Promise<strin
     return ((await r.json().catch(() => null)) as { error?: string } | null)?.error ?? `Upload failed (${r.status})`;
   } catch { return "The server is not reachable."; }
 }
+
+export interface SiteQr { url: string; studioUrl: string; hasDomain: boolean; svg: string }
+
+/** Download the QR code of a client's website as a PNG. `where`: their own domain or the studio link. */
+export async function downloadQrPng(clientId: string, name: string, where: "domain" | "studio") {
+  const headers: Record<string, string> = {};
+  const tok = readToken();
+  if (tok) headers["x-admin-token"] = tok;
+  const r = await fetch(`/api/studio/clients/${clientId}/qr.png?where=${where}`, { headers });
+  if (!r.ok) throw new Error(`Download failed (${r.status})`);
+  const url = URL.createObjectURL(await r.blob());
+  const a = document.createElement("a");
+  a.href = url; a.download = `${name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "website"}-qr.png`;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 10000);
+}

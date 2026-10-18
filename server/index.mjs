@@ -14,7 +14,8 @@ loadEnv(join(root, ".env"));
 const { complete, freeModels, rankModels, status, aiKey, providerNames, configureAi, keySources, openrouterKey, providerList, runWithProvider, listModels } = await import("./openrouter.mjs");
 const { db, save, id, token, now, MEDIA_DIR, DATA_DIR } = await import("./store.mjs");
 const { startPost, runPost, publish, startScheduler, redrawImage, describeImage } = await import("./studio.mjs");
-const { buildSite, SITES_DIR, startSiteRetries, siteBase, installUploadedSite, downloadSite } = await import("./sitebuilder.mjs");
+const { buildSite, SITES_DIR, startSiteRetries, siteBase, siteSlug, installUploadedSite, downloadSite } = await import("./sitebuilder.mjs");
+const { qrPng, qrSvg } = await import("./qr.mjs");
 const { editSite, undoSite, versionCount } = await import("./siteedit.mjs");
 const { approval, blockReason, usage, DEFAULT_WEEKLY } = await import("./limits.mjs");
 const { shareItem, checkAccounts, connections, maskAccounts, mergeAccounts, publicUrl, isPublic, TARGETS } = await import("./social.mjs");
@@ -426,6 +427,20 @@ async function route(req, res, url) {
       await save();
       if (body.buildSite || (isNew && c.offer)) void buildSite(c);
       return send(res, 200, studioClient(c));
+    }
+    // QR code for the client's website (print on menus, windows, cards). where=domain (default) or studio.
+    if (kind === "clients" && oid && (action === "qr" || action === "qr.png") && req.method === "GET") {
+      const c = db.clients.find((x) => x.id === oid);
+      if (!c) return send(res, 404, { error: "Client not found" });
+      c.siteSlug ||= siteSlug(c);
+      const studio = `${(process.env.PUBLIC_URL ?? `http://localhost:${PORT}`).replace(/\/$/, "")}/sites/${c.siteSlug}/`;
+      const target = url.searchParams.get("where") === "studio" ? studio : `${siteBase(c).replace(/\/$/, "")}/`;
+      if (action === "qr.png") {
+        const png = await qrPng(target);
+        res.writeHead(200, { "Content-Type": "image/png", "Content-Length": png.length, "Content-Disposition": `attachment; filename="${(c.siteSlug || "website").replace(/[^\w.-]/g, "")}-qr.png"` });
+        return res.end(png);
+      }
+      return send(res, 200, { url: target, studioUrl: studio, hasDomain: /\./.test(c.domain ?? ""), svg: await qrSvg(target) });
     }
     if (kind === "clients" && oid && action === "site.zip" && req.method === "GET") {
       const c = db.clients.find((x) => x.id === oid);
