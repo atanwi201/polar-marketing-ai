@@ -4,6 +4,9 @@ import { db, save, id, token, now } from "./store.mjs";
 import { limiter } from "./auth.mjs";
 import { qrSvg, qrPng } from "./qr.mjs";
 import * as L from "./loyalty.mjs";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+const JSQR = () => readFileSync(join(import.meta.dirname, "vendor", "jsqr.cjs"));
 
 // Pages come from loyalty-pages.mjs (another module); a plain fallback keeps things working without it.
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
@@ -45,6 +48,10 @@ export async function handleLoyalty(req, res, url, seg, ctx) {
   try {
     // ---- public pages ----
     if (m === "GET" && seg[0] === "join" && seg.length === 2) return await joinPageRoute(req, res, seg[1], ctx);
+    if (m === "GET" && seg[0] === "assets" && seg[1] === "jsqr.js" && seg.length === 2) {
+      res.writeHead(200, { "Content-Type": "text/javascript; charset=utf-8", "Cache-Control": "public, max-age=604800" });
+      return res.end(JSQR()), true;
+    }
     if (m === "GET" && seg[0] === "loyalty" && seg[1] === "logo" && seg.length === 3 && ctx.wallet?.google?.logo) {
       const prog = L.ldb().programs.find((x) => `${x.id}.png` === seg[2]);
       if (!prog) return ctx.send(res, 404, { error: "not found" }), true;

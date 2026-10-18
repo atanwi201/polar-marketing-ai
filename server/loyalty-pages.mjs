@@ -548,9 +548,9 @@ body{overscroll-behavior-y:contain;-webkit-tap-highlight-color:transparent}
   ${cfg.live ? `
   <div id="err" class="err" role="alert"></div>
   <section class="scan">
-    <div class="cam" id="cam"><video id="vid" playsinline muted></video><div class="aim"></div><button class="stop" id="stopCam" type="button">Stop</button></div>
+    <div class="cam" id="cam"><video id="vid" playsinline webkit-playsinline muted autoplay></video><div class="aim"></div><button class="stop" id="stopCam" type="button">Stop</button></div>
     <button class="cr-btn cr-btn--primary cr-btn--lg cr-btn--block" id="startCam" type="button" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8V6a2 2 0 0 1 2-2h2M16 4h2a2 2 0 0 1 2 2v2M20 16v2a2 2 0 0 1-2 2h-2M8 20H6a2 2 0 0 1-2-2v-2M7 12h10"/></svg>Scan customer card</button>
-    <p class="note" id="noCam" hidden>Camera scanning isn't available in this browser. Type the code under the QR instead.</p>
+    <p class="note" id="noCam" hidden>Camera scanning isn't available here (it needs a secure https page). Type the code under the QR instead.</p>
     <form class="manual" id="manual" autocomplete="off"><input class="cr-input" id="code" inputmode="text" autocapitalize="characters" autocorrect="off" spellcheck="false" placeholder="LC1-..." aria-label="Customer code"><button class="cr-btn cr-btn--soft" type="submit">Find</button></form>
   </section>
   <section class="cust cr-card" id="cust" hidden>
@@ -606,9 +606,8 @@ function setCust(c){
 function err(m){var e=$("err");e.textContent=m;e.classList.add("on")}
 function clearErr(){$("err").classList.remove("on")}
 function lookup(code){
-  code=String(code||"").trim().toUpperCase();
+  code=String(code||"").trim();
   if(!code||busy)return;
-  if(!/^LC1-/.test(code)&&/^[A-Z0-9_-]{4,}$/.test(code))code="LC1-"+code;
   busy=true;clearErr();
   post("/lookup",{code:code}).then(function(d){setCust(d.customer);$("code").value="";window.scrollTo({top:0,behavior:"smooth"})})
   .catch(function(e){setCust(null);err(e.message);toast(e.message,false)}).then(function(){busy=false});
@@ -655,28 +654,50 @@ function openRw(){
 $("rwList").addEventListener("click",function(e){var b=e.target.closest("[data-r]");if(!b||b.disabled)return;$("mRw").classList.remove("on");record({kind:"redeem",rewardId:b.getAttribute("data-r")},"Reward redeemed")});
 // camera
 var stream=null,det=null,raf=0,lastScan=0,vid=$("vid");
-function stopCam(){cancelAnimationFrame(raf);if(stream){stream.getTracks().forEach(function(t){t.stop()});stream=null}vid.srcObject=null;$("cam").classList.remove("on");$("startCam").hidden=!det}
+function stopCam(){cancelAnimationFrame(raf);if(stream){stream.getTracks().forEach(function(t){t.stop()});stream=null}vid.srcObject=null;$("cam").classList.remove("on");$("startCam").hidden=false}
+var cv=null,cx=null,jsqrLoading=null;
+function loadJsqr(){
+  if(window.jsQR)return Promise.resolve();
+  if(!jsqrLoading)jsqrLoading=new Promise(function(ok,no){var el=document.createElement("script");el.src="/assets/jsqr.js";el.onload=ok;el.onerror=function(){jsqrLoading=null;no(new Error("decoder"))};document.head.appendChild(el)});
+  return jsqrLoading;
+}
+// Safari has no BarcodeDetector: read frames through a canvas with jsQR instead.
+function decode(){
+  if(det)return det.detect(vid).then(function(r){return r.length?(r[0].rawValue||""):""});
+  var w=vid.videoWidth,h=vid.videoHeight;if(!w||!h||!window.jsQR)return Promise.resolve("");
+  var sc=Math.min(1,640/w);cv=cv||document.createElement("canvas");cv.width=Math.round(w*sc);cv.height=Math.round(h*sc);
+  cx=cx||cv.getContext("2d",{willReadFrequently:true});cx.drawImage(vid,0,0,cv.width,cv.height);
+  var im=cx.getImageData(0,0,cv.width,cv.height),q=window.jsQR(im.data,im.width,im.height,{inversionAttempts:"dontInvert"});
+  return Promise.resolve(q?q.data:"");
+}
 function tick(){
   if(!stream)return;
   var now=Date.now();
   if(now-lastScan>200&&vid.readyState>=2){
     lastScan=now;
-    det.detect(vid).then(function(r){
-      for(var i=0;i<r.length;i++){var v=r[i].rawValue||"";if(/^LC1-/i.test(v)){stopCam();lookup(v);return}}
+    decode().then(function(v){
+      if(/LC1-?[a-z0-9]/i.test(v)){stopCam();lookup(v);return}
       raf=requestAnimationFrame(tick)
     }).catch(function(){raf=requestAnimationFrame(tick)});
   }else raf=requestAnimationFrame(tick);
 }
 function startCam(){
   clearErr();
-  navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:"environment"}},audio:false}).then(function(s){
-    stream=s;vid.srcObject=s;vid.play();$("cam").classList.add("on");$("startCam").hidden=true;raf=requestAnimationFrame(tick);
-  }).catch(function(){toast("Camera blocked. Allow it in your browser, or type the code.",false)});
+  var go=function(s){
+    stream=s;vid.srcObject=s;vid.setAttribute("playsinline","");vid.muted=true;
+    var p=vid.play();if(p&&p.catch)p.catch(function(){});
+    $("cam").classList.add("on");$("startCam").hidden=true;raf=requestAnimationFrame(tick);
+  };
+  var fail=function(e){toast(location.protocol!=="https:"&&location.hostname!=="localhost"?"The camera needs a secure (https) page. Type the code instead.":"Camera blocked. Allow it in your browser settings, or type the code.",false)};
+  var load=det?Promise.resolve():loadJsqr();
+  load.then(function(){
+    return navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:"environment"}},audio:false}).catch(function(){return navigator.mediaDevices.getUserMedia({video:true,audio:false})});
+  }).then(go).catch(function(e){e&&e.message==="decoder"?toast("Couldn't load the scanner. Type the code instead.",false):fail(e)});
 }
-if("BarcodeDetector" in window&&navigator.mediaDevices&&navigator.mediaDevices.getUserMedia){
-  try{det=new BarcodeDetector({formats:["qr_code"]});$("startCam").hidden=false}catch(e){det=null}
-}
-if(!det)$("noCam").hidden=false;
+if(navigator.mediaDevices&&navigator.mediaDevices.getUserMedia){
+  if("BarcodeDetector" in window){try{det=new BarcodeDetector({formats:["qr_code"]})}catch(e){det=null}}
+  $("startCam").hidden=false;
+}else $("noCam").hidden=false;
 $("startCam").addEventListener("click",startCam);$("stopCam").addEventListener("click",stopCam);
 document.addEventListener("visibilitychange",function(){if(document.hidden&&stream)stopCam()});
 })();

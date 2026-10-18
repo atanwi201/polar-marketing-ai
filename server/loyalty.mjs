@@ -39,7 +39,7 @@ const eur = (n) => Math.round(Number(n) * 100) / 100;
 const bool = (v, d) => (typeof v === "boolean" ? v : d);
 
 export const findProgram = (pid) => ldb().programs.find((p) => p.id === pid);
-export const findCustomer = (cid) => ldb().customers.find((c) => c.id === cid);
+export const findCustomer = (cid) => ldb().customers.find((c) => c.id === cid || c.id.toLowerCase() === String(cid).toLowerCase());
 export const findByToken = (t) => (typeof t === "string" && t.length >= 8 ? ldb().customers.find((c) => c.cardToken === t) : undefined);
 export const clientOf = (p) => db.clients.find((c) => c.id === p?.clientId);
 
@@ -265,8 +265,10 @@ export function joinCustomer(program, { name, email, phone, marketingConsent } =
 
 /** "LC1-<id>" (or a bare id) to the customer and programme. */
 export function lookupByCode(codeText) {
-  const s = String(codeText ?? "").trim();
-  const cid = s.replace(/^LC1-/i, "");
+  // Accepts what a scanner or a person may give: "LC1-<id>", the bare id, any case, stray spaces or a pasted line around it.
+  const s = String(codeText ?? "").trim().slice(0, 200);
+  const found = /LC1-?\s*([a-z0-9]+)/i.exec(s);
+  const cid = (found ? found[1] : s.replace(/[^a-z0-9]/gi, "")).toLowerCase();
   if (!cid || cid.length > 60) return null;
   const customer = findCustomer(cid);
   const program = customer && findProgram(customer.programId);
