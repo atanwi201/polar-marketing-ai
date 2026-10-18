@@ -84,3 +84,10 @@ test("hotel flow over HTTP", async () => {
   assert.equal(ok.status, 201);
   assert.equal(ok.body.booking.nights, 2);
 });
+test("owner and portal errors come back in Spanish when x-lang is es", async () => {
+  const r = await call("PATCH", `/api/portal/portal-one/bookings/bookings/${st.id}`, { status: "pending" }, { "x-lang": "es" });
+  assert.equal(r.status, 409);
+  assert.match(r.body.error, /no puede pasar a/);
+  const en = await call("PATCH", `/api/portal/portal-one/bookings/bookings/${st.id}`, { status: "pending" });
+  assert.match(en.body.error, /cannot become/);
+});

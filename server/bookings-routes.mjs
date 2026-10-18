@@ -21,7 +21,25 @@ const html = (res, code, body) => { res.writeHead(code, htmlHeaders); res.end(bo
 const notFoundPage = (res) => html(res, 404, shell("Not found", `<h1>Link not valid / Enlace no válido</h1>`));
 const str = (v, n = 200) => (typeof v === "string" ? v.trim().slice(0, n) : "");
 const tooMany = (ctx, res) => (ctx.send(res, 429, { error: "Too many tries. Please wait a few minutes." }), true);
-const fail = (e, ctx, res) => ctx.send(res, e.status ?? 500, { error: e.status ? e.message : "Something went wrong. Please try again.", ...(e.code ? { code: e.code } : {}) });
+// Owner and portal screens send x-lang; their error text is returned in Spanish when asked.
+const ES = {
+  "Choose a valid date.": "Elige una fecha válida.", "That date is in the past.": "Esa fecha ya ha pasado.", "That date is too far ahead.": "Esa fecha queda demasiado lejos.",
+  "Choose valid dates.": "Elige fechas válidas.", "How many guests?": "¿Cuántos huéspedes?", "Online bookings are not open for this business right now.": "Este negocio no acepta reservas online ahora mismo.",
+  "Please enter your name.": "Escribe tu nombre.", "Please enter your email address.": "Escribe tu correo electrónico.", "That email address does not look right.": "Ese correo no parece correcto.",
+  "That time was just taken. Please pick another.": "Esa hora acaba de ocuparse. Elige otra.", "Choose a room type.": "Elige un tipo de habitación.", "That room is no longer available for those dates.": "Esa habitación ya no está disponible en esas fechas.",
+  "Unknown status.": "Estado desconocido.", "This booking can no longer be cancelled online.": "Esta reserva ya no se puede cancelar online.", "This booking has already started.": "Esta reserva ya ha empezado.",
+  "You can mark a no-show once the booking time has passed.": "Puedes marcar «no se presentó» cuando haya pasado la hora de la reserva.", "There is no longer room for this booking. Free up space first.": "Ya no hay sitio para esta reserva. Libera espacio primero.",
+  "Booking not found": "Reserva no encontrada", "Choose a business first.": "Elige un negocio primero.", "Sign in first": "Inicia sesión primero.", "Too many tries. Please wait a few minutes.": "Demasiados intentos. Espera unos minutos.",
+  "Something went wrong. Please try again.": "Algo ha ido mal. Inténtalo de nuevo.",
+};
+const esText = (msg) => ES[msg]
+  ?? msg.replace(/^Parties of (\d+) to (\d+) can book online\.$/, "Pueden reservar online grupos de $1 a $2 personas.")
+    .replace(/^Stays of (\d+) to (\d+) nights can book online\.$/, "Se pueden reservar online estancias de $1 a $2 noches.")
+    .replace(/^A ([\w-]+) booking cannot become ([\w-]+)\.$/, "Una reserva «$1» no puede pasar a «$2».");
+const fail = (e, ctx, res, req) => {
+  const msg = e.status ? e.message : "Something went wrong. Please try again.";
+  ctx.send(res, e.status ?? 500, { error: req?.headers["x-lang"] === "es" ? esText(msg) : msg, ...(e.code ? { code: e.code } : {}) });
+};
 
 export async function handleBookings(req, res, url, seg, ctx) {
   const m = req.method;
@@ -54,7 +72,7 @@ export async function handleBookings(req, res, url, seg, ctx) {
     }
   } catch (e) {
     if (res.headersSent) { res.end(); return true; }
-    fail(e, ctx, res);
+    fail(e, ctx, res, req);
     return true;
   }
   return false;

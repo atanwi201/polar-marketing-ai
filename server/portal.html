@@ -1710,7 +1710,7 @@ Object.assign(T.en,{
 });
 const BK={loaded:false,loading:false,err:"",config:null,items:[],filter:"upcoming",sheet:null,at:0,busy:"",toggling:false};
 async function bapi(method,path,body){
-  const r=await fetch(API+"/bookings"+path,{method,headers:body?{"content-type":"application/json"}:undefined,body:body?JSON.stringify(body):undefined});
+  const r=await fetch(API+"/bookings"+path,{method,headers:{"x-lang":lang,...(body?{"content-type":"application/json"}:{})},body:body?JSON.stringify(body):undefined});
   let d={}; try{d=await r.json();}catch(_){}
   if(!r.ok) throw new Error(d.error||t("generic"));
   return d;

@@ -374,8 +374,9 @@ function pickLang(info, wanted) {
 }
 
 // Client-side language choice: ?lang wins, then the saved/browser language, limited to info.langs
-const LANG_BOOT = (allowed, fixed) => `<script>
-(function(){var A=${js(allowed)},F=${js(fixed)};var l=F;if(!l){try{l=localStorage.getItem("cr-book-lang")}catch(e){}}
+const LANG_BOOT = (allowed, fixed, dflt = "") => `<script>
+(function(){var A=${js(allowed)},F=${js(fixed)},D=${js(dflt)};var l=F;if(!l){try{l=localStorage.getItem("cr-book-lang")}catch(e){}}
+if(!l&&D)l=D;
 if(!l||A.indexOf(l)<0){var n=((navigator.languages&&navigator.languages[0])||navigator.language||"").toLowerCase().slice(0,2);l=A.indexOf(n)>=0?n:A[0]}
 window.__lang=l})();
 </script>`;
@@ -471,7 +472,7 @@ ${HEAD(`${T.yourBooking} - ${b.name || ""}`)}
   <div id="cancelBox" aria-live="polite" style="margin-top:var(--space-4)"></div>
   ${phone ? `<p class="small"><a href="tel:${esc(phone)}">${esc(b.phone)}</a></p>` : ""}
 </div>
-${LANG_BOOT(langs, "")}
+${LANG_BOOT(langs, "", pref)}
 <script>
 (function(){var D=${js(data)};D.lang=window.__lang||D.lang;${APP_SRC}(D)})();
 </script>
