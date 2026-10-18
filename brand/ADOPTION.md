@@ -1,10 +1,10 @@
-# Adopting Crier in the webapp
+# Adopting Polar Marketing in the webapp
 
 Load `tokens.css` and `components/bundle.css` before the page styles. Wrap pages in `class="cr-root"`; set `data-theme="dark"` for dark.
 
-Map the existing variables in `server/signup.html` and `server/portal.html` (and `src/styles.css` for the studio) to the Crier tokens:
+Map the existing variables in `server/signup.html` and `server/portal.html` (and `src/styles.css` for the studio) to the Polar Marketing tokens:
 
-| old variable | Crier token |
+| old variable | Polar Marketing token |
 | --- | --- |
 | `--bg` | `--bg` |
 | `--card`, `--surface` | `--surface` |

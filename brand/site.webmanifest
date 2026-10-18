@@ -1,22 +1,22 @@
 {
-  "name": "Crier",
-  "short_name": "Crier",
+  "name": "Polar Marketing",
+  "short_name": "Polar Marketing",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#0e1316",
-  "theme_color": "#0e1316",
+  "background_color": "#ffffff",
+  "theme_color": "#d7ff64",
   "icons": [
     {
       "src": "/brand/logo/icon-192.png",
       "sizes": "192x192",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
     },
     {
       "src": "/brand/logo/icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
     },
     {
       "src": "/brand/logo/favicon.svg",

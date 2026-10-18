@@ -798,7 +798,7 @@ async function route(req, res, url) {
 
   // --- Brand: design tokens, logo and favicon set (also at the root paths browsers probe by default) ---
   const ROOT_ICONS = { "/favicon.ico": "logo/favicon.ico", "/apple-touch-icon.png": "logo/apple-touch-icon.png", "/apple-touch-icon-precomposed.png": "logo/apple-touch-icon.png", "/site.webmanifest": "site.webmanifest" };
-  const brandRel = ROOT_ICONS[p] ?? (seg[0] === "brand" && seg.length >= 2 && seg.length <= 3 && /^[\w.-]+(\/[\w.-]+)?$/.test(seg.slice(1).join("/")) && /\.(css|json|svg|png|ico|webmanifest)$/.test(p) ? seg.slice(1).join("/") : null);
+  const brandRel = ROOT_ICONS[p] ?? (seg[0] === "brand" && seg.length >= 2 && seg.length <= 3 && /^[\w.-]+(\/[\w.-]+)?$/.test(seg.slice(1).join("/")) && /\.(css|js|json|svg|png|ico|webmanifest)$/.test(p) ? seg.slice(1).join("/") : null);
   if (brandRel && req.method === "GET") {
     const file = normalize(join(BRAND_DIR, brandRel));
     if (!file.startsWith(BRAND_DIR) || !existsSync(file)) return send(res, 404, { error: "not found" });
