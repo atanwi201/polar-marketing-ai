@@ -970,6 +970,7 @@ async function load(){
   clearTimeout(timer);
   try{
     const r=await fetch(API,{cache:"no-store"});
+    if(r.status===403){ const d=await r.json().catch(()=>({})); if(d.code==="declined"){ location.replace(d.declinedUrl||"/declined"); return; } }
     if(r.status===404||r.status===400){ $("#app").hidden=true; $("#nav").hidden=true; $("#loading").hidden=true; $("#bad").hidden=false; return; }
     if(!r.ok) throw new Error("http");
     const first=!data;

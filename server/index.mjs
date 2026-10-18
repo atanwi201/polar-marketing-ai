@@ -18,6 +18,7 @@ const { buildSite, SITES_DIR, startSiteRetries, siteBase, siteSlug, installUploa
 const { qrPng, qrSvg } = await import("./qr.mjs");
 const { editSite, undoSite, versionCount } = await import("./siteedit.mjs");
 const { approval, blockReason, usage, DEFAULT_WEEKLY } = await import("./limits.mjs");
+const { declinedClientFor, declinedPage, declinedBody } = await import("./declined.mjs");
 const { shareItem, checkAccounts, connections, maskAccounts, mergeAccounts, publicUrl, isPublic, TARGETS } = await import("./social.mjs");
 const { startVideo, runVideo, rerender, capabilities, startVideoScheduler, videoTick, LENGTHS } = await import("./video.mjs");
 const { sharePage } = await import("./share.mjs");
@@ -256,6 +257,18 @@ async function route(req, res, url) {
   const p = url.pathname;
   const seg = p.split("/").filter(Boolean);
 
+  // --- Declined businesses are shut out of every client-facing route (pages get the screen, APIs a 403) ---
+  if (p === "/declined" && req.method === "GET") {
+    res.writeHead(403, { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" });
+    return res.end(declinedPage(null, url.searchParams.get("l")));
+  }
+  const declined = declinedClientFor(seg, (x) => x.siteSlug);
+  if (declined) {
+    if (seg[0] === "api") return send(res, 403, declinedBody(declined, req.headers["x-lang"]));
+    res.writeHead(403, { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" });
+    return res.end(declinedPage(declined, url.searchParams.get("l") ?? url.searchParams.get("lang")));
+  }
+
   // --- Loyalty cards and Apple Wallet (before the portal and studio handlers) ---
   if (await handleWallet(req, res, url, seg, { send, readBody, baseUrl: base })) return;
   if (await handleLoyalty(req, res, url, seg, loyaltyCtx)) return;
@@ -342,6 +355,7 @@ async function route(req, res, url) {
     const c = findByCode(db.clients, b.code);
     if (!c) { codeTries.fail(ip); return send(res, 404, { error: "We can't find that code. Check it and try again." }); }
     codeTries.clear(ip);
+    if (approval(c) === "declined") return send(res, 403, declinedBody(c));
     return send(res, 200, { portalUrl: `/portal/${c.token}`, name: c.name });
   }
 

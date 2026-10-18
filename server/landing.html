@@ -214,6 +214,7 @@ a.cr-btn{text-decoration:none}
     try {
       const { ok, d } = await post("/api/client-login", { code: v });
       if (ok && d.portalUrl) { location.href = d.portalUrl; return; }
+      if (d.code === "declined" && d.declinedUrl) { location.href = d.declinedUrl; return; }
       show($("cErr"), d.error || t("eCode"));
     } catch { show($("cErr"), t("eNet")); }
     busy($("cGo"), false);
