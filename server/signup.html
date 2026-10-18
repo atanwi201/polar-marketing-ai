@@ -177,7 +177,7 @@ form.cr-card{padding:var(--space-5) var(--space-4)}
       <div class="field cr-field step-final" data-f="terms">
         <label class="check" for="terms">
           <input type="checkbox" id="terms" required>
-          <span><span data-i="terms">Acepto las condiciones del servicio y el tratamiento de mis datos para prestarlo.</span> *</span>
+          <span><span data-i="terms">Acepto el <a href="/legal?l=es" target="_blank">aviso legal</a> y la <a href="/privacy?l=es" target="_blank">política de privacidad</a>, y el tratamiento de mis datos para prestar el servicio.</span> *</span>
         </label>
         <p class="fielderr" data-i="req_terms">Debes aceptar para continuar.</p>
         <label class="check" for="mkt">
@@ -212,7 +212,7 @@ const T = {
     l_langs:"Idiomas de tus clientes", h_langs:"El primero que marques será el idioma principal.",
     l_offer:"¿Qué ofreces?", l_hours:"Horario", l_photo:"Una foto de tu negocio", optional:"(opcional)",
     choose:"Elegir foto", remove:"Quitar", h_photo:"Nos ayuda a que la web y las publicaciones se parezcan a ti.",
-    terms:"Acepto las condiciones del servicio y el tratamiento de mis datos para prestarlo.",
+    terms:"Acepto el <a href="/legal?l=es" target="_blank">aviso legal</a> y la <a href="/privacy?l=es" target="_blank">política de privacidad</a>, y el tratamiento de mis datos para prestar el servicio.",
     mkt:"Quiero recibir novedades y consejos de {{BRAND}} por correo o WhatsApp. Puedo darme de baja cuando quiera.",
     go:"Crear mi web", sending:"Creando tu web…", next:"Siguiente", back:"Atrás", skip:"Puedes saltarte lo que no tengas a mano y completarlo después.",
     steps:["Tu negocio","Tu marca","Qué ofreces","Dónde y cuándo","Fotos y listo"], stepOf:"Paso {n} de 5", foot:"Sin tarjeta. Tu enlace personal te llega al terminar.",
@@ -231,7 +231,7 @@ const T = {
     l_langs:"Your customers' languages", h_langs:"The first one you tick is your main language.",
     l_offer:"What do you offer?", l_hours:"Opening hours", l_photo:"A photo of your business", optional:"(optional)",
     choose:"Choose photo", remove:"Remove", h_photo:"Helps the website and posts look like you.",
-    terms:"I accept the terms of service and the processing of my data to provide it.",
+    terms:"I accept the <a href="/legal?l=en" target="_blank">legal notice</a> and the <a href="/privacy?l=en" target="_blank">privacy policy</a>, and the processing of my data to provide the service.",
     mkt:"I would like to receive news and tips from {{BRAND}} by email or WhatsApp. I can unsubscribe at any time.",
     go:"Create my website", sending:"Creating your website…", next:"Next", back:"Back", skip:"Skip anything you don't have to hand and add it later.",
     steps:["Your business","Your brand","What you offer","Where and when","Photos and done"], stepOf:"Step {n} of 5", foot:"No card needed. Your personal link arrives when you finish.",
@@ -265,7 +265,7 @@ LANGS.forEach(([c,n])=>{
 function applyLang(){
   const t=T[lang]; document.documentElement.lang=lang;
   if(window.PolarTheme) PolarTheme.mount($("#themeSel"),lang);
-  $$("[data-i]").forEach(el=>{const v=t[el.dataset.i]; if(v!=null) el.textContent=v;});
+  $$("[data-i]").forEach(el=>{const v=t[el.dataset.i]; if(v!=null) { if(el.dataset.i==="terms") el.innerHTML=v; else el.textContent=v; }});
   $$(".lang button").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.lang===lang)));
   $("#kind").placeholder=t.ph_kind;
   if(window.pf) pf=pf.setLang(lang);

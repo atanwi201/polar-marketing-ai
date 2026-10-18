@@ -12,7 +12,8 @@
     "test": "node --test server/*.test.mjs",
     "typecheck": "tsc --noEmit",
     "deploy": "bash scripts/deploy.sh",
-    "push-env": "bash scripts/push-env.sh"
+    "push-env": "bash scripts/push-env.sh",
+    "backup": "bash scripts/backup.sh"
   },
   "dependencies": {
     "@heyputer/puter.js": "^2.6.4",

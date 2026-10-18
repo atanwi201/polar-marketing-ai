@@ -271,7 +271,7 @@ form.cr-card{margin-top:var(--space-5);padding:var(--space-5) var(--space-4)}
     ${program.terms ? `<p class="terms">${esc(program.terms)}</p>` : ""}
   </form>` : `
   <section class="closed cr-card"><h2>Not open yet</h2><p class="muted">${esc(bizName)} is still setting up this card. Please check back soon, or ask at the till.</p></section>`}
-  <footer class="foot"><div id="themeSel"></div><span class="by"><img class="pm-logo" src="/brand/logo/polar-mark.png" alt="">Powered by Polar Marketing</span></footer>
+  <footer class="foot"><div id="themeSel"></div><span class="by"><img class="pm-logo" src="/brand/logo/polar-mark.png" alt="">Powered by Polar Marketing</span> <a href="/privacy" style="font-size:.8em;opacity:.7">Privacy</a></footer>
 </div>
 <script>if(window.PolarTheme)PolarTheme.mount(document.getElementById("themeSel"),document.documentElement.lang)</script>
 ${live ? `<script>
@@ -421,7 +421,7 @@ details.panel summary{font:700 16px/24px var(--font-display);cursor:pointer;min-
     ${view.program.terms ? `<details class="panel cr-card"><summary>Terms</summary><p class="terms" style="margin-top:12px">${esc(view.program.terms)}</p></details>` : ""}
   </div>
   <p class="status" id="status" aria-live="polite"></p>
-  <footer class="foot"><div id="themeSel"></div><span class="by"><img class="pm-logo" src="/brand/logo/polar-mark.png" alt="">Powered by Polar Marketing</span></footer>
+  <footer class="foot"><div id="themeSel"></div><span class="by"><img class="pm-logo" src="/brand/logo/polar-mark.png" alt="">Powered by Polar Marketing</span> <a href="/privacy" style="font-size:.8em;opacity:.7">Privacy</a></footer>
 </div>
 <button class="qfull" id="qfull" type="button" aria-label="Close"><b>${esc(view.customer.name)}</b>${qrInline(view.code, "Your loyalty card QR code")}<b>${esc(view.code)}</b><span>Tap anywhere to close</span></button>
 <script>

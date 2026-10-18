@@ -19,6 +19,7 @@ const { qrPng, qrSvg } = await import("./qr.mjs");
 const { editSite, undoSite, versionCount } = await import("./siteedit.mjs");
 const { approval, blockReason, usage, DEFAULT_WEEKLY } = await import("./limits.mjs");
 const { declinedClientFor, declinedPage, declinedBody } = await import("./declined.mjs");
+const { legalPage } = await import("./legal.mjs");
 const { shareItem, checkAccounts, connections, maskAccounts, mergeAccounts, publicUrl, isPublic, TARGETS } = await import("./social.mjs");
 const { startVideo, runVideo, rerender, capabilities, startVideoScheduler, videoTick, LENGTHS } = await import("./video.mjs");
 const { sharePage } = await import("./share.mjs");
@@ -256,6 +257,11 @@ const loyaltyCtx = {
 async function route(req, res, url) {
   const p = url.pathname;
   const seg = p.split("/").filter(Boolean);
+
+  if ((p === "/privacy" || p === "/legal") && req.method === "GET") {
+    res.writeHead(200, { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "public, max-age=300" });
+    return res.end(legalPage(p.slice(1), url.searchParams.get("l")));
+  }
 
   // --- Declined businesses are shut out of every client-facing route (pages get the screen, APIs a 403) ---
   if (p === "/declined" && req.method === "GET") {
