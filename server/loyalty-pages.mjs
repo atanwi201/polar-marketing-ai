@@ -260,7 +260,7 @@ form.cr-card{margin-top:var(--space-5);padding:var(--space-5) var(--space-4)}
   <form id="f" class="cr-card" novalidate>
     <div id="err" class="err" role="alert"></div>
     <div class="f cr-field"><label class="cr-label" for="name">Your name</label><input class="cr-input" id="name" name="name" type="text" autocomplete="name" maxlength="80" required></div>
-    <div class="f cr-field"><label class="cr-label" for="email">Email <span class="muted">(optional)</span></label><input class="cr-input" id="email" name="email" type="email" autocomplete="email" inputmode="email" maxlength="120"></div>
+    <div class="f cr-field"><label class="cr-label" for="email">Email</label><input class="cr-input" id="email" name="email" type="email" autocomplete="email" inputmode="email" maxlength="120" required></div>
     <div class="f cr-field"><label class="cr-label" for="phone">Phone <span class="muted">(optional)</span></label><input class="cr-input" id="phone" name="phone" type="tel" autocomplete="tel" inputmode="tel" maxlength="40"></div>
     <label class="check"><input type="checkbox" id="consent"><span>Send me offers and news from ${esc(bizName)}. I can stop at any time.</span></label>
     <button class="cr-btn cr-btn--primary cr-btn--lg cr-btn--block" id="go" type="submit"><span class="spin"></span><span id="goTxt">Get my card</span></button>
@@ -277,6 +277,8 @@ f.addEventListener("submit",function(e){
   e.preventDefault();err.classList.remove("on");
   var name=$("name").value.trim();
   if(!name){show("Please enter your name.");$("name").focus();return}
+  var em=$("email").value.trim();
+  if(!/^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$/.test(em)){show("Please enter a valid email address.");$("email").focus();return}
   go.disabled=true;go.classList.add("busy");$("goTxt").textContent="Creating your card";
   fetch("/api/loyalty/join/"+encodeURIComponent(code),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({name:name,email:$("email").value.trim(),phone:$("phone").value.trim(),marketingConsent:$("consent").checked})})
   .then(function(r){return r.json().catch(function(){return {}}).then(function(d){return {ok:r.ok,d:d}})})

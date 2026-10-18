@@ -244,7 +244,8 @@ export function joinCustomer(program, { name, email, phone, marketingConsent } =
   const nm = str(name, 80);
   if (!nm) throw new LoyaltyError("Please enter your name.", 400);
   const em = str(email, 120);
-  if (em && !EMAIL.test(em)) throw new LoyaltyError("That email address does not look right.", 400);
+  if (!em) throw new LoyaltyError("Please enter your email address.", 400);
+  if (!EMAIL.test(em)) throw new LoyaltyError("That email address does not look right.", 400);
   const ph = str(phone, 30);
   if (ph && !/^[\d+\s().-]{5,30}$/.test(ph)) throw new LoyaltyError("That phone number does not look right.", 400);
   const t = now();

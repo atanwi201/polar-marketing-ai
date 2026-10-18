@@ -11,7 +11,7 @@ const { db } = await import("./store.mjs");
 db.clients.push({ id: "c1", name: "Cafe Uno", token: "tok1" }, { id: "c2", name: "Bar Dos", token: "tok2" });
 const c1 = db.clients[0];
 const live = (fields) => { const p = L.createProgram(c1, fields); L.updateProgram(p, { status: "live" }); return p; };
-const join = (p, name = "Ana") => L.joinCustomer(p, { name });
+const join = (p, name = "Ana") => L.joinCustomer(p, { name, email: "ana@example.com" });
 const T0 = Date.parse("2026-01-01T10:00:00Z"), MIN = 60e3, DAY = 864e5;
 let changed = [];
 L.setOnCardChanged((c) => changed.push(c.id));
@@ -29,7 +29,7 @@ test("createProgram: draft, codes, default design, starter reward", () => {
 
 test("draft and paused programmes refuse join and record", () => {
   const p = L.createProgram(c1, {});
-  assert.throws(() => L.joinCustomer(p, { name: "A" }), /not open yet/);
+  assert.throws(() => L.joinCustomer(p, { name: "A", email: "a@b.co" }), /not open yet/);
   const q = live({}); const c = join(q);
   L.updateProgram(q, { status: "paused" });
   assert.throws(() => L.record(c, q, { kind: "visit" }), (e) => e.status === 409 && /not open yet/.test(e.message));
@@ -37,8 +37,9 @@ test("draft and paused programmes refuse join and record", () => {
 
 test("join validates input and applies welcome bonus", () => {
   const p = live({ welcomeBonus: { stamps: 2, points: 0 } });
-  assert.throws(() => L.joinCustomer(p, { name: " " }), /name/);
+  assert.throws(() => L.joinCustomer(p, { name: " ", email: "a@b.co" }), /name/);
   assert.throws(() => L.joinCustomer(p, { name: "A", email: "bad" }), /email/);
+  assert.throws(() => L.joinCustomer(p, { name: "A" }), /email/);
   const c = L.joinCustomer(p, { name: "Ana", email: "a@b.co", marketingConsent: true });
   assert.equal(c.stamps, 2);
   assert.equal(c.marketingConsent, true);

@@ -135,7 +135,7 @@ test("public join, card page, card JSON, qr, manifest, pass", async () => {
 });
 
 test("join is refused while a programme is draft", async () => {
-  const r = await call("POST", `/api/loyalty/join/${st.p2.joinCode}`, { name: "Z" });
+  const r = await call("POST", `/api/loyalty/join/${st.p2.joinCode}`, { name: "Z", email: "z@example.com" });
   assert.equal(r.status, 409);
   assert.match(r.body.error, /not open yet/);
 });
@@ -161,7 +161,7 @@ test("staff scanner: lookup, visit, double scan, redeem, wrong token", async () 
   assert.equal((await call("POST", S + "/record", { customerId: st.cid, kind: "bogus" })).status, 400);
   assert.equal((await call("POST", S + "/record", { customerId: st.cid, kind: "purchase", amountEur: "abc" })).status, 400);
   // a card from another programme cannot be used with this staff link
-  const other = L.joinCustomer(L.findProgram(st.p2.id) && Object.assign(L.findProgram(st.p2.id), { status: "live" }), { name: "Other" });
+  const other = L.joinCustomer(L.findProgram(st.p2.id) && Object.assign(L.findProgram(st.p2.id), { status: "live" }), { name: "Other", email: "o@example.com" });
   assert.equal((await call("POST", S + "/lookup", { code: `LC1-${other.id}` })).status, 404);
   assert.equal((await call("POST", S + "/record", { customerId: other.id, kind: "visit" })).status, 404);
   st.other = other;
@@ -247,7 +247,7 @@ test("limits: join, staff and bad-token guesses are rate limited; oversized bodi
   const p = L.findProgram(st.p2.id);
   const codeJ = p.joinCode;
   let last;
-  for (let i = 0; i < 12; i++) last = await call("POST", `/api/loyalty/join/${codeJ}`, { name: "N" + i }, ip);
+  for (let i = 0; i < 12; i++) last = await call("POST", `/api/loyalty/join/${codeJ}`, { name: "N" + i, email: `n${i}@example.com` }, ip);
   assert.equal(last.status, 429);
   const g = { "x-test-ip": "8.8.8.8" };
   for (let i = 0; i < 20; i++) await call("POST", `/api/loyalty/staff/guess-${i}-xxxxxxxx/lookup`, { code: "x" }, g);
