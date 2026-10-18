@@ -203,7 +203,7 @@ async function deleteMedia(files) {
   for (const f of files.filter(Boolean)) await unlink(join(MEDIA_DIR, f)).catch(() => {});
 }
 const videoFiles = (v) => [...(v.scenes ?? []).map((s) => s.imageFile), ...Object.values(v.renders ?? {}).flatMap((r) => [r.file, r.cover])];
-const publicClient = (c) => ({ name: c.name, code: c.code, languages: c.languages, town: c.town, site: c.site ? { status: c.site.status === "waiting" ? "building" : c.site.status, step: c.site.step, url: c.site.url, kind: c.site.kind, builtAt: c.site.builtAt, error: c.site.status === "failed" ? "The website couldn't be built yet. We'll retry." : undefined } : null });
+const publicClient = (c) => ({ name: c.name, logoFile: c.logoFile ?? "", code: c.code, languages: c.languages, town: c.town, site: c.site ? { status: c.site.status === "waiting" ? "building" : c.site.status, step: c.site.step, url: c.site.url, kind: c.site.kind, builtAt: c.site.builtAt, error: c.site.status === "failed" ? "The website couldn't be built yet. We'll retry." : undefined } : null });
 const str = (v, n = 200) => (typeof v === "string" ? v.trim().slice(0, n) : "");
 const portalView = (c) => ({
   client: publicClient(c),

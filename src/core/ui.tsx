@@ -4,14 +4,17 @@ import { useAiMode, useAiProvider } from "./ai";
 import { LANGS } from "./plans";
 import type { Lang, Client } from "./types";
 
-export function Page(props: { title: string; plan?: string; intro?: ReactNode; actions?: ReactNode; children: ReactNode }) {
+export function Page(props: { title: string; avatar?: ReactNode; plan?: string; intro?: ReactNode; actions?: ReactNode; children: ReactNode }) {
   return (
     <div className="page">
       <header className="page-head">
-        <div className="page-titles">
-          {props.plan && <div className="eyebrow">{props.plan}</div>}
-          <h1>{props.title}</h1>
-          {props.intro && <p className="intro">{props.intro}</p>}
+        <div className="row" style={{ gap: 14, alignItems: "center", minWidth: 0 }}>
+          {props.avatar}
+          <div className="page-titles">
+            {props.plan && <div className="eyebrow">{props.plan}</div>}
+            <h1>{props.title}</h1>
+            {props.intro && <p className="intro">{props.intro}</p>}
+          </div>
         </div>
         {props.actions && <div className="row wrap">{props.actions}</div>}
       </header>

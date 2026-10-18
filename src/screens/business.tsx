@@ -25,6 +25,16 @@ export const initials = (n: string) => {
   return ((w[0] ?? "?")[0] + ((w[1] ?? w[0] ?? "")[0] ?? "")).toUpperCase();
 };
 
+/** The business's logo as a round profile picture, or its initials when it has none. */
+export function Avatar(props: { name: string; logoFile?: string; size?: number }) {
+  const size = props.size ?? 42;
+  return (
+    <span className={"biz-av" + (props.logoFile ? " has-logo" : "")} aria-hidden style={{ width: size, height: size, ...(props.logoFile ? { backgroundImage: `url("${mediaUrl(props.logoFile)}")` } : {}), ...(size !== 42 ? { fontSize: size * 0.36 } : {}) }}>
+      {props.logoFile ? "" : initials(props.name)}
+    </span>
+  );
+}
+
 export default function Business() {
   const route = useRoute();
   const [, id, tabParam] = route.split("/");
@@ -78,7 +88,7 @@ export default function Business() {
   const needsStudio = (content: ReactNode) => (sc ? content : <StartAutopilot client={client} data={data} offer={offer} act={act} />);
 
   return (
-    <Page title={client.name} intro={<span className="row wrap">
+    <Page title={client.name} avatar={<Avatar name={client.name} logoFile={sc?.logoFile} size={48} />} intro={<span className="row wrap">
         <button type="button" className="link-btn" onClick={() => navigate("clients")}>← Businesses</button>
         <span className="faint">{[client.kind, client.town].filter(Boolean).join(" · ")}</span>
       </span>}

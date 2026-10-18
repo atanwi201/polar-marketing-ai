@@ -6,7 +6,7 @@ import { useOffer, PLAN_IDS, type Offer } from "../core/offer";
 import { TOWNS, eur } from "../core/plans";
 import { pushPlanToStudio, useStudio } from "../core/studio-sync";
 import { navigate } from "../core/nav";
-import { initials } from "./business";
+import { Avatar } from "./business";
 import type { Client, Stage, Consent } from "../core/types";
 
 export const STAGE_TONE: Record<Stage, Tone> = { lead: "info", pilot: "warn", paid: "good", churned: "neutral" };
@@ -71,7 +71,7 @@ export default function Clients() {
             return (
               <button key={c.id} type="button" className="biz-card" onClick={() => navigate(`business/${c.id}`)}>
                 <span className="row" style={{ gap: 12 }}>
-                  <span className="biz-av" aria-hidden>{initials(c.name)}</span>
+                  <Avatar name={c.name} logoFile={s?.logoFile} />
                   <span className="stack-sm" style={{ minWidth: 0, flex: 1 }}>
                     <span className="strong biz-name">{c.name}</span>
                     <span className="small faint biz-name">{[c.kind, c.town].filter(Boolean).join(" · ") || "No details yet"}</span>

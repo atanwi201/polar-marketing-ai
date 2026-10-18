@@ -37,7 +37,8 @@ a{color:var(--accent-text)}
 
 /* top bar */
 .top{display:flex;align-items:center;gap:12px;padding:6px 0 18px}
-.avatar{width:42px;height:42px;border-radius:50%;flex:none;display:grid;place-items:center;color:var(--brand);font:700 15px var(--display);letter-spacing:.01em;background:var(--basalt)}
+.avatar{width:42px;height:42px;border-radius:50%;flex:none;display:grid;place-items:center;color:var(--brand);font:700 15px var(--display);letter-spacing:.01em;background:var(--basalt) center/cover no-repeat}
+.avatar.has-logo{background-color:#fff;background-size:contain;box-shadow:inset 0 0 0 1px var(--line)}
 .who{min-width:0;flex:1}
 .who small{display:block;color:var(--muted);font-size:13px;line-height:1.2}
 .who b{display:block;font:700 17px/1.25 var(--display);letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -704,7 +705,10 @@ const sorted=a=>[...(a||[])].sort((x,y)=>new Date(y.createdAt)-new Date(x.create
 function renderHeader(){
   const c=data.client;
   $("#biz").textContent=c.name||"{{BRAND}}";
-  $("#avatar").textContent=initials(c.name);
+  const av=$("#avatar"), logo=c.logoFile;
+  av.textContent=logo?"":initials(c.name);
+  av.style.backgroundImage=logo?`url('/media/${encodeURI(logo)}')`:"";
+  av.classList.toggle("has-logo",!!logo);
   document.title=(c.name?c.name+" · ":"")+"{{BRAND}}";
 }
 function renderHero(){
