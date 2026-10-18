@@ -162,6 +162,7 @@ textarea:focus{outline:none;box-shadow:0 0 0 3px var(--brand-soft);background:va
 .site .ico{width:52px;height:52px;border-radius:16px;display:grid;place-items:center;background:var(--accent-soft);color:var(--accent-text)}
 .site .ico svg{width:26px;height:26px}
 .site h3{font:700 20px var(--display);letter-spacing:-.015em;margin:0 0 4px}
+.qrbox{display:flex;gap:16px;align-items:center;flex-wrap:wrap;margin-top:12px;padding-top:12px;border-top:1px solid var(--line,rgba(127,127,127,.2))}.qrbox .qr{width:132px;height:132px;background:#fff;border-radius:12px;padding:6px;flex:none}.qrbox .qr svg{width:100%;height:100%}.qrbox h4{margin:0 0 4px;font-size:15px}.qrbox p{margin:0 0 8px;font-size:13px}
 .urlbox{display:flex;align-items:center;gap:10px;background:var(--fill);border-radius:var(--r-md);padding:8px 8px 8px 14px;font-size:14px;overflow:hidden}
 .urlbox span{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:500}
 
@@ -419,7 +420,7 @@ const T={
     now:"ahora", min:"hace {n} min", hr:"hace {n} h", day:"hace {n} d", lang:"Idioma del texto", locale:"es-ES",
     building:"Estamos creando tu web", buildingS:"Tarda un par de minutos. Puedes seguir usando la app.",
     ready:"Tu web está publicada", readyS:"Compártela con tus clientes o ponla en tu perfil de Instagram y Google.",
-    open:"Abrir mi web", copyLink:"Copiar",
+    open:"Abrir mi web", copyLink:"Copiar", qrH:"Código QR de tu web", qrP:"Imprímelo para el escaparate, la carta o las tarjetas. Quien lo escanee abre tu web.", qrDl:"Descargar QR (PNG)",
     failed:"No hemos podido crear tu web", failedS:"Lo revisaremos. Si quieres, escríbenos.", nosite:"Tu web todavía no está creada.",
     shareT:"Compartir", shareSubPost:"Copiamos el texto y descargamos la imagen. Después se abre la app para que la publiques.",
     shareSubVid:"Copiamos el texto y descargamos el vídeo. Después se abre la app para que lo subas.",
@@ -469,7 +470,7 @@ const T={
     now:"just now", min:"{n} min ago", hr:"{n} h ago", day:"{n} d ago", lang:"Text language", locale:"en-GB",
     building:"We are building your website", buildingS:"This takes a couple of minutes. Keep using the app meanwhile.",
     ready:"Your website is live", readyS:"Share it with your customers or add it to your Instagram and Google profiles.",
-    open:"Open my website", copyLink:"Copy",
+    open:"Open my website", copyLink:"Copy", qrH:"QR code for your website", qrP:"Print it for your shop window, menu or cards. Anyone who scans it opens your website.", qrDl:"Download QR (PNG)",
     failed:"We could not build your website", failedS:"We will look into it. Get in touch if you like.", nosite:"Your website has not been created yet.",
     shareT:"Share", shareSubPost:"We copy the text and download the image, then open the app so you can post it.",
     shareSubVid:"We copy the text and download the video, then open the app so you can upload it.",
@@ -618,7 +619,16 @@ function renderSite(){
     h=`${box("ok",icon("globe"))}<div><h3>${esc(t("ready"))}</h3><p class="muted">${esc(t("readyS"))}</p></div>`+
       (full?`<div class="urlbox"><span>${esc(full.replace(/^https?:\/\//,""))}</span><button type="button" class="btn" data-copy="${esc(full)}">${icon("copy")}${esc(t("copyLink"))}</button></div><a class="primary" href="${esc(s.url)}" target="_blank" rel="noopener" style="margin-top:0">${icon("open")}${esc(t("open"))}</a>`:"");
   } else h=`${box("bad",icon("alert"))}<div><h3>${esc(t("failed"))}</h3><p class="muted">${esc(s.error||t("failedS"))}</p></div>`;
-  if(el.dataset.sig!==h){el.innerHTML=h;el.dataset.sig=h;}
+  if(el.dataset.sig!==h){el.innerHTML=h;el.dataset.sig=h; if(s&&s.status==="ready") showQr(el);}
+}
+// QR code of the website: loaded once, shown under the link, with a PNG to print.
+let qrData=null;
+async function showQr(el){
+  if(qrData===null){ try{ const r=await fetch(API+"/qr"); if(r.ok) qrData=await r.json(); }catch{} }
+  if(!qrData||!el.isConnected||el.querySelector(".qrbox")) return;
+  const d=document.createElement("div"); d.className="qrbox";
+  d.innerHTML=`<div class="qr" role="img" aria-label="QR">${qrData.svg}</div><div><h4>${esc(t("qrH"))}</h4><p class="muted">${esc(t("qrP"))}</p><a class="btn" href="${esc(API)}/qr.png" download>${esc(t("qrDl"))}</a></div>`;
+  el.appendChild(d);
 }
 function postHtml(p,langs){
   const img=p.imageFile?`<img src="/media/${encodeURI(p.imageFile)}" alt="${esc(p.altText||p.concept||"")}" loading="lazy">`:"";

@@ -359,6 +359,16 @@ async function route(req, res, url) {
       c.profileSaves = [...recent, Date.now()];
       return send(res, 200, await saveProfile(c, await readBody(req, 40e6)));
     }
+    if ((seg[3] === "qr" || seg[3] === "qr.png") && req.method === "GET" && seg.length === 4) {
+      if (c.site?.status !== "ready") return send(res, 404, { error: "No website yet" });
+      const target = `${siteBase(c).replace(/\/$/, "")}/`;
+      if (seg[3] === "qr.png") {
+        const png = await qrPng(target);
+        res.writeHead(200, { "Content-Type": "image/png", "Content-Length": png.length, "Content-Disposition": `attachment; filename="${(c.siteSlug || "website").replace(/[^\w.-]/g, "")}-qr.png"` });
+        return res.end(png);
+      }
+      return send(res, 200, { url: target, svg: await qrSvg(target) });
+    }
     if (seg[3] === "upload" && req.method === "POST") {
       const today = (c.uploads ?? []).filter((u) => Date.now() - Date.parse(u.at) < 864e5).length;
       if (today >= 40) return send(res, 429, { error: "That's 40 uploads today. Try again tomorrow." });

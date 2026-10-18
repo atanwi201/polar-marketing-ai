@@ -441,6 +441,9 @@ test("the owner downloads a site as a zip and uploads a replacement", async () =
   const qr = (await api("GET", `/api/studio/clients/${c.id}/qr`)).data;
   assert.match(qr.svg, /^<svg/);
   assert.ok(qr.url.startsWith("http"));
+  const ptok = (await api("GET", "/api/studio")).data.clients.find((x) => x.id === c.id).token;
+  assert.match((await api("GET", `/api/portal/${ptok}/qr`)).data.svg, /^<svg/);
+  assert.equal((await fetch(`${B}/api/portal/${ptok}/qr.png`)).headers.get("content-type"), "image/png");
   const qrPng = await fetch(`${B}/api/studio/clients/${c.id}/qr.png`);
   assert.equal(qrPng.headers.get("content-type"), "image/png");
   const bad = await fetch(`${B}/api/studio/clients/${c.id}/site-upload`, { method: "POST", body: Buffer.from("nope") });
