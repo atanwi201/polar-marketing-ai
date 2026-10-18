@@ -23,6 +23,11 @@ const { startVideo, runVideo, rerender, capabilities, startVideoScheduler, video
 const { sharePage } = await import("./share.mjs");
 const { receiveUpload, addMessage, startAssistant, portalMessages } = await import("./assistant.mjs");
 const { applyProfile, applyImages, profileView, MAX_PHOTOS } = await import("./profile.mjs");
+const { handleLoyalty } = await import("./loyalty-routes.mjs");
+const loyalty = await import("./loyalty.mjs");
+const { handleWallet, pushUpdate } = await import("./wallet.mjs");
+const { walletStatus, buildPass } = await import("./pass.mjs");
+const loyaltyDesign = await import("./loyalty-design.mjs").catch(() => null);
 const PROFILE_FORM_JS = () => readFileSync(join(import.meta.dirname, "profile-form.js"), "utf8");
 
 /** Save what a business (or you) entered in the profile form; the website is rebuilt in the background. */
@@ -206,9 +211,31 @@ const portalView = (c) => ({
   shareBase: isPublic() ? publicUrl() : "",
 });
 
+// Loyalty cards: every card change pushes a refresh to the customer's Apple Wallet pass.
+loyalty.setOnCardChanged((c) => pushUpdate(c).catch((e) => console.warn("[wallet push]", e.message)));
+const loyaltyCtx = {
+  send, readBody, isAdmin: (req) => auth.isAdmin(req), clientByToken: (t) => db.clients.find((x) => x.token === t), baseUrl: (req) => base(req), clientIp,
+  designProgram: async (program, opts) => {
+    if (!loyaltyDesign?.designProgram) return {};
+    return loyaltyDesign.designProgram(program, db.clients.find((c) => c.id === program.clientId) ?? {}, opts);
+  },
+  wallet: {
+    status: () => walletStatus(),
+    buildPass: (customer) => {
+      const program = loyalty.findProgram(customer.programId);
+      return buildPass({ program, customer, client: db.clients.find((c) => c.id === program.clientId) ?? {}, baseUrl: publicUrl() || `http://localhost:${PORT}` });
+    },
+    push: (c) => pushUpdate(c),
+  },
+};
+
 async function route(req, res, url) {
   const p = url.pathname;
   const seg = p.split("/").filter(Boolean);
+
+  // --- Loyalty cards and Apple Wallet (before the portal and studio handlers) ---
+  if (await handleWallet(req, res, url, seg, { send, readBody, baseUrl: base })) return;
+  if (await handleLoyalty(req, res, url, seg, loyaltyCtx)) return;
 
   // --- AI proxy for the main app ---
   if (p === "/api/ai/status") {
