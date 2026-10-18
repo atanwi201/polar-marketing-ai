@@ -678,12 +678,16 @@ export function AiSettingsModal({ s, act, onClose }: { s: AiSettings; act: Act; 
           <span className="strong">Puter: pictures, voice and speech recognition</span>
           <span className="small muted">The Puter text model is the Model box in the Puter key field above. Click it to list every model Puter offers.</span>
           <div className="row wrap">
-            <Button small busy={busy} onClick={async () => {
-              setBusy(true);
-              toast("A Puter sign-in page opens on the computer running this app. Finish it there.");
-              const r = (await act("POST", "/settings/ai/puter-login", {}, "Signed in to Puter")) as AiSettings | undefined;
-              setBusy(false);
-              if (r) onClose();
+            <Button small onClick={() => {
+              // Puter signs you in in this browser, then sends the token to this server's /puter-callback.
+              const done = (e: MessageEvent) => {
+                if (e.origin !== location.origin || (e.data as { type?: string })?.type !== "puter-connected") return;
+                window.removeEventListener("message", done);
+                toast("Signed in to Puter");
+                void act("GET", "/settings/ai").then(() => onClose());
+              };
+              window.addEventListener("message", done);
+              window.open(`https://puter.com/?action=authme&redirectURL=${encodeURIComponent(`${location.origin}/puter-callback`)}`, "puter-signin", "width=520,height=720");
             }}>{s.sources.puter ? "Sign in with Puter again" : "Sign in with Puter"}</Button>
             <span className="small faint">{s.sources.puter ? "Token saved." : "No developer key needed, it uses your own Puter account."}</span>
           </div>

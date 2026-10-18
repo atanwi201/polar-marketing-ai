@@ -321,16 +321,6 @@ export async function puterApi() {
   }
   return puterClient.puter;
 }
-/** Sign in to Puter in the browser of the computer running this server and keep the token. Returns the token. */
-export async function puterSignIn() {
-  const mod = await import("@heyputer/puter.js/src/init.cjs");
-  const token = await Promise.race([
-    (mod.getAuthToken ?? mod.default.getAuthToken)(),
-    new Promise((_, rej) => setTimeout(() => rej(new Error("Puter sign-in was not finished within 5 minutes")), 5 * 60e3).unref?.()),
-  ]);
-  if (typeof token !== "string" || !token) throw new Error("Puter did not return a token");
-  return token;
-}
 export const puterConfigured = () => !!compatKey("puter");
 /** Dashboard AI settings (db.settings.ai), for the Puter image / voice choices. */
 export const aiSettings = () => settings() ?? {};

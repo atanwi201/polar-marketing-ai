@@ -11,7 +11,7 @@ import { join, normalize } from "node:path";
 const root = join(import.meta.dirname, "..");
 loadEnv(join(root, ".env"));
 
-const { complete, freeModels, rankModels, status, aiKey, providerNames, configureAi, keySources, openrouterKey, providerList, runWithProvider, listModels, puterSignIn } = await import("./openrouter.mjs");
+const { complete, freeModels, rankModels, status, aiKey, providerNames, configureAi, keySources, openrouterKey, providerList, runWithProvider, listModels } = await import("./openrouter.mjs");
 const { db, save, id, token, now, MEDIA_DIR, DATA_DIR } = await import("./store.mjs");
 const { startPost, runPost, publish, startScheduler, redrawImage, describeImage } = await import("./studio.mjs");
 const { buildSite, SITES_DIR, startSiteRetries, siteBase, installUploadedSite, downloadSite } = await import("./sitebuilder.mjs");
@@ -85,6 +85,26 @@ const page = (name) => () => readFileSync(join(import.meta.dirname, name), "utf8
 const PORTAL_HTML = page("portal.html");
 const SIGNUP_HTML = page("signup.html");
 const LANDING_HTML = page("landing.html");
+const PUTER_CALLBACK_HTML = `<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Puter</title>
+<style>body{font:16px system-ui;background:#0f1417;color:#e8eef0;display:grid;place-items:center;min-height:100vh;margin:0}main{max-width:380px;padding:24px;text-align:center}</style>
+<main><h1 id="t">Connecting Puter…</h1><p id="m">One moment.</p></main>
+<script>
+(async()=>{
+  const q=new URLSearchParams(location.search), token=q.get("token");
+  history.replaceState(null,"",location.pathname);
+  const say=(t,m)=>{document.getElementById("t").textContent=t;document.getElementById("m").textContent=m;};
+  if(!token) return say("No token","Puter did not send one. Close this window and try again.");
+  let tok=""; try{tok=localStorage.getItem("isla:adminToken")||""}catch{}
+  try{
+    const r=await fetch("/api/studio/settings/ai/puter-token",{method:"POST",credentials:"same-origin",headers:{"Content-Type":"application/json",...(tok?{"x-admin-token":tok}:{})},body:JSON.stringify({token})});
+    if(r.status===401) return say("Sign in first","Open the dashboard, sign in as the owner, then press Sign in with Puter again.");
+    if(!r.ok) return say("Could not save",(await r.json().catch(()=>({}))).error||"Try again.");
+    say("Puter connected","You can close this window.");
+    try{window.opener&&window.opener.postMessage({type:"puter-connected"},location.origin)}catch{}
+    setTimeout(()=>window.close(),1200);
+  }catch{say("Could not reach the server","Try again.")}
+})();
+</script>`;
 const LANGS = ["es", "en", "de", "it", "nl", "sv", "fr"];
 const signupsByIp = new Map();
 // Behind nginx every request comes from 127.0.0.1; the visitor's address is in X-Real-IP.
@@ -273,6 +293,12 @@ async function route(req, res, url) {
   if (p === "/assets/profile-form.js") {
     res.writeHead(200, { "Content-Type": "text/javascript; charset=utf-8", "Cache-Control": "no-cache" });
     return res.end(PROFILE_FORM_JS());
+  }
+  // Where Puter sends the owner's browser after "Sign in with Puter": hands the token to the dashboard API
+  // with the owner's own sign-in, then closes. The token never touches the server log (it is read in the browser).
+  if (p === "/puter-callback" && req.method === "GET") {
+    res.writeHead(200, { "Content-Type": "text/html; charset=utf-8", "Referrer-Policy": "no-referrer", "Cache-Control": "no-store" });
+    return res.end(PUTER_CALLBACK_HTML);
   }
   if (p === "/signup" && req.method === "GET") {
     res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
@@ -577,13 +603,13 @@ async function route(req, res, url) {
       }
       if (req.method === "DELETE") { db.posts = db.posts.filter((x) => x.id !== oid); await save(); return send(res, 200, { ok: true }); }
     }
-    if (kind === "settings" && oid === "ai" && action === "puter-login" && req.method === "POST") {
-      // Opens Puter's sign-in page in the browser of the computer this server runs on, waits, saves the token.
-      try {
-        (db.settings.ai ??= {}).puterKey = await puterSignIn();
-        await save();
-        return send(res, 200, aiSettingsView());
-      } catch (e) { return send(res, 502, { error: e.message }); }
+    if (kind === "settings" && oid === "ai" && action === "puter-token" && req.method === "POST") {
+      // The token Puter handed to /puter-callback in the owner's own browser (see the Sign in with Puter button).
+      const { token: t } = await readBody(req);
+      if (typeof t !== "string" || t.length < 20 || t.length > 4000 || /\s/.test(t)) return send(res, 400, { error: "That is not a Puter token" });
+      (db.settings.ai ??= {}).puterKey = t;
+      await save();
+      return send(res, 200, aiSettingsView());
     }
     if (kind === "settings" && oid === "ai" && action === "models" && req.method === "GET") {
       try { return send(res, 200, { models: await listModels(url.searchParams.get("p") ?? "", fetch, url.searchParams.get("kind") === "image" ? "image" : "chat") }); }
