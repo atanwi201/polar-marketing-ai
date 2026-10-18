@@ -288,7 +288,7 @@ async function route(req, res, url) {
     const app = join(root, "dist", "index.html");
     if (!existsSync(app)) { res.writeHead(302, { Location: "http://localhost:5173/admin/" }); return res.end(); } // dev: Vite serves it
     res.writeHead(200, { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-cache" });
-    return res.end(readFileSync(app));
+    return res.end(readFileSync(app, "utf8").replace("</head>", `${ICONS}\n</head>`)); // Vite would rewrite icon links in index.html, so they are added here
   }
   if (p === "/api/auth" && req.method === "GET") {
     return send(res, 200, { admin: auth.hasPassword() || ADMIN ? auth.isAdmin(req) : false, setup: !auth.hasPassword(), fromEnv: auth.fromEnv() });
