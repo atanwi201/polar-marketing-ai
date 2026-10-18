@@ -9,6 +9,7 @@ import { complete, aiKey } from "./openrouter.mjs";
 import { generateImage } from "./images.mjs";
 import { findStockPhotos } from "./stock.mjs";
 import { describeImage, CONTEXT } from "./studio.mjs";
+import { bookingFor, siteCta } from "./bookings-links.mjs";
 import { extractHtml, pageProblem, sanitize, assemble, readMeta, lintPage, BOOTSTRAP_CSS, BOOTSTRAP_ICONS_CSS, BOOTSTRAP_JS, ANIMATE_CSS } from "./webpage.mjs";
 import { directionPrompt } from "./directions.mjs";
 import { cleanLogo, analysePhoto, planImages, renderPlan, imgTag, fixPageImages, FRAMES, IMAGE_CSS } from "./siteimages.mjs";
@@ -175,6 +176,7 @@ export function designPrompt(client, { lang, assets, design, langs, direction, r
     p.payment && `Payment methods: ${p.payment}`,
     p.extras && `Other useful details: ${p.extras}`,
     p.bookingUrl && `Booking link: ${p.bookingUrl}`,
+    bookingFor(client) && `Online booking is open: a round "${bookingFor(client).kind === "room" ? "Book a room" : "Reserve a table"}" button is added automatically, fixed at the bottom centre of every page. Do not build a booking form or your own booking button; leave about 90px of free space at the very bottom of the page (padding under the footer) so it never covers content.`,
     p.menuUrl && `Menu / catalogue link: ${p.menuUrl}`,
     social.length && `Social and review profiles: ${social.map(([k, v]) => `${k}: ${v}`).join(", ")}`,
     `Their customers speak: ${langs.map((l) => LANG_NAMES[l] ?? l).join(", ")} (this page is the ${L} version)`,
@@ -427,6 +429,7 @@ export async function writePages(client, { dir, langs, pages, base, assets }) {
       ld: structuredData(client, { lang: l, url: urls[l], base, assets, html: pages[l], description }),
     });
     html = html.replace(/<\/head>/i, `${IMAGE_CSS}\n</head>`); // after the model's CSS, so it wins
+    html = siteCta(html, client, l); // booking button when online bookings are on (none otherwise)
     const folder = l === langs[0] ? dir : join(dir, l);
     await mkdir(folder, { recursive: true });
     await writeFile(join(folder, "index.html"), html);

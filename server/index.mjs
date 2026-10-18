@@ -258,7 +258,11 @@ async function route(req, res, url) {
   // --- Loyalty cards and Apple Wallet (before the portal and studio handlers) ---
   if (await handleWallet(req, res, url, seg, { send, readBody, baseUrl: base })) return;
   if (await handleLoyalty(req, res, url, seg, loyaltyCtx)) return;
-  if (await handleBookings(req, res, url, seg, loyaltyCtx)) return;
+  if (await handleBookings(req, res, url, seg, loyaltyCtx)) {
+    // Opening or closing online bookings shows on already-built websites straight away (no rebuild).
+    if (req.method === "PUT" || req.method === "PATCH") void import("./bookings-links.mjs").then((m) => m.syncAllSites(SITES_DIR)).catch(() => {});
+    return;
+  }
 
   // --- AI proxy for the main app ---
   if (p === "/api/ai/status") {

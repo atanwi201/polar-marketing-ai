@@ -354,6 +354,8 @@ body{background:var(--bg)}
 .apple{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;max-width:400px;margin:var(--space-4) auto 0;min-height:54px;border-radius:999px;background:#000;color:#fff;font:600 17px/1 var(--font-sans);text-decoration:none;border:1px solid rgba(255,255,255,.25)}
 .apple svg{width:20px;height:20px;fill:currentColor}
 .apple:active{transform:scale(.98)}
+.bk{display:flex;align-items:center;justify-content:center;width:100%;max-width:400px;margin:var(--space-4) auto 0;min-height:54px;border-radius:999px;background:#fff;color:#111;font:700 17px/1 var(--font-sans);text-decoration:none;box-shadow:0 2px 10px rgba(0,0,0,.22)}
+.bk:active{transform:scale(.98)}
 .panels{max-width:400px;margin:0 auto}
 .panel{margin-top:var(--space-4);padding:var(--space-4) var(--space-4) var(--space-3)}
 .panel h3{margin:0 0 var(--space-3);font:700 19px/24px var(--font-display)}
@@ -398,6 +400,7 @@ details.panel summary{font:700 16px/24px var(--font-display);cursor:pointer;min-
   </div>
   ${wallet ? `<a class="apple" href="${esc(wallet)}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6.5A2.5 2.5 0 0 1 5.5 4h13A2.5 2.5 0 0 1 21 6.5V8H3V6.5zM3 10h18v7.5a2.5 2.5 0 0 1-2.5 2.5h-13A2.5 2.5 0 0 1 3 17.5V10zm12 3a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3z"/></svg>Add to Apple Wallet</a>` : ""}
   ${google ? `<a class="apple gpay" href="${esc(google)}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6.5A2.5 2.5 0 0 1 5.5 4h13A2.5 2.5 0 0 1 21 6.5V8H3V6.5zM3 10h18v7.5a2.5 2.5 0 0 1-2.5 2.5h-13A2.5 2.5 0 0 1 3 17.5V10zm12 3a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3z"/></svg>Add to Google Wallet</a>` : ""}
+  ${view.booking?.url ? `<a class="bk" id="bk" href="${esc(view.booking.url)}" data-es="${view.booking.kind === "room" ? "Reservar habitación" : "Reservar mesa"}">${view.booking.kind === "room" ? "Book a room" : "Book a table"}</a>` : ""}
   <div class="panels">
     <section class="panel cr-card"><h3>Rewards</h3><ul class="list" id="rewards">${K.rewards(view)}</ul></section>
     <section class="panel cr-card"><h3>Activity</h3><ul class="list hist" id="history">${K.history(view)}</ul></section>
@@ -445,6 +448,7 @@ addEventListener("focus",refresh);
 document.addEventListener("visibilitychange",function(){if(!document.hidden){refresh();if($("qfull").classList.contains("on"))wake()}});
 addEventListener("online",refresh);
 status();
+var bk=$("bk");if(bk&&/^es/i.test(navigator.language||"")){bk.textContent=bk.getAttribute("data-es");document.documentElement.lang="es"}
 // big QR on a white screen, kept awake
 var lock=null;
 function wake(){try{if(navigator.wakeLock)navigator.wakeLock.request("screen").then(function(l){lock=l}).catch(function(){})}catch(e){}}
