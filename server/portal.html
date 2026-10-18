@@ -1774,6 +1774,7 @@ async function loadBookings(force,silent){
   try{ const d=await bapi("GET",""); BK.config=d.config; BK.items=d.bookings||[]; BK.loaded=true; BK.err=""; BK.at=Date.now(); }
   catch(e){ if(!silent) BK.err=errMsg(e); }
   BK.loading=false; renderBookings();
+  if(BK.qr===undefined&&BK.loaded){ BK.qr=""; try{ const q=await bapi("GET","/qr"); BK.qr=q.svg||""; renderBookings(); }catch(_){} }
 }
 function renderBookings(){
   bkBadge();
@@ -1787,7 +1788,8 @@ function renderBookings(){
     h=`<div class="card"><label class="switch" style="padding-top:0"><span><b style="display:block;font:700 18px var(--display)">${esc(tl("bk_on_t"))}</b><small class="muted" style="display:block;margin-top:2px">${esc(tl(c.enabled?"bk_on_yes":"bk_on_no"))}</small></span><input type="checkbox" data-bt="toggle" aria-label="${esc(tl("bk_on_t"))}" ${c.enabled?"checked":""}></label></div>
       <div class="card"><h3 class="lh">${esc(tl("bk_link_h"))}</h3><p class="lsub">${esc(tl("bk_link_p"))}</p>
         <div class="urlbox"><span>${esc(joinShort(c.bookingUrl))}</span><button type="button" class="btn" data-ba="copy" data-v="${esc(c.bookingUrl)}">${icon("copy")}${esc(tl("l_copy"))}</button></div>
-        <div class="btns"><a class="btn wa" target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent(waText)}">${icon("wa")}${esc(tl("bk_wa"))}</a><a class="btn" target="_blank" rel="noopener" href="${esc(c.bookingUrl)}">${icon("open")}${esc(tl("bk_open"))}</a></div></div>
+        <div class="btns"><a class="btn wa" target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent(waText)}">${icon("wa")}${esc(tl("bk_wa"))}</a><a class="btn" target="_blank" rel="noopener" href="${esc(c.bookingUrl)}">${icon("open")}${esc(tl("bk_open"))}</a></div>
+        <div class="qrbox"><div class="qr" role="img" aria-label="QR">${BK.qr||""}</div><div><a class="btn" href="${esc(API)}/bookings/qr.png" download="qr-reservas.png">${icon("down")}${esc(tl("l_qrdl"))}</a></div></div></div>
       <div class="lgrid"><div><b>${k.today}</b><span>${esc(tl("bk_s_today"))}</span></div><div><b>${k.pending}</b><span>${esc(tl("bk_s_pend"))}</span></div><div><b>${k.upcoming}</b><span>${esc(tl("bk_s_up"))}</span></div></div>
       <div class="lbtns"><button type="button" class="btn blue" data-ba="add">${icon("plus")}${esc(tl("bk_add"))}</button><button type="button" class="btn" data-ba="setup">${icon("grid")}${esc(tl("bk_setup"))}</button></div>
       <div class="lpick"><div class="seg" role="group">${[["upcoming","bk_f_up",0],["pending","bk_f_pend",k.pending],["past","bk_f_past",0]].map(([f,l,n])=>`<button type="button" data-ba="filter" data-v="${f}" aria-pressed="${BK.filter===f}">${esc(tl(l))}${n?" ("+n+")":""}</button>`).join("")}</div></div>
