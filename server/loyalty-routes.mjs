@@ -165,7 +165,7 @@ async function publicApi(req, res, seg, ctx) {
   }
   return false;
 }
-const txnView = ({ id, at, type, stamps, points, amountEur, note, by, rewardId }) => ({ id, at, type, stamps, points, amountEur, note, by, rewardId });
+const txnView = ({ id, at, type, stamps, points, amountEur, note, by, rewardId, customerId }) => ({ id, at, customerId, type, stamps, points, amountEur, note, by, rewardId });
 
 // ---------- management (owner + portal) ----------
 async function manage(req, res, url, rest, scope, ctx) {
@@ -197,6 +197,11 @@ async function manage(req, res, url, rest, scope, ctx) {
     };
     if (owner) body.clients = db.clients.map((c) => ({ id: c.id, name: c.name }));
     return out(200, body);
+  }
+  // POST /upload {image: dataUrl} -> {file}: a logo, banner or background for a card design
+  if (rest[0] === "upload" && rest.length === 1 && m === "POST") {
+    const b = await ctx.readBody(req, 9e6);
+    return out(200, { file: await ctx.saveUpload(b?.image) });
   }
   if (rest[0] !== "programs") return false;
 

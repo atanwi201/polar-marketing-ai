@@ -339,3 +339,116 @@ select.input { padding-right: var(--space-3); }
 
 /* A new business waiting for approval */
 .approval-banner { display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; border-color: var(--brand); background: var(--brand-soft); margin-bottom: var(--space-4, 16px); }
+
+/* Loyalty cards */
+.loy-skel-wrap { display: flex; flex-direction: column; gap: var(--space-3); }
+.loy-skel { border-radius: var(--radius-lg); background: linear-gradient(100deg, var(--surface-2) 30%, var(--line) 50%, var(--surface-2) 70%) 0 0 / 200% 100%; animation: loy-shimmer 1.4s linear infinite; min-height: 24px; }
+@keyframes loy-shimmer { to { background-position: -200% 0; } }
+@media (prefers-reduced-motion: reduce) { .loy-skel { animation: none; } }
+.loy-wallet { display: flex; flex-wrap: wrap; gap: var(--space-3); justify-content: space-between; align-items: center; padding: var(--space-4) var(--space-5); border-radius: var(--radius-md); background: var(--warn-soft); }
+.loy-wallet-ok { background: var(--good-soft); }
+.loy-env { font: 500 .8rem var(--f-mono); background: var(--surface); color: var(--ink); padding: 1px 7px; border-radius: 6px; margin: 2px 4px 2px 0; display: inline-block; }
+.loy-note { background: var(--surface-2); border-radius: var(--radius-md); padding: var(--space-3) var(--space-4); color: var(--ink-2); }
+.loy-note-bar { background: var(--warn-soft); color: var(--ink); border-radius: var(--radius-md); padding: var(--space-3) var(--space-4); font-size: .92rem; }
+.loy-err { color: var(--bad); font-weight: 600; font-size: .92rem; }
+.loy-progress { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); background: var(--brand-soft); border-radius: var(--radius-md); padding: var(--space-3) var(--space-4); }
+.loy-box { background: var(--surface-2); border-radius: var(--radius-md); padding: var(--space-4); display: flex; flex-direction: column; gap: var(--space-3); min-width: 0; }
+.loy-box .input { background: var(--surface); }
+.loy-box .input:focus { border-color: var(--brand); }
+.loy-fieldset { border: 0; margin: 0; padding: 0; min-width: 0; display: flex; flex-direction: column; gap: var(--space-2); }
+.loy-fieldset:disabled { opacity: .5; }
+.loy-types { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: var(--space-2); }
+.loy-type { height: 100%; }
+
+/* Programme cards */
+.loy-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(360px, 100%), 1fr)); gap: var(--space-4); }
+.loy-prog { all: unset; box-sizing: border-box; cursor: pointer; display: flex; gap: var(--space-4); padding: var(--space-4); border-radius: var(--radius-lg); background: var(--surface); box-shadow: var(--shadow-card); border: 2px solid transparent; min-width: 0; transition: border-color .15s, transform .1s; }
+.loy-prog:hover { border-color: var(--brand); }
+.loy-prog:active { transform: scale(.995); }
+.loy-prog:focus-visible { outline: 3px solid var(--brand); outline-offset: 2px; }
+.loy-prog-info { display: flex; flex-direction: column; gap: 6px; min-width: 0; flex: 1; }
+.loy-prog-name { font-family: var(--f-display); font-size: 1.15rem; overflow-wrap: anywhere; }
+.loy-mini-stats { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: .82rem; color: var(--ink-2); margin-top: auto; padding-top: var(--space-2); }
+.loy-mini-stats b { font-family: var(--f-mono); color: var(--ink); font-weight: 500; }
+.loy-pass-mini { width: 132px; height: 216px; flex: none; overflow: hidden; border-radius: 12px; position: relative; }
+.loy-pass-mini-in { width: 300px; transform: scale(.44); transform-origin: top left; pointer-events: none; }
+@media (max-width: 420px) { .loy-prog { gap: var(--space-3); padding: var(--space-3); } .loy-pass-mini { width: 108px; height: 178px; } .loy-pass-mini-in { transform: scale(.36); } }
+
+/* The card itself (a Wallet-style pass) */
+.loy-pass-wrap { width: 100%; max-width: 330px; margin: 0 auto; }
+.loy-pass { --p-bg: #1d3557; --p-fg: #fff; --p-lb: #cfd8e6; --p-ac: #f4a261; position: relative; overflow: hidden; background: var(--p-bg); color: var(--p-fg); border-radius: 18px;
+  box-shadow: 0 14px 34px -14px rgba(0,0,0,.55), 0 0 0 1px rgba(0,0,0,.08); display: flex; flex-direction: column; min-height: 420px; line-height: 1.3; }
+.loy-pass > * { position: relative; z-index: 1; }
+.loy-pass-bgimg { position: absolute !important; inset: 0; z-index: 0 !important; background: color-mix(in srgb, var(--p-ac) 35%, var(--p-bg)) center/cover; }
+.loy-pass-scrim { position: absolute !important; inset: 0; z-index: 0 !important; background: linear-gradient(180deg, color-mix(in srgb, var(--p-bg) 55%, transparent), color-mix(in srgb, var(--p-bg) 82%, transparent)); }
+.loy-pass-head { display: flex; align-items: center; gap: 10px; padding: 16px 16px 12px; }
+.loy-pass-logo { width: 38px; height: 38px; border-radius: 10px; flex: none; display: grid; place-items: center; font-weight: 700; font-size: 1.1rem; background: color-mix(in srgb, var(--p-fg) 16%, transparent) center/contain no-repeat; color: var(--p-fg); }
+.loy-pass-title { font-weight: 700; font-size: 1.05rem; flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.loy-pass-bal { display: flex; flex-direction: column; align-items: flex-end; flex: none; }
+.loy-pass-bal small { font-size: .62rem; text-transform: uppercase; letter-spacing: .08em; color: var(--p-lb); font-weight: 600; }
+.loy-pass-bal b { font-size: 1.15rem; font-weight: 700; line-height: 1.1; }
+.loy-pass-strip { height: 112px; background: color-mix(in srgb, var(--p-ac) 40%, var(--p-bg)) center/cover; display: grid; place-items: center; }
+.loy-pass-strip-art { width: 100%; height: 100%; background: radial-gradient(circle at 20% 120%, color-mix(in srgb, var(--p-ac) 70%, transparent), transparent 55%), radial-gradient(circle at 90% -10%, color-mix(in srgb, var(--p-fg) 25%, transparent), transparent 50%); }
+.loy-pass-body { padding: 16px; display: flex; flex-direction: column; gap: 14px; flex: 1; }
+.loy-pass-tag { color: var(--p-lb); font-size: .85rem; }
+.loy-stamps { display: grid; gap: 8px; }
+.loy-stamp { aspect-ratio: 1; border-radius: 50%; display: grid; place-items: center; font-size: 1.2rem; border: 2px dashed color-mix(in srgb, var(--p-lb) 70%, transparent); color: var(--p-lb); background: color-mix(in srgb, var(--p-fg) 6%, transparent); }
+.loy-stamp.on { background: var(--p-ac); border: 2px solid var(--p-ac); color: var(--p-bg); }
+.loy-tierbar { display: flex; flex-direction: column; gap: 6px; }
+.loy-tierbar-top { display: flex; justify-content: space-between; font-size: .78rem; color: var(--p-lb); font-weight: 600; }
+.loy-tierbar-top span:first-child { color: var(--p-fg); }
+.loy-tierbar-track { height: 8px; border-radius: 99px; background: color-mix(in srgb, var(--p-fg) 18%, transparent); overflow: hidden; }
+.loy-tierbar-track span { display: block; height: 100%; background: var(--p-ac); border-radius: 99px; }
+.loy-pts-line { color: var(--p-lb); font-size: .85rem; }
+.loy-pts-line span { color: var(--p-ac); }
+.loy-pass-code { margin: 0 16px 16px; background: #fff; border-radius: 12px; padding: 10px; display: flex; flex-direction: column; align-items: center; gap: 4px; color: #222; }
+.loy-pass-qr { width: 84px; height: 84px; }
+.loy-pass-qr svg { width: 100%; height: 100%; display: block; }
+.loy-pass-code small { font: 500 .68rem var(--f-mono); color: #666; letter-spacing: .06em; }
+.loy-lay-minimal .loy-pass-head { padding-bottom: 8px; }
+
+/* Programme page */
+.loy-status .loy-st-live[aria-pressed="true"] { background: var(--good); color: var(--surface); }
+.loy-status .loy-st-paused[aria-pressed="true"] { background: var(--warn); color: var(--surface); }
+.loy-design { display: grid; grid-template-columns: minmax(0, 340px) minmax(0, 1fr); gap: var(--space-5); align-items: start; }
+.loy-design-preview { position: sticky; top: 76px; display: flex; flex-direction: column; gap: var(--space-2); }
+@media (max-width: 860px) { .loy-design { grid-template-columns: minmax(0, 1fr); } .loy-design-preview { position: static; } }
+.loy-color { display: flex; gap: var(--space-2); align-items: center; }
+.loy-color input[type="color"] { width: 48px; height: var(--tap); padding: 3px; border: 2px solid var(--line); border-radius: var(--radius-md); background: var(--surface); flex: none; cursor: pointer; }
+.loy-layouts { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: var(--space-2); }
+.loy-layouts .plan-opt, .loy-types .plan-opt { background: var(--surface); }
+.loy-layouts .plan-opt.on, .loy-types .plan-opt.on { background: var(--brand-soft); }
+.loy-imgs { display: flex; flex-direction: column; gap: var(--space-3); }
+.loy-imgfield { display: flex; gap: var(--space-3); align-items: flex-start; }
+.loy-imgprev { width: 84px; height: 64px; border-radius: 10px; border: 1px dashed var(--line-strong); background: var(--surface) center/contain no-repeat; display: grid; place-items: center; font-size: .75rem; color: var(--ink-2); flex: none; }
+.loy-savebar { position: sticky; bottom: 0; background: var(--surface); padding: var(--space-3) 0; z-index: 2; }
+.loy-tpls { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: var(--space-3); }
+.loy-tpl { display: flex; gap: var(--space-3); align-items: center; background: var(--surface); border-radius: var(--radius-md); padding: var(--space-3); }
+.loy-tpl .loy-pass-mini { width: 66px; height: 95px; }
+.loy-tpl .loy-pass-mini-in { transform: scale(.22); }
+.loy-tier-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 2fr) auto; gap: var(--space-3); align-items: end; }
+@media (max-width: 720px) { .loy-tier-row { grid-template-columns: 1fr 1fr; } .loy-tier-row > :nth-child(3) { grid-column: 1 / -1; } }
+.loy-reward { background: var(--surface-2); border-radius: var(--radius-md); padding: var(--space-4); display: flex; flex-direction: column; gap: var(--space-3); }
+.loy-reward .input { background: var(--surface); }
+.loy-reward.off { opacity: .7; }
+.loy-search { max-width: 420px; }
+.loy-share { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(320px, 100%), 1fr)); gap: var(--space-4); }
+.loy-link { background: var(--surface); border-radius: var(--radius-md); padding: var(--space-3) var(--space-4); overflow-wrap: anywhere; }
+.loy-qrbox { flex-direction: row; align-items: center; flex-wrap: wrap; }
+.loy-qr { width: 150px; height: 150px; background: #fff; border-radius: 12px; padding: 8px; flex: none; display: grid; place-items: center; }
+.loy-qr-err { color: var(--bad); text-align: center; }
+.loy-steps { margin: 0; padding-left: 1.2em; display: flex; flex-direction: column; gap: var(--space-2); }
+
+/* Customer drawer */
+.loy-drawer-back { position: fixed; inset: 0; background: rgba(14,19,22,.55); z-index: 50; display: flex; justify-content: flex-end; }
+.loy-drawer { background: var(--surface); width: min(520px, 100%); height: 100%; padding: var(--space-5); display: flex; flex-direction: column; gap: var(--space-4); box-shadow: var(--shadow-pop); animation: loy-slide .2s ease-out; }
+@keyframes loy-slide { from { transform: translateX(30px); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .loy-drawer { animation: none; } }
+.loy-drawer-body { overflow-y: auto; display: flex; flex-direction: column; gap: var(--space-4); padding-bottom: var(--space-4); }
+.loy-kv { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: var(--space-3); }
+.loy-kv span { display: flex; flex-direction: column; font-weight: 600; overflow-wrap: anywhere; }
+.loy-kv small { font-size: .72rem; text-transform: uppercase; letter-spacing: .06em; color: var(--ink-2); font-weight: 600; }
+.loy-hist { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.loy-hist li { display: flex; flex-direction: column; gap: 2px; padding: var(--space-3) 0; border-top: 1px solid var(--line); }
+.loy-hist li:first-child { border-top: 0; }
+.loy-progress-foot { flex: 1 1 100%; }

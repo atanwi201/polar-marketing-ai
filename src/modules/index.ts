@@ -9,6 +9,7 @@ import Settings from "../screens/settings";
 import Studio from "../screens/studio";
 import Plans from "../screens/plans";
 import Business from "../screens/business";
+import Loyalty from "../screens/loyalty";
 import * as reviews from "./reviews";
 import * as visibility from "./visibility";
 import * as receptionist from "./receptionist";
@@ -29,6 +30,7 @@ export const ROUTES: Route[] = [
   { id: "dashboard", label: "Today", Screen: Dashboard, group: "business" },
   { id: "clients", label: "Businesses", Screen: Clients, group: "business" },
   { id: "business", label: "Business", Screen: Business, group: "business", hidden: true, navAs: "clients" },
+  { id: "loyalty", label: "Loyalty cards", Screen: Loyalty, group: "business" },
   { id: "studio", label: "All posts & videos", Screen: Studio, group: "business" },
   { id: "plans", label: "Plans & prices", Screen: Plans, group: "business" },
   { id: "billing", label: "Billing", Screen: Billing, group: "business" },

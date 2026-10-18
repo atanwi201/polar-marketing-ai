@@ -214,7 +214,7 @@ const portalView = (c) => ({
 // Loyalty cards: every card change pushes a refresh to the customer's Apple Wallet pass.
 loyalty.setOnCardChanged((c) => pushUpdate(c).catch((e) => console.warn("[wallet push]", e.message)));
 const loyaltyCtx = {
-  send, readBody, isAdmin: (req) => auth.isAdmin(req), clientByToken: (t) => db.clients.find((x) => x.token === t), baseUrl: (req) => base(req), clientIp,
+  send, readBody, saveUpload, isAdmin: (req) => auth.isAdmin(req), clientByToken: (t) => db.clients.find((x) => x.token === t), baseUrl: (req) => base(req), clientIp,
   designProgram: async (program, opts) => {
     if (!loyaltyDesign?.designProgram) return {};
     return loyaltyDesign.designProgram(program, db.clients.find((c) => c.id === program.clientId) ?? {}, opts);

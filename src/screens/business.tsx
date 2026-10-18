@@ -11,12 +11,13 @@ import { syncFromStudio, pushPlanToStudio } from "../core/studio-sync";
 import { call, apiOrigin, mediaUrl, siteUrl, downscale, type StudioData, type SClient, type Message, type Act, type Profile, type Service } from "./studio-api";
 import { FeedTab, AccountsEditor, SiteQrCard } from "./studio";
 import { VideosTab } from "./studio-videos";
+import { LoyaltyPanel } from "./loyalty";
 import { PlanPicker, ConsentEditor, STAGE_TONE } from "./clients";
 import { invTotal } from "./billing";
 import type { Client, Invoice, Lang } from "../core/types";
 
-type Tab = "overview" | "chat" | "posts" | "videos" | "website" | "plan" | "accounts" | "details";
-const TABS: Tab[] = ["overview", "chat", "posts", "videos", "website", "plan", "accounts", "details"];
+type Tab = "overview" | "chat" | "posts" | "videos" | "website" | "loyalty" | "plan" | "accounts" | "details";
+const TABS: Tab[] = ["overview", "chat", "posts", "videos", "website", "loyalty", "plan", "accounts", "details"];
 const PLATFORMS = ["instagram", "facebook", "x", "youtube", "google", "tiktok", "linkedin"];
 
 export const initials = (n: string) => {
@@ -94,6 +95,7 @@ export default function Business() {
           { id: "posts", label: "Posts", count: posts.length },
           { id: "videos", label: "Videos", count: videos.length },
           { id: "website", label: "Website" },
+          { id: "loyalty", label: "Loyalty" },
           { id: "plan", label: "Plan & billing" },
           { id: "accounts", label: "Social accounts" },
           { id: "details", label: "Details" },
@@ -104,6 +106,7 @@ export default function Business() {
           {tab === "posts" && needsStudio(<><AskPost sc={sc!} act={act} /><FeedTab data={data!} nameOf={() => client.name} filter={sc?.id ?? ""} setFilter={() => {}} act={act} fixed /></>)}
           {tab === "videos" && needsStudio(<VideosTab data={data!} nameOf={() => client.name} act={act} clientId={sc?.id} />)}
           {tab === "website" && needsStudio(<Website sc={sc!} act={act} />)}
+          {tab === "loyalty" && needsStudio(<LoyaltyPanel clientId={sc!.id} clientName={client.name} />)}
           {tab === "plan" && <PlanTab client={client} invoices={invoices.filter((i) => i.clientId === client.id)} />}
           {tab === "accounts" && needsStudio(<Accounts sc={sc!} data={data!} act={act} />)}
           {tab === "details" && <Details client={client} sc={sc} act={act} />}
