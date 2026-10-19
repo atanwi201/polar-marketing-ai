@@ -33,14 +33,16 @@ Keys live in `.env` (see `.env.example`); `npm run push-env` copies just the AI 
 cp .env.example .env    # add OPENROUTER_API_KEY (and X / YouTube app keys to publish there)
 brew install ffmpeg     # for video ads (Linux: apt install ffmpeg)
 npm install
-npm run dev             # open http://localhost:5173: landing page at /, your dashboard at /admin/ (API on :8787)
+npm run dev             # open http://localhost:5173: landing page at /, sign-in at /login, your dashboard at /admin/ (API on :8787)
 npm test                # unit + end-to-end tests (fake OpenRouter/Pollinations)
 npm start               # production: build, then serve everything on :8787
 ```
 
 Data lives in `data/` (git-ignored). Generated sites live in `sites/`.
 
-**Signing in** (`server/landing.html`, `server/auth.mjs`): the home page has two doors. *Admin*: the first visit creates your password (or set `ADMIN_PASSWORD` in `.env`); it's stored as a scrypt hash and keeps you signed in for 30 days with an HttpOnly cookie. Your dashboard (`/admin/`), its API and the AI proxy need it; change it in Settings. *Client*: each business has a 6-character code like `K7P-M3Q` (shown in Business › Overview and in their dashboard); typing it opens their dashboard. Wrong passwords and codes are limited per IP. "New dashboard link and code" replaces both.
+**Public landing page** (`server/home.html`, at `/`): the Polar Marketing site for new customers, inspired by noomoagency.com. Giant headlines with real example posts, the Reel and a website mockup floating over them on ice floes, Spanish/English, light/dark. The examples are made by the app's own renderer from public-domain photos (`npm run home-assets` rebuilds them; credits in `brand/home/CREDITS.md`). Prices come from *Plans & prices*: the dashboard sends them to the server (`server/offer.mjs`).
+
+**Signing in** (`server/landing.html`, `server/auth.mjs`, at `/login`): two doors. *Admin*: the first visit creates your password (or set `ADMIN_PASSWORD` in `.env`); it's stored as a scrypt hash and keeps you signed in for 30 days with an HttpOnly cookie. Your dashboard (`/admin/`), its API and the AI proxy need it; change it in Settings. *Client*: each business has a 6-character code like `K7P-M3Q` (shown in Business › Overview and in their dashboard); typing it opens their dashboard. Wrong passwords and codes are limited per IP. "New dashboard link and code" replaces both.
 
 **Website designs**: each site gets an art direction modelled on the styles curated on [SiteInspire](https://www.siteinspire.com/) (editorial, Swiss grid, photo-led, bold colour blocks, warm artisanal, dark luxe, bento grid, fresh and organic; `server/directions.mjs`), picked to suit the style the business chose. Rebuilds keep it; "New AI design" picks another.
 

@@ -5,6 +5,7 @@ import { limiter } from "./auth.mjs";
 import { qrSvg, qrPng } from "./qr.mjs";
 import * as L from "./loyalty.mjs";
 import { bookingFor } from "./bookings-links.mjs";
+import { menuFor } from "./menu-links.mjs";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 const JSQR = () => readFileSync(join(import.meta.dirname, "vendor", "jsqr.cjs"));
@@ -103,8 +104,8 @@ async function cardRoutes(req, res, seg, ctx) {
   const wallet = await walletInfo(ctx);
   const view = () => {
     const v = L.cardView(customer, program, { baseUrl: base, walletConfigured: wallet.configured, googleConfigured: !!wallet.google?.configured });
-    const bk = bookingFor(db.clients.find((c) => c.id === program.clientId), { src: "loyalty", base: "" });
-    return bk ? { ...v, booking: bk } : v;
+    const biz = db.clients.find((c) => c.id === program.clientId), bk = bookingFor(biz, { src: "loyalty", base: "" }), mn = menuFor(biz, { src: "loyalty", base: "" });
+    return bk || mn ? { ...v, ...(bk ? { booking: bk } : {}), ...(mn ? { menu: mn } : {}) } : v;
   };
   const P = await pages();
   if (seg.length === 2) { const v = view(); await save(); html(res, 200, P.cardPage({ view: v, baseUrl: base })); return true; }

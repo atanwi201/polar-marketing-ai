@@ -166,7 +166,7 @@ function TokenCard({ onSaved }: { onSaved: () => void }) {
     <Card title="Sign in again">
       <div className="stack">
         <p className="muted">Your session has ended. Sign in with your admin password to keep going.</p>
-        <div className="row"><a className="btn btn-primary" href="/#admin" style={{ textDecoration: "none" }}>Sign in</a></div>
+        <div className="row"><a className="btn btn-primary" href="/login#admin" style={{ textDecoration: "none" }}>Sign in</a></div>
         <details>
           <summary className="small muted">Use an ADMIN_TOKEN instead</summary>
           <div className="stack" style={{ marginTop: 10 }}>

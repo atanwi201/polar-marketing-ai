@@ -182,7 +182,8 @@ textarea:focus{outline:none;box-shadow:0 0 0 2px var(--ink);background:var(--sur
 
 /* bottom navigation */
 .nav{position:fixed;left:0;right:0;bottom:0;z-index:5;display:flex;justify-content:center;padding:8px 12px calc(8px + env(safe-area-inset-bottom));background:var(--nav);border-top:1px solid var(--line)}
-.nav div{display:grid;grid-template-columns:repeat(6,1fr);width:100%;max-width:560px}
+.nav div{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);width:100%;max-width:560px}
+.nav button[hidden]{display:none}
 .nav button{border:0;background:none;display:flex;flex-direction:column;align-items:center;gap:3px;padding:4px 0;font-size:11.5px;font-weight:600;color:var(--faint);min-width:0}
 .nav button svg{width:48px;height:30px;padding:3px 12px;border-radius:999px;display:block;transition:background .15s}
 .nav button[aria-current=page]{color:var(--ink)}
@@ -415,6 +416,80 @@ input[type=color].inp{padding:4px;height:46px;cursor:pointer}
 .bk-x{flex:none;width:44px;height:44px;border:0;border-radius:50%;background:var(--fill);color:var(--muted);display:grid;place-items:center}
 .bk-x svg{width:18px;height:18px}
 .bk-rbtns{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 10px}
+/* expenses */
+.xscan{display:flex;gap:10px;align-items:center;justify-content:center;width:100%;min-height:60px;margin:0 0 10px;border:0;border-radius:999px;background:var(--accent);color:var(--accent-ink);font:700 18px var(--display)}
+.xscan svg{width:26px;height:26px}
+.xalt{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:0 0 16px}
+.xalt .btn{min-height:46px}
+.xmonth{display:flex;align-items:center;gap:8px;margin:0 0 10px}
+.xmonth select{flex:1;min-width:0}
+.xmonth .bk-x svg{width:20px;height:20px}
+.xchips{margin:0 0 14px;display:flex}
+.xchips .seg{max-width:100%;scrollbar-width:none}.xchips .seg::-webkit-scrollbar{display:none}
+.xchips .seg button{min-height:40px;padding:6px 14px}
+.xtotal{padding:18px}
+.xtotal .lbl{font-size:13px;font-weight:600;color:var(--muted)}
+.xtotal .big{font:800 36px/1.1 var(--display);letter-spacing:-.025em;margin:4px 0 2px;overflow-wrap:anywhere}
+.xtotal .cnt{color:var(--muted);font-size:14px}
+.xtotal h4{font:700 15px var(--display);margin:18px 0 8px}
+.xbar{margin:0 0 10px}
+.xbl{display:flex;justify-content:space-between;gap:10px;font-size:14px;margin:0 0 4px}
+.xbl span{min-width:0;overflow-wrap:anywhere}
+.xbl b{font-weight:700;flex:none}
+.xtrack{height:8px;border-radius:4px;background:var(--fill-2);overflow:hidden}
+.xtrack i{display:block;height:100%;background:var(--accent);border-radius:4px}
+.xcard{display:block;width:100%;text-align:left;border:0;color:var(--ink);padding:14px 16px;min-height:44px}
+.xcard .xtop{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+.xcard .xs{font:700 16px/1.25 var(--display);min-width:0;overflow-wrap:anywhere}
+.xcard .xa{font:800 17px var(--display);flex:none}
+.xcard .xm{color:var(--muted);font-size:13.5px;margin-top:3px;overflow-wrap:anywhere}
+.xcat{display:inline-block;background:var(--accent-soft);color:var(--accent-text);border-radius:999px;padding:2px 10px;font-size:12.5px;font-weight:600;margin-top:8px}
+.xexp{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:4px 0 14px}
+.xexp .btn{min-height:46px}
+.xit{display:grid;grid-template-columns:minmax(0,1fr) 56px 84px 44px;gap:6px;align-items:center;margin:0 0 8px}
+.xit .inp{min-width:0;padding:0 10px}
+.xit.xh{font-size:12px;font-weight:600;color:var(--muted);margin:0 0 4px}
+.xit.xh span:last-child{width:44px}
+.inp.need{box-shadow:0 0 0 2px var(--bad)}
+.fld>small.need{color:var(--bad);font-weight:600}
+.xloc{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:center;margin:0 0 8px}
+.xscanning{text-align:center;padding:30px 18px}
+.xscanning .spin{width:30px;height:30px;border-width:3px}
+.xscanning h3{font:700 18px var(--display);margin:14px 0 4px}
+/* menu */
+.mnshare{display:grid;grid-template-columns:minmax(0,1fr) 132px;gap:14px;align-items:start}
+.mnshare img{width:132px;height:132px;border-radius:var(--r-md);background:#fff;display:block}
+.mnurl{font-size:14px;font-weight:600;overflow-wrap:anywhere;margin:6px 0 10px}
+.mnrow{display:flex;flex-wrap:wrap;gap:8px}
+.mnrow .btn{min-height:44px}
+.mnalt{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:0 0 14px}
+.mnalt .btn{min-height:46px}
+.mnlang{margin:0 0 14px;display:flex}
+.mnlang .seg{max-width:100%}
+.mncat{padding:14px 16px}
+.mnch{display:grid;grid-template-columns:minmax(0,1fr) auto auto auto;gap:6px;align-items:center;margin:0 0 10px}
+.mnch .inp{font-weight:700;min-width:0}
+.mnch .bk-x{width:40px;height:40px}
+.mnit{display:flex;align-items:center;gap:10px;width:100%;text-align:left;border:0;background:var(--fill);color:var(--ink);border-radius:var(--r-md);padding:10px 12px;min-height:56px;margin:0 0 8px}
+.mnit img{width:40px;height:40px;border-radius:10px;object-fit:cover;flex:none}
+.mnit .mt{min-width:0;flex:1}
+.mnit .mn{font-weight:600;font-size:15px;overflow-wrap:anywhere}
+.mnit .mn.miss{color:var(--muted);font-style:italic}
+.mnit .ma{font-size:13px;color:var(--muted);margin-top:2px}
+.mnit .mp{font:700 15px var(--display);flex:none}
+.mnit.off{opacity:.6}
+.mnoff{display:inline-block;font-size:11.5px;font-weight:700;color:var(--muted);background:var(--fill-2);border-radius:999px;padding:1px 8px;margin-left:6px}
+.mnsave{position:sticky;bottom:calc(84px + env(safe-area-inset-bottom));z-index:5;margin-top:4px}
+.mnsave .primary{box-shadow:var(--shadow)}
+.mnal{display:flex;flex-wrap:wrap;gap:8px}
+.mnal .chipbtn{min-height:40px;padding:0 12px;gap:6px}
+.mnal .chipbtn[aria-pressed=true]{background:var(--accent);color:var(--accent-ink)}
+.mnph{display:flex;align-items:center;gap:12px;margin:0 0 12px}
+.mnph img{width:72px;height:72px;border-radius:14px;object-fit:cover;background:var(--fill)}
+.mnd{display:grid;grid-template-columns:minmax(0,1fr) 84px 44px;gap:6px;align-items:center;margin:0 0 8px}
+.mnd .inp{min-width:0;padding:0 10px}
+.mnd .bk-x{width:40px;height:40px}
+@media (max-width:380px){.mnshare{grid-template-columns:1fr}}
 /* invalid link / loading */
 .state{padding:56px 12px;text-align:center}
 .state h1{font:800 28px/1.15 var(--display);letter-spacing:-.02em;margin:14px 0 8px}
@@ -427,6 +502,9 @@ input[type=color].inp{padding:4px;height:46px;cursor:pointer}
 </head>
 <body class="cr-root">
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-receipt" viewBox="0 0 24 24"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2zM9 8h6M9 12h6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-chev-l" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-chev-r" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
   <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></symbol>
   <symbol id="i-video" viewBox="0 0 24 24"><rect x="3" y="6" width="13" height="12" rx="3" fill="none" stroke="currentColor" stroke-width="2"/><path d="M16 10.5l5-3v9l-5-3z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></symbol>
   <symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/><path d="M3 12h18M12 3c2.6 2.6 3.8 5.6 3.8 9s-1.2 6.4-3.8 9c-2.6-2.6-3.8-5.6-3.8-9S9.4 5.6 12 3z" fill="none" stroke="currentColor" stroke-width="2"/></symbol>
@@ -529,6 +607,22 @@ input[type=color].inp{padding:4px;height:46px;cursor:pointer}
       <h1 class="page-h" id="bkH"></h1>
       <div id="bk" aria-live="polite"></div>
     </section>
+
+    <!-- Expenses -->
+    <section data-view="expenses" hidden>
+      <h1 class="page-h" id="xH"></h1>
+      <input type="file" id="xCam" accept="image/*" capture="environment" class="vh" tabindex="-1" aria-hidden="true">
+      <input type="file" id="xUp" accept="image/*" class="vh" tabindex="-1" aria-hidden="true">
+      <div id="xp" aria-live="polite"></div>
+    </section>
+
+    <!-- Menu -->
+    <section data-view="menu" hidden>
+      <h1 class="page-h" id="mnH"></h1>
+      <input type="file" id="mnImp" accept="image/*" class="vh" tabindex="-1" aria-hidden="true">
+      <input type="file" id="mnPh" accept="image/*" class="vh" tabindex="-1" aria-hidden="true">
+      <div id="mn" aria-live="polite"></div>
+    </section>
   </main>
 </div>
 
@@ -555,6 +649,8 @@ input[type=color].inp{padding:4px;height:46px;cursor:pointer}
     <button type="button" data-view-go="web"><svg aria-hidden="true"><use href="#i-globe"/></svg><span id="nWeb"></span></button>
     <button type="button" data-view-go="loyalty"><svg aria-hidden="true"><use href="#i-card"/></svg><span id="nLoy"></span></button>
     <button type="button" data-view-go="bookings"><span class="dot"><svg aria-hidden="true"><use href="#i-cal"/></svg><b id="nBkBadge" hidden></b></span><span id="nBk"></span></button>
+    <button type="button" data-view-go="expenses" id="navX" hidden><svg aria-hidden="true"><use href="#i-receipt"/></svg><span id="nX"></span></button>
+    <button type="button" data-view-go="menu" id="navM" hidden><svg aria-hidden="true"><use href="#i-utensils"/></svg><span id="nM"></span></button>
   </div>
 </nav>
 
@@ -582,6 +678,18 @@ input[type=color].inp{padding:4px;height:46px;cursor:pointer}
   <div class="lshead"><b id="bsT" tabindex="-1" style="outline:none"></b><button type="button" class="pfclose" id="bsX"></button></div>
   <div class="lsbody" id="bsBody"></div>
   <div class="lsfoot"><div class="err" id="bsErr" role="alert" hidden></div><button type="button" class="primary" id="bsGo"></button></div>
+</div>
+<div class="back" id="xback" hidden></div>
+<div class="lsheet" id="xsheet" role="dialog" aria-modal="true" aria-labelledby="xsT" hidden>
+  <div class="lshead"><b id="xsT" tabindex="-1" style="outline:none"></b><button type="button" class="pfclose" id="xsX"></button></div>
+  <div class="lsbody" id="xsBody"></div>
+  <div class="lsfoot"><div class="err" id="xsErr" role="alert" hidden></div><button type="button" class="primary" id="xsGo"></button></div>
+</div>
+<div class="back" id="mback" hidden></div>
+<div class="lsheet" id="msheet" role="dialog" aria-modal="true" aria-labelledby="msT" hidden>
+  <div class="lshead"><b id="msT" tabindex="-1" style="outline:none"></b><button type="button" class="pfclose" id="msX"></button></div>
+  <div class="lsbody" id="msBody"></div>
+  <div class="lsfoot"><div class="err" id="msErr" role="alert" hidden></div><button type="button" class="primary" id="msGo"></button></div>
 </div>
 <div class="toast" id="toast" role="status"></div>
 
@@ -703,7 +811,7 @@ const API="/api/portal/"+encodeURIComponent(token);
 let data=null, timer=null;
 const tabSel={};          // item id -> caption language
 const pending=new Set();  // post ids with an "again" request in flight
-const VIEWS=["home","posts","videos","web","loyalty","bookings"];
+const VIEWS=["home","posts","videos","web","loyalty","bookings","expenses","menu"];
 // Views live in the hash as "#/posts" (not "#posts", which would jump to the element with that id).
 const hashView=()=>location.hash.replace(/^#\/?/,"");
 let view=VIEWS.includes(hashView())?hashView():"home";
@@ -754,6 +862,8 @@ function showView(v,scrollTo){
   if(scrollTo){ const el=document.querySelector(`[data-view="${v}"] [data-id="${CSS.escape(scrollTo)}"]`); if(el){ el.scrollIntoView({block:"start"}); window.scrollBy(0,-12); return; } }
   if(v==="loyalty"&&typeof loadLoyalty==="function") loadLoyalty();
   if(v==="bookings"&&typeof loadBookings==="function") loadBookings(BK.loaded&&Date.now()-BK.at>20000,BK.loaded);
+  if(v==="expenses"&&typeof loadExpenses==="function") loadExpenses(XP.loaded&&Date.now()-XP.at>20000,XP.loaded);
+  if(v==="menu"&&typeof loadMenu==="function") loadMenu(MN.loaded&&Date.now()-MN.at>20000,MN.loaded);
   window.scrollTo(0,0);
 }
 document.addEventListener("click",e=>{
@@ -944,11 +1054,11 @@ $("#pfSave").addEventListener("click",async()=>{
   catch(err){ $("#pfErr").textContent=err instanceof TypeError?t("net"):err.message; $("#pfErr").hidden=false; }
   b.disabled=false; b.textContent=t("save");
 });
-// The short code they type on the home page to come back to this dashboard.
+// The short code they type on the sign-in page (/login) to come back to this dashboard.
 let welcome=new URLSearchParams(location.search).has("welcome");
 function renderCode(){
   const code=data.client&&data.client.code;
-  const body=(title)=>`<div><small class="muted" style="font-weight:600">${esc(title)}</small><div class="code">${esc(code)}</div><p>${esc(t("codeP").replace("{site}",location.host))}</p></div>`;
+  const body=(title)=>`<div><small class="muted" style="font-weight:600">${esc(title)}</small><div class="code">${esc(code)}</div><p>${esc(t("codeP").replace("{site}",location.host+"/login"))}</p></div>`;
   const cc=$("#codeCard"); cc.hidden=!code;
   if(code){ const h=lang+code; if(cc.dataset.sig!==h){ cc.innerHTML=body(t("codeT"))+`<button type="button" class="btn" data-copy-code>${icon("copy")}${esc(t("sh_copy"))}</button>`; cc.dataset.sig=h; } }
   const w=$("#welcome"); w.hidden=!(code&&welcome);
@@ -978,6 +1088,8 @@ async function load(){
     $("#bad").hidden=true; $("#loading").hidden=true; $("#app").hidden=false; $("#nav").hidden=false;
     render(false);
     if(first||(BK.loaded&&Date.now()-BK.at>60000)) loadBookings(true,true); // keeps the nav badge for pending bookings fresh
+    if(first||(XP.loaded&&Date.now()-XP.at>60000)) loadExpenses(true,true); // shows or hides the Expenses tab
+    if(first||(MN.loaded&&Date.now()-MN.at>60000)) loadMenu(true,true); // shows or hides the Menu tab
     if(first){ showView(view); if(view==="home") requestAnimationFrame(()=>window.scrollTo(0,document.documentElement.scrollHeight)); }
   }catch(_){ /* keep last data; retry */ }
   timer=setTimeout(load,busyNow()?4000:30000);
@@ -1461,7 +1573,7 @@ function renderLoyalty(){
   el.innerHTML=h; el.dataset.sig=sig;
   if(had){ const n=el.querySelector("#lcq"); n.focus(); n.setSelectionRange(n.value.length,n.value.length); }
 }
-function langChanged(){ $("#loy").dataset.sig=""; staticLoy(); renderLoyalty(); if(LS.sheet) drawSheet(); bkLang(); }
+function langChanged(){ $("#loy").dataset.sig=""; staticLoy(); renderLoyalty(); if(LS.sheet) drawSheet(); bkLang(); xpLang(); if(typeof mnLang==="function") mnLang(); }
 function staticLoy(){ const a=$("#loyH"),b=$("#nLoy"); if(a) a.textContent=tl("l_h"); if(b) b.textContent=tl("nav_loy"); $("#lsX").textContent=tl("l_close"); }
 
 // ----- sheets (create, design, rules, customer) -----
@@ -2008,6 +2120,559 @@ document.addEventListener("click",async e=>{
   if(a==="delroom"){ D.room.roomTypes.splice(+b.dataset.i,1); return redraw(); }
 });
 staticBk();
+
+// ---------- expenses ----------
+Object.assign(T.es,{
+  nav_x:"Gastos", x_h:"Gastos", x_loading:"Cargando tus gastos…", x_err:"No hemos podido cargar tus gastos.",
+  x_scan:"Escanear ticket", x_upload:"Subir foto", x_hand:"Añadir a mano", x_scanning:"Leyendo el ticket…", x_scanning_p:"Esto tarda unos segundos. No cierres la página.",
+  x_scan_fail:"No hemos podido leer el ticket", x_scan_again:"Probar con otra foto", x_img_err:"No hemos podido abrir esa foto. Prueba con otra.",
+  x_month:"Mes", x_prev:"Mes anterior", x_next:"Mes siguiente", x_locfilter:"Filtrar por local", x_all:"Todos",
+  x_total:"Total del mes", x_n1:"1 gasto", x_n:"{n} gastos", x_bycat:"Por categoría", x_byloc:"Por local",
+  x_none:"No hay gastos este mes.", x_none_p:"Escanea un ticket con la cámara o añade un gasto a mano.",
+  x_locs:"Locales y moneda", x_locs_t:"Locales y moneda", x_loc_name:"Nombre del local", x_loc_add:"Añadir local", x_loc_rm:"Quitar local", x_currency:"Moneda", x_locs_saved:"Locales guardados",
+  x_e_loc_name:"Escribe el nombre de al menos un local.",
+  x_export:"Descargar este mes", x_ods:"Hoja (.ods)", x_csv:"CSV (.csv)",
+  x_new_t:"Nuevo gasto", x_edit_t:"Editar gasto", x_review_t:"Revisa el ticket", x_review_p:"Hemos leído el ticket. Revisa todo antes de guardar: puedes corregir cualquier dato.",
+  x_f_store:"Comercio", x_f_date:"Fecha", x_f_loc:"Local", x_f_cat:"Categoría", x_f_items:"Artículos", x_f_name:"Artículo", x_f_qty:"Cant.", x_f_price:"Precio", x_f_add:"Añadir artículo", x_f_rm:"Quitar artículo",
+  x_f_tax:"Impuestos (IVA)", x_f_total:"Total", x_f_notes:"Notas (opcional)", x_choose:"Elige…", x_need:"Obligatorio", x_hint_loc:"El ticket indica: {v}",
+  x_e_date:"Elige la fecha del gasto.", x_e_loc:"Elige a qué local pertenece.", x_e_total:"Escribe el importe total.",
+  x_save:"Guardar gasto", x_saved:"Gasto guardado", x_del:"Eliminar este gasto", x_del_c:"¿Eliminar este gasto? No se puede deshacer.", x_deleted:"Gasto eliminado", x_edit:"Editar",
+  x_cat_food:"Comida y bebida", x_cat_supplies:"Suministros", x_cat_utilities:"Luz, agua y gas", x_cat_rent:"Alquiler", x_cat_transport:"Transporte", x_cat_marketing:"Marketing", x_cat_equipment:"Equipamiento", x_cat_services:"Servicios", x_cat_other:"Otros"
+});
+Object.assign(T.en,{
+  nav_x:"Expenses", x_h:"Expenses", x_loading:"Loading your expenses…", x_err:"We could not load your expenses.",
+  x_scan:"Scan receipt", x_upload:"Upload photo", x_hand:"Add by hand", x_scanning:"Reading your receipt…", x_scanning_p:"This takes a few seconds. Please keep this page open.",
+  x_scan_fail:"We could not read the receipt", x_scan_again:"Try another photo", x_img_err:"We could not open that photo. Try another one.",
+  x_month:"Month", x_prev:"Previous month", x_next:"Next month", x_locfilter:"Filter by location", x_all:"All",
+  x_total:"Total for the month", x_n1:"1 expense", x_n:"{n} expenses", x_bycat:"By category", x_byloc:"By location",
+  x_none:"No expenses this month.", x_none_p:"Scan a receipt with your camera or add an expense by hand.",
+  x_locs:"Locations and currency", x_locs_t:"Locations and currency", x_loc_name:"Location name", x_loc_add:"Add location", x_loc_rm:"Remove location", x_currency:"Currency", x_locs_saved:"Locations saved",
+  x_e_loc_name:"Enter the name of at least one location.",
+  x_export:"Download this month", x_ods:"Sheet (.ods)", x_csv:"CSV (.csv)",
+  x_new_t:"New expense", x_edit_t:"Edit expense", x_review_t:"Check the receipt", x_review_p:"We read the receipt. Check everything before saving: you can correct any detail.",
+  x_f_store:"Store", x_f_date:"Date", x_f_loc:"Location", x_f_cat:"Category", x_f_items:"Items", x_f_name:"Item", x_f_qty:"Qty", x_f_price:"Price", x_f_add:"Add item", x_f_rm:"Remove item",
+  x_f_tax:"Tax (VAT)", x_f_total:"Total", x_f_notes:"Notes (optional)", x_choose:"Choose…", x_need:"Required", x_hint_loc:"The receipt says: {v}",
+  x_e_date:"Choose the date of the expense.", x_e_loc:"Choose which location it belongs to.", x_e_total:"Enter the total amount.",
+  x_save:"Save expense", x_saved:"Expense saved", x_del:"Delete this expense", x_del_c:"Delete this expense? This cannot be undone.", x_deleted:"Expense deleted", x_edit:"Edit",
+  x_cat_food:"Food and drink", x_cat_supplies:"Supplies", x_cat_utilities:"Utilities", x_cat_rent:"Rent", x_cat_transport:"Transport", x_cat_marketing:"Marketing", x_cat_equipment:"Equipment", x_cat_services:"Services", x_cat_other:"Other"
+});
+const xpLocalMonth=()=>{ const d=new Date(); return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0"); };
+const xpLocalDay=()=>xpLocalMonth()+"-"+String(new Date().getDate()).padStart(2,"0");
+const XP={loaded:false,loading:false,err:"",enabled:null,config:null,items:[],summary:null,months:[],month:xpLocalMonth(),loc:"",sheet:null,at:0,scanning:false,scanErr:"",seq:0};
+async function xapi(method,path,body){
+  const r=await fetch(API+"/expenses"+path,{method,headers:{"x-lang":lang,...(body?{"content-type":"application/json"}:{})},body:body?JSON.stringify(body):undefined});
+  let d={}; try{d=await r.json();}catch(_){}
+  if(!r.ok){ const e=new Error(d.error||t("generic")); e.code=d.code||""; throw e; }
+  return d;
+}
+const xpMoney=c=>{ const cur=(XP.config&&XP.config.currency)||"EUR", v=(c||0)/100; try{ return new Intl.NumberFormat(T[lang].locale,{style:"currency",currency:cur}).format(v); }catch(_){ return v.toFixed(2)+" "+cur; } };
+const xpDate=d=>{ const x=new Date(d+"T12:00:00"); return isNaN(x)?String(d||""):x.toLocaleDateString(T[lang].locale,{weekday:"short",day:"numeric",month:"short"}); };
+const xpMonthName=m=>{ const [y,mo]=String(m).split("-").map(Number); const x=new Date(y,(mo||1)-1,1); if(isNaN(x)) return String(m); const r=new Intl.DateTimeFormat(T[lang].locale,{month:"long",year:"numeric"}).format(x); return r.charAt(0).toUpperCase()+r.slice(1).replace(/ De /i," de "); };
+const xpShift=(m,n)=>{ const [y,mo]=m.split("-").map(Number); const d=new Date(y,mo-1+n,1); return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0"); };
+const xpCat=c=>tl("x_cat_"+c)===("x_cat_"+c)?c:tl("x_cat_"+c);
+const xpLocName=id=>{ const l=((XP.config&&XP.config.locations)||[]).find(x=>x.id===id); return l?l.name:""; };
+const xpAmt=s=>{ if(s==null||s==="") return null; if(typeof s==="number") return s; let v=String(s).replace(/[^\d.,-]/g,""); const c=v.lastIndexOf(","), d=v.lastIndexOf("."); v=c>d?v.replace(/\./g,"").replace(",","."):v.replace(/,/g,""); const n=Number(v); return isFinite(n)?n:null; };
+const xpMoneyStr=c=>c==null?"":(c/100).toFixed(2);
+
+async function loadExpenses(force,silent){
+  if(XP.loading&&!force) return; if(XP.loaded&&!force) return renderExpenses();
+  XP.loading=true; const my=++XP.seq; if(!silent){ XP.err=""; renderExpenses(); }
+  try{
+    const d=await xapi("GET","?month="+encodeURIComponent(XP.month)+(XP.loc?"&locationId="+encodeURIComponent(XP.loc):""));
+    if(my!==XP.seq) return;
+    XP.enabled=!!(d.config&&d.config.enabled);
+    if(XP.enabled){ XP.config=d.config; XP.items=d.expenses||[]; XP.summary=d.summary||null; XP.months=d.months||[]; if(d.month) XP.month=d.month; XP.err=""; }
+    XP.loaded=true; XP.at=Date.now();
+  }catch(e){ if(my!==XP.seq) return; if(!silent) XP.err=errMsg(e); }
+  XP.loading=false; xpNav(); renderExpenses();
+  if(XP.loaded&&!XP.enabled&&view==="expenses") showView("home");
+}
+function xpNav(){ const b=$("#navX"); if(b) b.hidden=!XP.enabled; }
+function renderExpenses(){
+  const el=$("#xp"); if(!el) return; let h="";
+  if(XP.enabled===false) h="";
+  else if(XP.err&&!XP.loaded) h=`<div class="card empty">${esc(XP.err)}<div><button type="button" class="btn blue" data-xa="retry" style="margin-top:12px">${esc(tl("l_retry"))}</button></div></div>`;
+  else if(!XP.loaded) h=`<div class="card empty"><span class="spin" aria-hidden="true"></span><div style="margin-top:8px">${esc(tl("x_loading"))}</div></div>`;
+  else {
+    const c=XP.config, S=XP.summary||{totalCents:0,count:0,byCategory:[],byLocation:[]}, multi=c.locations.length>1;
+    if(XP.scanning) h+=`<div class="card xscanning"><span class="spin" aria-hidden="true"></span><h3>${esc(tl("x_scanning"))}</h3><p class="muted">${esc(tl("x_scanning_p"))}</p></div>`;
+    else {
+      if(XP.scanErr) h+=`<div class="card"><div class="err" role="alert" style="margin-top:0"><b>${esc(tl("x_scan_fail"))}</b><br>${esc(XP.scanErr)}</div><div class="btns"><button type="button" class="btn blue" data-xa="hand">${icon("plus")}${esc(tl("x_hand"))}</button><button type="button" class="btn" data-xa="scan">${icon("camera")}${esc(tl("x_scan_again"))}</button></div></div>`;
+      h+=`<button type="button" class="xscan" data-xa="scan">${icon("camera")}${esc(tl("x_scan"))}</button>
+        <div class="xalt"><button type="button" class="btn" data-xa="upload">${icon("down")}${esc(tl("x_upload"))}</button><button type="button" class="btn" data-xa="hand">${icon("plus")}${esc(tl("x_hand"))}</button></div>`;
+    }
+    const ms=[...new Set([...(XP.months||[]),XP.month])].sort().reverse();
+    h+=`<div class="xmonth"><button type="button" class="bk-x" data-xa="mprev" aria-label="${esc(tl("x_prev"))}">${icon("chev-l")}</button>
+      <select class="inp" data-xa="month" aria-label="${esc(tl("x_month"))}">${ms.map(m=>`<option value="${esc(m)}"${m===XP.month?" selected":""}>${esc(xpMonthName(m))}</option>`).join("")}</select>
+      <button type="button" class="bk-x" data-xa="mnext" aria-label="${esc(tl("x_next"))}">${icon("chev-r")}</button></div>`;
+    if(multi) h+=`<div class="xchips"><div class="seg" role="group" aria-label="${esc(tl("x_locfilter"))}"><button type="button" data-xa="loc" data-v="" aria-pressed="${!XP.loc}">${esc(tl("x_all"))}</button>${c.locations.map(l=>`<button type="button" data-xa="loc" data-v="${esc(l.id)}" aria-pressed="${XP.loc===l.id}">${esc(l.name)}</button>`).join("")}</div></div>`;
+    const bars=(rows,label)=>{ const max=Math.max(1,...rows.map(r=>r.totalCents)); return rows.length?`<h4>${esc(label)}</h4>`+rows.map(r=>`<div class="xbar"><div class="xbl"><span>${esc(r.name)}</span><b>${esc(xpMoney(r.totalCents))}</b></div><div class="xtrack" aria-hidden="true"><i style="width:${Math.max(2,Math.round(r.totalCents/max*100))}%"></i></div></div>`).join(""):""; };
+    h+=`<div class="card xtotal"><div class="lbl">${esc(tl("x_total"))} · ${esc(xpMonthName(XP.month))}</div><div class="big">${esc(xpMoney(S.totalCents))}</div><div class="cnt">${esc(S.count===1?tl("x_n1"):fmt(tl("x_n"),{n:S.count}))}</div>
+      ${bars((S.byCategory||[]).map(r=>({name:xpCat(r.category),totalCents:r.totalCents})),tl("x_bycat"))}${multi&&!XP.loc?bars((S.byLocation||[]).filter(r=>r.totalCents).map(r=>({name:r.name,totalCents:r.totalCents})),tl("x_byloc")):""}</div>`;
+    if(!XP.items.length) h+=`<div class="card empty"><b style="display:block;color:var(--ink);margin-bottom:4px">${esc(tl("x_none"))}</b>${esc(tl("x_none_p"))}</div>`;
+    else h+=[...XP.items].sort((a,b)=>String(b.date).localeCompare(String(a.date))||String(b.createdAt||"").localeCompare(String(a.createdAt||""))).map(x=>{
+      const meta=[xpDate(x.date),multi?xpLocName(x.locationId):"",(x.items&&x.items.length)?(x.items.length===1?"1 "+tl("x_f_items").toLowerCase().replace(/s$/,""):x.items.length+" "+tl("x_f_items").toLowerCase()):""].filter(Boolean).join(" · ");
+      return `<button type="button" class="card xcard" data-xa="edit" data-id="${esc(x.id)}" aria-label="${esc(tl("x_edit")+": "+(x.store||xpCat(x.category))+", "+xpMoney(x.totalCents))}"><div class="xtop"><div class="xs">${esc(x.store||xpCat(x.category))}</div><div class="xa">${esc(xpMoney(x.totalCents))}</div></div><div class="xm">${esc(meta)}</div><span class="xcat">${esc(xpCat(x.category))}</span></button>`; }).join("");
+    const q="month="+encodeURIComponent(XP.month)+(XP.loc?"&locationId="+encodeURIComponent(XP.loc):"")+"&lang="+lang;
+    h+=`<div class="card"><h3 class="lh">${esc(tl("x_export"))} · ${esc(xpMonthName(XP.month))}</h3><div class="xexp">
+      <a class="btn" download href="${esc(API)}/expenses/export?format=ods&${q}">${icon("down")}${esc(tl("x_ods"))}</a><a class="btn" download href="${esc(API)}/expenses/export?format=csv&${q}">${icon("down")}${esc(tl("x_csv"))}</a></div>
+      <button type="button" class="btn" data-xa="locs" style="width:100%">${icon("grid")}${esc(tl("x_locs"))}</button></div>`;
+  }
+  const sig=lang+h; if(el.dataset.sig===sig) return;
+  el.innerHTML=h; el.dataset.sig=sig;
+}
+function staticXp(){ const a=$("#xH"),b=$("#nX"); if(a) a.textContent=tl("x_h"); if(b) b.textContent=tl("nav_x"); $("#xsX").textContent=tl("l_close"); }
+function xpLang(){ staticXp(); $("#xp").dataset.sig=""; renderExpenses(); if(XP.sheet) drawXSheet(); }
+
+// ----- scan -----
+async function xpScan(file){
+  if(!file||XP.scanning) return;
+  XP.scanning=true; XP.scanErr=""; renderExpenses(); window.scrollTo(0,0);
+  try{
+    const blob=await downscaleBlob(file,1600,0.8);
+    const image=await new Promise((res,rej)=>{ const fr=new FileReader(); fr.onload=()=>res(fr.result); fr.onerror=()=>rej(new Error("img")); fr.readAsDataURL(blob); });
+    const d=await xapi("POST","/scan",{image});
+    XP.scanning=false; renderExpenses(); openXSheet({kind:"exp",scan:true,draft:xpFromDraft(d.draft||{})});
+  }catch(e){ XP.scanning=false; XP.scanErr=e&&e.message==="img"?tl("x_img_err"):errMsg(e); renderExpenses(); }
+}
+function xpFromDraft(d){
+  const c=XP.config, cats=c.categories||[], locs=c.locations;
+  return {id:"",store:d.store||"",date:/^\d{4}-\d{2}-\d{2}$/.test(d.date||"")?d.date:"",locationId:locs.some(l=>l.id===d.locationId)?d.locationId:(locs.length===1?locs[0].id:""),
+    category:cats.includes(d.category)?d.category:"other",
+    items:(d.items||[]).map(i=>({name:i.name||"",qty:i.qty||1,price:xpMoneyStr(i.priceCents)})),tax:xpMoneyStr(d.taxCents),total:xpMoneyStr(d.totalCents),notes:"",source:"scan",hint:d.receiptLocation||""};
+}
+function xpBlank(){
+  const c=XP.config, locs=c.locations, mon=XP.month===xpLocalMonth();
+  return {id:"",store:"",date:mon?xpLocalDay():XP.month+"-01",locationId:XP.loc||(locs.length===1?locs[0].id:""),category:"other",items:[],tax:"",total:"",notes:"",source:"manual",hint:""};
+}
+function xpFromExpense(x){
+  return {id:x.id,store:x.store||"",date:x.date,locationId:x.locationId,category:x.category||"other",items:(x.items||[]).map(i=>({name:i.name,qty:i.qty,price:xpMoneyStr(i.priceCents)})),
+    tax:xpMoneyStr(x.taxCents),total:xpMoneyStr(x.totalCents),notes:x.notes||"",source:x.source||"manual",hint:""};
+}
+
+// ----- sheet -----
+function openXSheet(sheet){
+  XP.sheet=sheet; sheet.lastFocus=document.activeElement;
+  const b=$("#xback"), s=$("#xsheet"); b.hidden=false; s.hidden=false; document.body.style.overflow="hidden";
+  $("#xsBody").dataset.sig=""; $("#xsBody").scrollTop=0; drawXSheet();
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{ b.classList.add("on"); s.classList.add("on"); }));
+  setTimeout(()=>$("#xsT").focus(),80);
+}
+function closeXSheet(force){
+  if(XP.sheet&&XP.sheet.saving&&!force) return;
+  const b=$("#xback"), s=$("#xsheet"); b.classList.remove("on"); s.classList.remove("on"); document.body.style.overflow="";
+  const f=XP.sheet&&XP.sheet.lastFocus; XP.sheet=null;
+  setTimeout(()=>{ if(!XP.sheet){ b.hidden=true; s.hidden=true; } },230); if(f&&f.focus) f.focus();
+}
+function xpErr(m){ const e=$("#xsErr"); e.textContent=m||""; e.hidden=!m; }
+function drawXSheet(){
+  const S=XP.sheet; if(!S) return; const body=$("#xsBody"), top=body.scrollTop; xpErr(S.err||"");
+  let h,title,label;
+  if(S.kind==="locs"){ title=tl("x_locs_t"); label=tl("l_save"); h=xpLocsHtml(S); }
+  else { title=S.scan?tl("x_review_t"):S.draft.id?tl("x_edit_t"):tl("x_new_t"); label=tl("x_save"); h=xpExpHtml(S); }
+  $("#xsT").textContent=title; const go=$("#xsGo"); go.textContent=S.saving?tl("l_saving"):label; go.disabled=!!S.saving;
+  if(body.dataset.sig!==lang+h){ body.innerHTML=h; body.dataset.sig=lang+h; body.scrollTop=top; }
+}
+const xpIn=(path,v,att,cls)=>`<input class="inp${cls?" "+cls:""}" data-xf="${path}" value="${esc(v==null?"":v)}" ${att||""}>`;
+function xpExpHtml(S){
+  const D=S.draft, c=XP.config, needD=!D.date, needL=!D.locationId;
+  let h=S.scan?`<p class="rnote" style="margin:0 0 14px;font-weight:500">${icon("check")}${esc(tl("x_review_p"))}</p>`:"";
+  h+=fld(tl("x_f_store"),xpIn("store",D.store,'maxlength="120" autocomplete="off"'));
+  h+=`<div class="frow">${fld(tl("x_f_date"),xpIn("date",D.date,'type="date" required aria-required="true"',needD?"need":""),needD?tl("x_need"):"")}
+    ${fld(tl("x_f_cat"),`<select class="inp" data-xf="category">${(c.categories||[]).map(k=>`<option value="${esc(k)}"${k===D.category?" selected":""}>${esc(xpCat(k))}</option>`).join("")}</select>`)}</div>`;
+  h+=fld(tl("x_f_loc"),`<select class="inp${needL?" need":""}" data-xf="locationId" required aria-required="true"><option value=""${D.locationId?"":" selected"}>${esc(tl("x_choose"))}</option>${c.locations.map(l=>`<option value="${esc(l.id)}"${l.id===D.locationId?" selected":""}>${esc(l.name)}</option>`).join("")}</select>`,D.hint?fmt(tl("x_hint_loc"),{v:D.hint}):needL?tl("x_need"):"");
+  h=h.split('<small>'+esc(tl("x_need"))+'</small>').join('<small class="need">'+esc(tl("x_need"))+'</small>');
+  h+=`<h3 class="lh2">${esc(tl("x_f_items"))}</h3>`;
+  if(D.items.length) h+=`<div class="xit xh" aria-hidden="true"><span>${esc(tl("x_f_name"))}</span><span>${esc(tl("x_f_qty"))}</span><span>${esc(tl("x_f_price"))}</span><span></span></div>`;
+  h+=D.items.map((it,i)=>`<div class="xit">${xpIn(`items.${i}.name`,it.name,`maxlength="120" aria-label="${esc(tl("x_f_name"))} ${i+1}"`)}${xpIn(`items.${i}.qty`,it.qty,`type="number" inputmode="decimal" min="0" step="any" aria-label="${esc(tl("x_f_qty"))} ${i+1}"`)}${xpIn(`items.${i}.price`,it.price,`inputmode="decimal" aria-label="${esc(tl("x_f_price"))} ${i+1}"`)}<button type="button" class="bk-x" data-xa="delitem" data-i="${i}" aria-label="${esc(tl("x_f_rm"))} ${i+1}">${icon("x")}</button></div>`).join("");
+  h+=`<button type="button" class="btn" data-xa="additem" style="margin:2px 0 14px">${icon("plus")}${esc(tl("x_f_add"))}</button>`;
+  h+=`<div class="frow">${fld(tl("x_f_tax"),xpIn("tax",D.tax,'inputmode="decimal"'))}${fld(tl("x_f_total"),xpIn("total",D.total,'inputmode="decimal" required aria-required="true"'))}</div>`;
+  h+=fld(tl("x_f_notes"),`<textarea class="inp" data-xf="notes" maxlength="500">${esc(D.notes)}</textarea>`);
+  if(D.id) h+=`<button type="button" class="linkdanger" data-xa="delexp">${esc(tl("x_del"))}</button>`;
+  return h;
+}
+function xpLocsHtml(S){
+  const D=S.draft;
+  return `<h3 class="lh2">${esc(tl("x_locs"))}</h3>`+D.locations.map((l,i)=>`<div class="xloc">${xpIn(`locations.${i}.name`,l.name,`maxlength="80" aria-label="${esc(tl("x_loc_name"))} ${i+1}"`)}<button type="button" class="bk-x" data-xa="delloc" data-i="${i}" aria-label="${esc(tl("x_loc_rm"))} ${i+1}"${D.locations.length<2?" disabled":""}>${icon("x")}</button></div>`).join("")+
+    `<button type="button" class="btn" data-xa="addloc" style="margin:2px 0 16px">${icon("plus")}${esc(tl("x_loc_add"))}</button>`+
+    fld(tl("x_currency"),`<select class="inp" data-xf="currency">${["EUR","USD","GBP"].map(k=>`<option${k===D.currency?" selected":""}>${k}</option>`).join("")}</select>`);
+}
+function openXExp(draft,scan){ openXSheet({kind:"exp",scan:!!scan,draft}); }
+async function xpSave(){
+  const S=XP.sheet, D=S.draft;
+  let items=D.items.map(i=>({name:String(i.name||"").trim(),qty:xpAmt(i.qty)||1,price:i.price})).filter(i=>i.name);
+  let total=D.total;
+  if(xpAmt(total)==null&&items.length){ const sum=items.reduce((a,i)=>a+(xpAmt(i.price)||0)*i.qty,0); if(sum>0) total=sum.toFixed(2); }
+  if(!D.date) S.err=tl("x_e_date"); else if(!D.locationId) S.err=tl("x_e_loc"); else if(xpAmt(total)==null) S.err=tl("x_e_total"); else S.err="";
+  if(S.err) return drawXSheet();
+  const body={date:D.date,store:D.store,locationId:D.locationId,category:D.category,items,total,tax:D.tax,notes:D.notes,source:D.source};
+  S.saving=true; drawXSheet();
+  try{
+    if(D.id) await xapi("PATCH","/items/"+encodeURIComponent(D.id),body); else await xapi("POST","/items",body);
+    S.saving=false; closeXSheet(true); toast(tl("x_saved"));
+    const m=D.date.slice(0,7); if(m!==XP.month){ XP.month=m; XP.loc=""; } else if(XP.loc&&XP.loc!==D.locationId) XP.loc="";
+    loadExpenses(true,true);
+  }catch(e){ S.saving=false; S.err=errMsg(e); drawXSheet(); }
+}
+async function xpDelete(){
+  const S=XP.sheet; if(!S||!S.draft.id||S.saving||!confirm(tl("x_del_c"))) return;
+  S.saving=true; drawXSheet();
+  try{ await xapi("DELETE","/items/"+encodeURIComponent(S.draft.id)); S.saving=false; closeXSheet(true); toast(tl("x_deleted")); loadExpenses(true,true); }
+  catch(e){ S.saving=false; S.err=errMsg(e); drawXSheet(); }
+}
+async function xpSaveLocs(){
+  const S=XP.sheet, D=S.draft, locations=D.locations.map(l=>({id:l.id||undefined,name:String(l.name||"").trim()})).filter(l=>l.name);
+  if(!locations.length){ S.err=tl("x_e_loc_name"); return drawXSheet(); }
+  S.saving=true; S.err=""; drawXSheet();
+  try{
+    const v=await xapi("PUT","/config",{locations,currency:D.currency});
+    XP.config=v; if(XP.loc&&!v.locations.some(l=>l.id===XP.loc)) XP.loc="";
+    S.saving=false; closeXSheet(true); toast(tl("x_locs_saved")); loadExpenses(true,true);
+  }catch(e){ S.saving=false; S.err=errMsg(e); drawXSheet(); }
+}
+$("#xsBody").addEventListener("input",e=>{
+  const f=e.target.dataset&&e.target.dataset.xf, S=XP.sheet; if(!f||!S) return;
+  setP(S.draft,f,e.target.value); $("#xsBody").dataset.sig=lang+"x"+Math.random();
+  if(e.target.classList.contains("need")&&e.target.value){ e.target.classList.remove("need"); const sm=e.target.closest(".fld")&&e.target.closest(".fld").querySelector("small.need"); if(sm) sm.remove(); }
+});
+$("#xsBody").addEventListener("change",e=>{ if(e.target.tagName==="SELECT") e.target.dispatchEvent(new Event("input",{bubbles:true})); });
+$("#xsX").addEventListener("click",()=>closeXSheet());
+$("#xback").addEventListener("click",()=>closeXSheet());
+document.addEventListener("keydown",e=>{ if(e.key==="Escape"&&XP.sheet) closeXSheet(); });
+$("#xsGo").addEventListener("click",()=>{ const S=XP.sheet; if(!S||S.saving) return; if(S.kind==="locs") xpSaveLocs(); else xpSave(); });
+for(const id of ["#xCam","#xUp"]) $(id).addEventListener("change",e=>{ const f=e.target.files&&e.target.files[0]; e.target.value=""; if(f) xpScan(f); });
+document.addEventListener("change",e=>{
+  if(e.target.dataset&&e.target.dataset.xa==="month"){ XP.month=e.target.value; XP.loc=""; loadExpenses(true,true); }
+});
+document.addEventListener("click",e=>{
+  const b=e.target.closest("[data-xa]"); if(!b||b.tagName==="SELECT") return;
+  const a=b.dataset.xa, S=XP.sheet, redraw=()=>{ $("#xsBody").dataset.sig=""; drawXSheet(); };
+  if(a==="retry") return loadExpenses(true);
+  if(a==="scan") return $("#xCam").click();
+  if(a==="upload") return $("#xUp").click();
+  if(a==="hand"){ XP.scanErr=""; renderExpenses(); return openXExp(xpBlank(),false); }
+  if(a==="mprev"||a==="mnext"){ XP.month=xpShift(XP.month,a==="mprev"?-1:1); XP.loc=""; renderExpenses(); return loadExpenses(true,true); }
+  if(a==="loc"){ XP.loc=b.dataset.v; renderExpenses(); return loadExpenses(true,true); }
+  if(a==="edit"){ const x=XP.items.find(i=>i.id===b.dataset.id); if(x) openXExp(xpFromExpense(x),false); return; }
+  if(a==="locs") return openXSheet({kind:"locs",draft:{currency:XP.config.currency,locations:XP.config.locations.map(l=>({id:l.id,name:l.name}))}});
+  if(!S) return;
+  const D=S.draft;
+  if(a==="additem"){ D.items.push({name:"",qty:1,price:""}); redraw(); const ins=$$("#xsBody .xit:last-of-type input"); if(ins[0]) ins[0].focus(); return; }
+  if(a==="delitem"){ D.items.splice(+b.dataset.i,1); return redraw(); }
+  if(a==="delexp") return xpDelete();
+  if(a==="addloc"){ D.locations.push({id:"",name:""}); redraw(); const ins=$$("#xsBody .xloc input"); if(ins.length) ins[ins.length-1].focus(); return; }
+  if(a==="delloc"){ if(D.locations.length>1) D.locations.splice(+b.dataset.i,1); return redraw(); }
+});
+staticXp();
+
+// ---------- digital menu ----------
+Object.assign(T.es,{
+  nav_m:"Carta", m_h:"Carta digital", m_loading:"Cargando tu carta…", m_err:"No hemos podido cargar tu carta.", m_close:"Cerrar",
+  m_link:"Enlace de tu carta", m_link_p:"Compártelo o imprime el QR para las mesas.", m_copy:"Copiar enlace", m_copied:"Enlace copiado", m_open:"Ver carta", m_qr:"Código QR de tu carta", m_qr_dl:"Descargar QR",
+  m_import:"Importar desde una foto", m_importing:"Leyendo tu carta…", m_importing_p:"Esto tarda unos segundos. No cierres la página.", m_imp_fail:"No hemos podido leer la carta", m_imp_none:"No hemos encontrado platos en ese archivo. Prueba con otra foto.",
+  m_img_err:"No hemos podido abrir ese archivo. Prueba con otro.", m_pdf_big:"El PDF es demasiado grande. Prueba con uno de menos de 12 MB o con una foto.",
+  m_translate:"Traducir", m_translating:"Traduciendo tu carta…", m_translated:"Traducción lista. Revísala en cada idioma y pulsa Guardar.", m_tr_one:"Activa al menos otro idioma para poder traducir.", m_tr_empty:"Aún no hay nada que traducir.",
+  m_langs:"Idiomas de la carta", m_langs_p:"El primero es el principal. Si falta un texto en un idioma, se muestra el principal.", m_langs_saved:"Idiomas guardados", m_editing:"Editando en",
+  m_cat_new:"Añadir categoría", m_cat_name:"Nombre de la categoría", m_cat_up:"Subir categoría", m_cat_down:"Bajar categoría", m_cat_del:"Eliminar categoría", m_cat_del_c:"¿Eliminar esta categoría y todos sus platos?", m_cat_ph:"Ej.: Entrantes",
+  m_item_add:"Añadir plato", m_item_new:"Nuevo plato", m_item_edit:"Editar plato", m_nameless:"Sin nombre", m_off:"No disponible", m_empty_cat:"Esta categoría aún no tiene platos.",
+  m_empty:"Tu carta está vacía", m_empty_p:"Importa una foto de tu carta en papel o añade categorías y platos a mano.",
+  m_f_name:"Nombre", m_f_desc:"Descripción (opcional)", m_f_price:"Precio (€)", m_f_avail:"Disponible", m_f_avail_h:"Si lo desactivas, los clientes no lo ven en la carta.", m_f_al:"Alérgenos", m_f_photo:"Foto (opcional)", m_photo_add:"Añadir foto", m_photo_change:"Cambiar foto", m_photo_rm:"Quitar foto", m_photo_up:"Subiendo foto…",
+  m_item_up:"Subir", m_item_down:"Bajar", m_item_del:"Eliminar este plato", m_item_del_c:"¿Eliminar este plato?", m_apply:"Aplicar", m_save:"Guardar carta", m_saving:"Guardando…", m_saved:"Carta guardada", m_unsaved:"Tienes cambios sin guardar",
+  m_e_name:"Cada categoría y cada plato necesita un nombre.", m_e_item:"Escribe el nombre del plato.", m_e_price:"El precio no es válido.",
+  m_draft_t:"Revisa la carta", m_draft_p:"Hemos leído tu carta. Corrige lo que haga falta: no se guarda hasta que pulses Guardar carta.", m_mode_add:"Añadir a mi carta", m_mode_rep:"Sustituir mi carta", m_draft_use:"Usar este borrador", m_draft_in:"Borrador cargado. Pulsa Guardar carta para publicarlo.", m_rm:"Quitar",
+  m_al_gluten:"Gluten", m_al_crustaceans:"Crustáceos", m_al_eggs:"Huevo", m_al_fish:"Pescado", m_al_peanuts:"Cacahuetes", m_al_soy:"Soja", m_al_milk:"Lácteos", m_al_nuts:"Frutos secos", m_al_celery:"Apio", m_al_mustard:"Mostaza", m_al_sesame:"Sésamo", m_al_sulphites:"Sulfitos", m_al_lupin:"Altramuces", m_al_molluscs:"Moluscos"
+});
+Object.assign(T.en,{
+  nav_m:"Menu", m_h:"Digital menu", m_loading:"Loading your menu…", m_err:"We could not load your menu.", m_close:"Close",
+  m_link:"Your menu link", m_link_p:"Share it or print the QR for your tables.", m_copy:"Copy link", m_copied:"Link copied", m_open:"View menu", m_qr:"QR code of your menu", m_qr_dl:"Download QR",
+  m_import:"Import from a photo", m_importing:"Reading your menu…", m_importing_p:"This takes a few seconds. Please keep this page open.", m_imp_fail:"We could not read the menu", m_imp_none:"We found no dishes in that file. Try another photo.",
+  m_img_err:"We could not open that file. Try another one.", m_pdf_big:"That PDF is too large. Try one under 12 MB or use a photo.",
+  m_translate:"Translate", m_translating:"Translating your menu…", m_translated:"Translation ready. Check it in each language, then press Save.", m_tr_one:"Turn on at least one more language to translate.", m_tr_empty:"There is nothing to translate yet.",
+  m_langs:"Menu languages", m_langs_p:"The first one is the main language. Missing texts fall back to it.", m_langs_saved:"Languages saved", m_editing:"Editing in",
+  m_cat_new:"Add category", m_cat_name:"Category name", m_cat_up:"Move category up", m_cat_down:"Move category down", m_cat_del:"Delete category", m_cat_del_c:"Delete this category and all its dishes?", m_cat_ph:"E.g. Starters",
+  m_item_add:"Add dish", m_item_new:"New dish", m_item_edit:"Edit dish", m_nameless:"No name", m_off:"Unavailable", m_empty_cat:"This category has no dishes yet.",
+  m_empty:"Your menu is empty", m_empty_p:"Import a photo of your paper menu or add categories and dishes by hand.",
+  m_f_name:"Name", m_f_desc:"Description (optional)", m_f_price:"Price (€)", m_f_avail:"Available", m_f_avail_h:"When off, customers do not see it on the menu.", m_f_al:"Allergens", m_f_photo:"Photo (optional)", m_photo_add:"Add photo", m_photo_change:"Change photo", m_photo_rm:"Remove photo", m_photo_up:"Uploading photo…",
+  m_item_up:"Move up", m_item_down:"Move down", m_item_del:"Delete this dish", m_item_del_c:"Delete this dish?", m_apply:"Apply", m_save:"Save menu", m_saving:"Saving…", m_saved:"Menu saved", m_unsaved:"You have unsaved changes",
+  m_e_name:"Every category and dish needs a name.", m_e_item:"Enter the name of the dish.", m_e_price:"The price is not valid.",
+  m_draft_t:"Check the menu", m_draft_p:"We read your menu. Correct anything that needs it: nothing is saved until you press Save menu.", m_mode_add:"Add to my menu", m_mode_rep:"Replace my menu", m_draft_use:"Use this draft", m_draft_in:"Draft loaded. Press Save menu to publish it.", m_rm:"Remove",
+  m_al_gluten:"Gluten", m_al_crustaceans:"Crustaceans", m_al_eggs:"Eggs", m_al_fish:"Fish", m_al_peanuts:"Peanuts", m_al_soy:"Soy", m_al_milk:"Milk", m_al_nuts:"Tree nuts", m_al_celery:"Celery", m_al_mustard:"Mustard", m_al_sesame:"Sesame", m_al_sulphites:"Sulphites", m_al_lupin:"Lupin", m_al_molluscs:"Molluscs"
+});
+const MNL=["es","en","de","fr"], MNN={es:"Español",en:"English",de:"Deutsch",fr:"Français"};
+const MN_AL=["gluten","crustaceans","eggs","fish","peanuts","soy","milk","nuts","celery","mustard","sesame","sulphites","lupin","molluscs"];
+const MN_EM={gluten:"🌾",crustaceans:"🦐",eggs:"🥚",fish:"🐟",peanuts:"🥜",soy:"🫘",milk:"🥛",nuts:"🌰",celery:"🥬",mustard:"🟡",sesame:"⚪",sulphites:"🍷",lupin:"🌼",molluscs:"🐚"};
+const MN={loaded:false,loading:false,err:"",enabled:null,config:null,cats:[],dirty:false,ml:"",at:0,seq:0,busy:"",msg:"",sheet:null,saving:false};
+let mnTmp=0; const mnNid=()=>"tmp"+(++mnTmp);
+const mnReal=id=>id&&!/^tmp/.test(id)?id:"";
+async function mapi(method,path,body){
+  const r=await fetch(API+"/menu"+path,{method,headers:{"x-lang":lang,...(body?{"content-type":"application/json"}:{})},body:body?JSON.stringify(body):undefined});
+  let d={}; try{d=await r.json();}catch(_){}
+  if(!r.ok){ const e=new Error(d.error||t("generic")); e.code=d.code||""; throw e; }
+  return d;
+}
+const mnMap=m=>{ const o={}; if(m&&typeof m==="object") for(const l of MNL) if(typeof m[l]==="string") o[l]=m[l]; return o; };
+const mnItem=i=>({id:i.id||mnNid(),name:mnMap(i.name),description:mnMap(i.description),priceCents:Number.isFinite(i.priceCents)?i.priceCents:null,allergens:Array.isArray(i.allergens)?i.allergens.filter(a=>MN_AL.includes(a)):[],photo:i.photo||"",available:i.available!==false});
+const mnNorm=cats=>(cats||[]).map(c=>({id:c.id||mnNid(),name:mnMap(c.name),items:(c.items||[]).map(mnItem)}));
+const mnLangs=()=>{ const a=(MN.config&&MN.config.languages||[]).filter(l=>MNL.includes(l)); return a.length?a:["es","en"]; };
+const mnML=()=>{ const ls=mnLangs(); if(!ls.includes(MN.ml)) MN.ml=ls[0]; return MN.ml; };
+const mnShow=m=>{ const l=mnML(); if(m&&m[l]) return m[l]; for(const k of MNL) if(m&&m[k]) return m[k]; return ""; };
+const mnKey=m=>{ const l=mnML(); if(m&&m[l]!=null) return l; for(const k of MNL) if(m&&m[k]!=null) return k; return l; };
+const mnMoney=c=>{ const v=(c||0)/100; try{ return new Intl.NumberFormat(T[lang].locale,{style:"currency",currency:"EUR"}).format(v); }catch(_){ return v.toFixed(2)+" €"; } };
+const mnCents=s=>{ s=String(s==null?"":s).trim(); if(!s) return null; const n=Number(s.replace(/[^\d.,-]/g,"").replace(/\.(?=\d{3}\b)/g,"").replace(",",".")); return isFinite(n)&&n>=0?Math.round(n*100):NaN; };
+const mnPriceStr=c=>c==null?"":(c/100).toFixed(2);
+const mnUrl=()=>{ const c=MN.config||{}; return c.url||(c.code?location.origin+"/menu/"+c.code:""); };
+const mnQr=()=>"/menu/"+encodeURIComponent((MN.config&&MN.config.code)||"")+"/qr.png";
+function mnClean(cats,strict){
+  const trim=m=>{ const o={}; for(const l of MNL){ const v=String((m||{})[l]||"").trim(); if(v) o[l]=v; } return o; };
+  return cats.map(c=>{
+    const name=trim(c.name); if(strict&&!Object.keys(name).length) throw new Error(tl("m_e_name"));
+    return {id:mnReal(c.id),name,items:c.items.map(i=>{
+      const nm=trim(i.name); if(strict&&!Object.keys(nm).length) throw new Error(tl("m_e_name"));
+      return {id:mnReal(i.id),name:nm,description:trim(i.description),priceCents:Number.isFinite(i.priceCents)?i.priceCents:null,allergens:i.allergens.slice(),photo:i.photo||"",available:i.available!==false};
+    })};
+  });
+}
+
+async function loadMenu(force,silent){
+  if(MN.loading&&!force) return; if(MN.loaded&&!force) return renderMenu();
+  MN.loading=true; const my=++MN.seq; if(!silent){ MN.err=""; renderMenu(); }
+  try{
+    const d=await mapi("GET","");
+    if(my!==MN.seq) return;
+    MN.enabled=!!(d.config&&d.config.enabled);
+    if(MN.enabled){ MN.config=d.config; if(!MN.dirty) MN.cats=mnNorm(d.categories); MN.err=""; }
+    MN.loaded=true; MN.at=Date.now();
+  }catch(e){ if(my!==MN.seq) return; if(e.code==="disabled"){ MN.enabled=false; MN.loaded=true; MN.at=Date.now(); } else if(!silent) MN.err=errMsg(e); }
+  MN.loading=false; mnNav(); renderMenu();
+  if(MN.loaded&&!MN.enabled&&view==="menu") showView("home");
+}
+function mnNav(){ const b=$("#navM"); if(b) b.hidden=!MN.enabled; }
+function renderMenu(){
+  const el=$("#mn"); if(!el) return; let h="";
+  if(MN.enabled===false) h="";
+  else if(MN.err&&!MN.loaded) h=`<div class="card empty">${esc(MN.err)}<div><button type="button" class="btn blue" data-mn="retry" style="margin-top:12px">${esc(tl("l_retry"))}</button></div></div>`;
+  else if(!MN.loaded) h=`<div class="card empty"><span class="spin" aria-hidden="true"></span><div style="margin-top:8px">${esc(tl("m_loading"))}</div></div>`;
+  else {
+    // keep focus/typing safe: never re-render while a text field inside has focus and nothing structural changed
+    const ls=mnLangs(), ml=mnML(), url=mnUrl();
+    if(url) h+=`<div class="card"><h3 class="lh">${esc(tl("m_link"))}</h3><p class="lsub">${esc(tl("m_link_p"))}</p><div class="mnshare"><div><div class="mnurl">${esc(url)}</div>
+      <div class="mnrow"><button type="button" class="btn blue" data-mn="copy">${icon("copy")}${esc(tl("m_copy"))}</button><a class="btn" href="${esc(url)}" target="_blank" rel="noopener">${icon("open")}${esc(tl("m_open"))}</a><a class="btn" href="${esc(mnQr())}?download=1" download="menu-qr.png">${icon("down")}${esc(tl("m_qr_dl"))}</a></div></div>
+      <img src="${esc(mnQr())}" alt="${esc(tl("m_qr"))}" width="132" height="132"></div></div>`;
+    if(MN.busy==="import"||MN.busy==="translate") h+=`<div class="card xscanning"><span class="spin" aria-hidden="true"></span><h3>${esc(tl(MN.busy==="import"?"m_importing":"m_translating"))}</h3><p class="muted">${esc(tl("m_importing_p"))}</p></div>`;
+    else {
+      if(MN.msg) h+=`<div class="card"><div class="err" role="alert" style="margin-top:0"><b>${esc(tl("m_imp_fail"))}</b><br>${esc(MN.msg)}</div></div>`;
+      h+=`<button type="button" class="xscan" data-mn="import">${icon("camera")}${esc(tl("m_import"))}</button>`;
+    }
+    h+=`<div class="card"><h3 class="lh">${esc(tl("m_langs"))}</h3><p class="lsub">${esc(tl("m_langs_p"))}</p><div class="mnal">${MNL.map(l=>`<button type="button" class="chipbtn" data-mn="lang" data-v="${l}" aria-pressed="${ls.includes(l)}">${esc(MNN[l])}</button>`).join("")}</div>
+      <div class="mnrow" style="margin-top:12px"><button type="button" class="btn" data-mn="translate"${MN.busy?" disabled":""}>${icon("globe")}${esc(tl("m_translate"))}</button></div></div>`;
+    if(ls.length>1) h+=`<div class="mnlang"><div class="seg" role="group" aria-label="${esc(tl("m_editing"))}">${ls.map(l=>`<button type="button" data-mn="ml" data-v="${l}" aria-pressed="${l===ml}">${esc(MNN[l])}</button>`).join("")}</div></div>`;
+    if(!MN.cats.length) h+=`<div class="card empty"><b style="display:block;color:var(--ink);margin-bottom:4px">${esc(tl("m_empty"))}</b>${esc(tl("m_empty_p"))}</div>`;
+    h+=MN.cats.map((c,ci)=>`<div class="card mncat"><div class="mnch">
+        <input class="inp" data-mc="${ci}" value="${esc(c.name[ml]||"")}" placeholder="${esc(mnShow(c.name)||tl("m_cat_ph"))}" maxlength="80" aria-label="${esc(tl("m_cat_name"))}">
+        <button type="button" class="bk-x" data-mn="catup" data-c="${ci}" aria-label="${esc(tl("m_cat_up"))}"${ci?"":" disabled"} style="transform:rotate(90deg)">${icon("chev-l")}</button>
+        <button type="button" class="bk-x" data-mn="catdown" data-c="${ci}" aria-label="${esc(tl("m_cat_down"))}"${ci<MN.cats.length-1?"":" disabled"} style="transform:rotate(90deg)">${icon("chev-r")}</button>
+        <button type="button" class="bk-x" data-mn="catdel" data-c="${ci}" aria-label="${esc(tl("m_cat_del"))}">${icon("x")}</button></div>
+      ${c.items.length?c.items.map((it,ii)=>{ const nm=it.name[ml], shown=nm||mnShow(it.name); return `<button type="button" class="mnit${it.available?"":" off"}" data-mn="item" data-c="${ci}" data-i="${ii}">${it.photo?`<img src="${esc(it.photo)}" alt="" loading="lazy">`:""}<span class="mt"><span class="mn${nm?"":" miss"}">${esc(shown||tl("m_nameless"))}</span>${it.available?"":`<span class="mnoff">${esc(tl("m_off"))}</span>`}<span class="ma" style="display:block">${it.allergens.map(a=>MN_EM[a]).join(" ")}</span></span>${it.priceCents!=null?`<span class="mp">${esc(mnMoney(it.priceCents))}</span>`:""}</button>`; }).join(""):`<p class="muted" style="margin:0 0 10px;font-size:14px">${esc(tl("m_empty_cat"))}</p>`}
+      <button type="button" class="btn" data-mn="itemadd" data-c="${ci}">${icon("plus")}${esc(tl("m_item_add"))}</button></div>`).join("");
+    h+=`<button type="button" class="btn" data-mn="catadd" style="width:100%;margin:0 0 14px">${icon("plus")}${esc(tl("m_cat_new"))}</button>`;
+    h+=`<div class="mnsave"><div class="muted" id="mnDirty" style="text-align:center;font-size:13px;margin:0 0 6px"${MN.dirty?"":" hidden"}>${esc(tl("m_unsaved"))}</div><button type="button" class="primary" id="mnSave" data-mn="save"${MN.dirty&&!MN.saving?"":" disabled"}>${esc(MN.saving?tl("m_saving"):tl("m_save"))}</button></div>`;
+  }
+  const sig=lang+h; if(el.dataset.sig===sig) return;
+  el.innerHTML=h; el.dataset.sig=sig;
+}
+function mnMark(){ MN.dirty=true; const b=$("#mnSave"), d=$("#mnDirty"); if(b) b.disabled=!!MN.saving; if(d) d.hidden=false; }
+function staticMn(){ const a=$("#mnH"),b=$("#nM"); if(a) a.textContent=tl("m_h"); if(b) b.textContent=tl("nav_m"); $("#msX").textContent=tl("m_close"); }
+function mnLang(){ staticMn(); $("#mn").dataset.sig=""; renderMenu(); if(MN.sheet) drawMSheet(); }
+
+// ----- import / translate / languages / save -----
+const mnRead=f=>new Promise((res,rej)=>{ const fr=new FileReader(); fr.onload=()=>res(fr.result); fr.onerror=()=>rej(new Error("img")); fr.readAsDataURL(f); });
+async function mnImport(file){
+  if(!file||MN.busy) return;
+  MN.busy="import"; MN.msg=""; renderMenu(); window.scrollTo(0,0);
+  try{
+    let image;
+    if(file.type==="application/pdf"||/\.pdf$/i.test(file.name||"")){
+      if(file.size>12e6) throw new Error(tl("m_pdf_big"));
+      image=(await mnRead(file)).replace(/^data:[^;,]*/,"data:application/pdf");
+    } else image=await mnRead(await downscaleBlob(file,2000,0.85));
+    const d=await mapi("POST","/import",{image});
+    MN.busy=""; renderMenu();
+    const cats=mnNorm((d.draft&&d.draft.categories)||[]);
+    if(!cats.length||!cats.some(c=>c.items.length||Object.keys(c.name).length)){ MN.msg=tl("m_imp_none"); return renderMenu(); }
+    openMSheet({kind:"draft",cats,mode:MN.cats.length?"add":"replace"});
+  }catch(e){ MN.busy=""; MN.msg=e&&e.message==="img"?tl("m_img_err"):errMsg(e); renderMenu(); }
+}
+async function mnTranslate(){
+  if(MN.busy) return;
+  const ls=mnLangs(), from=mnML(), to=ls.filter(l=>l!==from);
+  if(!to.length){ toast(tl("m_tr_one"),true); return; }
+  if(!MN.cats.length){ toast(tl("m_tr_empty"),true); return; }
+  MN.busy="translate"; MN.msg=""; renderMenu();
+  try{
+    const d=await mapi("POST","/translate",{categories:mnClean(MN.cats,false),from,to});
+    const nc=mnNorm(d.categories);
+    // keep client ids so unsaved items stay matched; server returns the same tree order
+    nc.forEach((c,ci)=>{ const o=MN.cats[ci]; if(!o) return; c.id=o.id; c.items.forEach((it,ii)=>{ const oi=o.items[ii]; if(oi) it.id=oi.id; }); });
+    MN.cats=nc; MN.busy=""; mnMark(); renderMenu(); toast(tl("m_translated"),true);
+  }catch(e){ MN.busy=""; MN.msg=errMsg(e); renderMenu(); }
+}
+async function mnSetLangs(ls){
+  try{
+    const v=await mapi("PUT","/config",{languages:ls});
+    MN.config=Object.assign({},MN.config,v&&v.languages?v:{languages:ls}); mnML(); renderMenu(); toast(tl("m_langs_saved"));
+  }catch(e){ toast(errMsg(e),true); renderMenu(); }
+}
+async function mnSave(){
+  if(MN.saving||!MN.dirty) return;
+  let payload; try{ payload=mnClean(MN.cats,true); }catch(e){ toast(e.message,true); return; }
+  MN.saving=true; renderMenu();
+  try{
+    const d=await mapi("PUT","",{categories:payload});
+    MN.cats=mnNorm(d.categories||payload); MN.dirty=false; MN.saving=false; MN.at=Date.now(); renderMenu(); toast(tl("m_saved"));
+  }catch(e){ MN.saving=false; renderMenu(); toast(errMsg(e),true); }
+}
+
+// ----- sheet (dish editor and import draft) -----
+function openMSheet(sheet){
+  MN.sheet=sheet; sheet.lastFocus=document.activeElement;
+  const b=$("#mback"), s=$("#msheet"); b.hidden=false; s.hidden=false; document.body.style.overflow="hidden";
+  $("#msBody").dataset.sig=""; $("#msBody").scrollTop=0; drawMSheet();
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{ b.classList.add("on"); s.classList.add("on"); }));
+  setTimeout(()=>$("#msT").focus(),80);
+}
+function closeMSheet(force){
+  if(MN.sheet&&MN.sheet.up&&!force) return;
+  const b=$("#mback"), s=$("#msheet"); b.classList.remove("on"); s.classList.remove("on"); document.body.style.overflow="";
+  const f=MN.sheet&&MN.sheet.lastFocus; MN.sheet=null;
+  setTimeout(()=>{ if(!MN.sheet){ b.hidden=true; s.hidden=true; } },230); if(f&&f.focus) f.focus();
+}
+function mnErr(m){ const e=$("#msErr"); e.textContent=m||""; e.hidden=!m; }
+function mnEditItem(c,i){
+  const src=i>=0?MN.cats[c].items[i]:null;
+  const it=src?JSON.parse(JSON.stringify(src)):{id:"",name:{},description:{},priceCents:null,allergens:[],photo:"",available:true};
+  it.price=mnPriceStr(it.priceCents);
+  openMSheet({kind:"item",c,i,item:it});
+}
+function mnLangSeg(){
+  const ls=mnLangs(); if(ls.length<2) return "";
+  return `<div class="mnlang"><div class="seg" role="group" aria-label="${esc(tl("m_editing"))}">${ls.map(l=>`<button type="button" data-mn="ml" data-v="${l}" aria-pressed="${l===mnML()}">${esc(MNN[l])}</button>`).join("")}</div></div>`;
+}
+function drawMSheet(){
+  const S=MN.sheet; if(!S) return; const body=$("#msBody"), top=body.scrollTop; mnErr(S.err||"");
+  let h,title,label;
+  if(S.kind==="draft"){ title=tl("m_draft_t"); label=tl("m_draft_use"); h=mnDraftHtml(S); }
+  else { title=S.i>=0?tl("m_item_edit"):tl("m_item_new"); label=tl("m_apply"); h=mnItemHtml(S); }
+  $("#msT").textContent=title; const go=$("#msGo"); go.textContent=label; go.disabled=!!S.up;
+  if(body.dataset.sig!==lang+h){ body.innerHTML=h; body.dataset.sig=lang+h; body.scrollTop=top; }
+}
+function mnItemHtml(S){
+  const D=S.item, ml=mnML(), att=(MN.config&&MN.config.allergens&&MN.config.allergens.length?MN.config.allergens.filter(a=>MN_AL.includes(a)):MN_AL);
+  let h=mnLangSeg();
+  const miss=!D.name[ml]&&mnShow(D.name)?mnShow(D.name):"";
+  h+=fld(tl("m_f_name"),`<input class="inp" data-mf="name.${ml}" value="${esc(D.name[ml]||"")}" maxlength="120" autocomplete="off" placeholder="${esc(miss)}">`);
+  h+=fld(tl("m_f_desc"),`<textarea class="inp" data-mf="description.${ml}" maxlength="400" placeholder="${esc(mnShow(D.description)&&!D.description[ml]?mnShow(D.description):"")}">${esc(D.description[ml]||"")}</textarea>`);
+  h+=fld(tl("m_f_price"),`<input class="inp" data-mf="price" value="${esc(D.price)}" inputmode="decimal" maxlength="10" autocomplete="off">`);
+  h+=`<div class="fld"><span>${esc(tl("m_f_avail"))}</span><div class="mnal"><button type="button" class="chipbtn" data-mn="avail" aria-pressed="${!!D.available}">${icon(D.available?"check-circle":"pause")}${esc(tl("m_f_avail"))}</button></div><small>${esc(tl("m_f_avail_h"))}</small></div>`;
+  h+=`<div class="fld"><span>${esc(tl("m_f_al"))}</span><div class="mnal">${att.map(a=>`<button type="button" class="chipbtn" data-mn="al" data-v="${a}" aria-pressed="${D.allergens.includes(a)}"><span aria-hidden="true">${MN_EM[a]}</span>${esc(tl("m_al_"+a))}</button>`).join("")}</div></div>`;
+  h+=`<div class="fld"><span>${esc(tl("m_f_photo"))}</span><div class="mnph">${S.up?`<span class="spin" aria-hidden="true"></span><span class="muted">${esc(tl("m_photo_up"))}</span>`:`${D.photo?`<img src="${esc(D.photo)}" alt="">`:""}<div class="mnrow"><button type="button" class="btn" data-mn="photo">${icon("camera")}${esc(tl(D.photo?"m_photo_change":"m_photo_add"))}</button>${D.photo?`<button type="button" class="btn bad" data-mn="photorm">${esc(tl("m_photo_rm"))}</button>`:""}</div>`}</div></div>`;
+  if(S.i>=0) h+=`<div class="mnrow" style="justify-content:center"><button type="button" class="btn" data-mn="itemup"${S.i?"":" disabled"}>${esc(tl("m_item_up"))}</button><button type="button" class="btn" data-mn="itemdown"${S.i<MN.cats[S.c].items.length-1?"":" disabled"}>${esc(tl("m_item_down"))}</button></div><button type="button" class="linkdanger" data-mn="itemdel">${esc(tl("m_item_del"))}</button>`;
+  return h;
+}
+function mnDraftHtml(S){
+  let h=`<p class="rnote" style="margin:0 0 14px;font-weight:500">${icon("check")}${esc(tl("m_draft_p"))}</p>`;
+  h+=`<div class="mnal" style="margin:0 0 14px"><button type="button" class="chipbtn" data-mn="mode" data-v="add" aria-pressed="${S.mode==="add"}">${esc(tl("m_mode_add"))}</button><button type="button" class="chipbtn" data-mn="mode" data-v="replace" aria-pressed="${S.mode==="replace"}">${esc(tl("m_mode_rep"))}</button></div>`;
+  h+=S.cats.map((c,ci)=>{ const ck=mnKey(c.name);
+    return `<div class="mnd" style="margin-top:14px"><input class="inp" style="font-weight:700" data-mf="cats.${ci}.name.${ck}" value="${esc(c.name[ck]||"")}" maxlength="80" aria-label="${esc(tl("m_cat_name"))}"><span></span><button type="button" class="bk-x" data-mn="dcat" data-c="${ci}" aria-label="${esc(tl("m_cat_del"))}">${icon("x")}</button></div>`+
+      c.items.map((it,ii)=>{ const k=mnKey(it.name); return `<div class="mnd"><input class="inp" data-mf="cats.${ci}.items.${ii}.name.${k}" value="${esc(it.name[k]||"")}" maxlength="120" aria-label="${esc(tl("m_f_name"))}"><input class="inp" data-mf="cats.${ci}.items.${ii}.price" value="${esc(it.price!=null?it.price:mnPriceStr(it.priceCents))}" inputmode="decimal" aria-label="${esc(tl("m_f_price"))}"><button type="button" class="bk-x" data-mn="ditem" data-c="${ci}" data-i="${ii}" aria-label="${esc(tl("m_rm"))}">${icon("x")}</button></div>`; }).join(""); }).join("");
+  return h;
+}
+function mnApplyItem(){
+  const S=MN.sheet, D=S.item;
+  if(!Object.keys(D.name).some(l=>String(D.name[l]||"").trim())){ S.err=tl("m_e_item"); return drawMSheet(); }
+  const cents=mnCents(D.price); if(Number.isNaN(cents)){ S.err=tl("m_e_price"); return drawMSheet(); }
+  const out={id:D.id||mnNid(),name:D.name,description:D.description,priceCents:cents,allergens:D.allergens,photo:D.photo||"",available:D.available!==false};
+  const list=MN.cats[S.c].items; if(S.i>=0) list[S.i]=out; else list.push(out);
+  closeMSheet(true); mnMark(); renderMenu();
+}
+function mnApplyDraft(){
+  const S=MN.sheet, used=new Set();
+  const cats=S.cats.map(c=>({id:mnNid(),name:c.name,items:c.items.map(it=>({id:mnNid(),name:it.name,description:it.description,priceCents:it.price!=null?mnCents(it.price):it.priceCents,allergens:it.allergens,photo:"",available:true}))}));
+  for(const c of cats){ Object.keys(c.name).forEach(k=>used.add(k)); c.items.forEach(it=>{ if(Number.isNaN(it.priceCents)) it.priceCents=null; Object.keys(it.name).forEach(k=>used.add(k)); }); }
+  MN.cats=S.mode==="replace"?cats:MN.cats.concat(cats);
+  closeMSheet(true); mnMark();
+  const ls=mnLangs(), extra=[...used].filter(k=>MNL.includes(k)&&!ls.includes(k));
+  if(extra.length) mnSetLangs(ls.concat(extra)); else renderMenu();
+  toast(tl("m_draft_in"),true);
+}
+async function mnPhoto(file){
+  const S=MN.sheet; if(!file||!S||S.kind!=="item"||S.up) return;
+  S.up=true; S.err=""; drawMSheet();
+  try{
+    const image=await mnRead(await downscaleBlob(file,1200,0.82));
+    const d=await mapi("POST","/photo",{image});
+    S.item.photo=d.url||"";
+  }catch(e){ S.err=e&&e.message==="img"?tl("m_img_err"):errMsg(e); }
+  S.up=false; if(MN.sheet===S){ $("#msBody").dataset.sig=""; drawMSheet(); }
+}
+$("#msBody").addEventListener("input",e=>{
+  const f=e.target.dataset&&e.target.dataset.mf, S=MN.sheet; if(!f||!S) return;
+  const v=e.target.value;
+  if(S.kind==="item") setP(S.item,f,v);
+  else { const p=f.split("."); if(p[p.length-1]==="price"){ setP(S,f,v); } else setP(S,f,v); }
+  $("#msBody").dataset.sig=lang+"x"+Math.random();
+});
+$("#mn").addEventListener("input",e=>{
+  const ci=e.target.dataset&&e.target.dataset.mc; if(ci==null||ci==="") return;
+  const c=MN.cats[+ci]; if(!c) return; const v=e.target.value, l=mnML();
+  if(v) c.name[l]=v; else delete c.name[l];
+  mnMark();
+});
+$("#msX").addEventListener("click",()=>closeMSheet());
+$("#mback").addEventListener("click",()=>closeMSheet());
+document.addEventListener("keydown",e=>{ if(e.key==="Escape"&&MN.sheet) closeMSheet(); });
+$("#msGo").addEventListener("click",()=>{ const S=MN.sheet; if(!S||S.up) return; if(S.kind==="draft") mnApplyDraft(); else mnApplyItem(); });
+$("#mnImp").addEventListener("change",e=>{ const f=e.target.files&&e.target.files[0]; e.target.value=""; if(f) mnImport(f); });
+$("#mnPh").addEventListener("change",e=>{ const f=e.target.files&&e.target.files[0]; e.target.value=""; if(f) mnPhoto(f); });
+document.addEventListener("click",async e=>{
+  const b=e.target.closest("[data-mn]"); if(!b) return;
+  const a=b.dataset.mn, S=MN.sheet, ci=+b.dataset.c, ii=+b.dataset.i, redrawS=()=>{ $("#msBody").dataset.sig=""; drawMSheet(); };
+  if(a==="retry") return loadMenu(true);
+  if(a==="import") return $("#mnImp").click();
+  if(a==="translate") return mnTranslate();
+  if(a==="save") return mnSave();
+  if(a==="copy"){ const ok=await copySilent(mnUrl()); return toast(ok?tl("m_copied"):mnUrl().slice(0,60)); }
+  if(a==="ml"){ MN.ml=b.dataset.v; renderMenu(); if(S) redrawS(); return; }
+  if(a==="lang"){
+    const l=b.dataset.v, ls=mnLangs().slice(), at=ls.indexOf(l);
+    if(at>=0){ if(ls.length<2) return; ls.splice(at,1); } else ls.push(l);
+    return mnSetLangs(ls);
+  }
+  if(a==="catadd"){ MN.cats.push({id:mnNid(),name:{},items:[]}); mnMark(); renderMenu(); const ins=$$("#mn [data-mc]"); if(ins.length) ins[ins.length-1].focus(); return; }
+  if(a==="catdel"){ if(MN.cats[ci]&&(!MN.cats[ci].items.length||confirm(tl("m_cat_del_c")))){ MN.cats.splice(ci,1); mnMark(); renderMenu(); } return; }
+  if(a==="catup"||a==="catdown"){ const j=a==="catup"?ci-1:ci+1; if(MN.cats[j]){ [MN.cats[ci],MN.cats[j]]=[MN.cats[j],MN.cats[ci]]; mnMark(); renderMenu(); } return; }
+  if(a==="itemadd") return mnEditItem(ci,-1);
+  if(a==="item") return mnEditItem(ci,ii);
+  if(!S) return;
+  if(S.kind==="item"){
+    const D=S.item;
+    if(a==="avail"){ D.available=!D.available; return redrawS(); }
+    if(a==="al"){ const v=b.dataset.v, k=D.allergens.indexOf(v); if(k>=0) D.allergens.splice(k,1); else D.allergens.push(v); return redrawS(); }
+    if(a==="photo") return $("#mnPh").click();
+    if(a==="photorm"){ D.photo=""; return redrawS(); }
+    if(a==="itemdel"){ if(!confirm(tl("m_item_del_c"))) return; MN.cats[S.c].items.splice(S.i,1); closeMSheet(true); mnMark(); renderMenu(); return; }
+    if(a==="itemup"||a==="itemdown"){
+      const list=MN.cats[S.c].items, j=a==="itemup"?S.i-1:S.i+1; if(!list[j]) return;
+      // keep the unsaved edits of this dish while moving it
+      const cents=mnCents(D.price); list[S.i]=Object.assign({},D,{id:D.id||mnNid(),priceCents:Number.isNaN(cents)?null:cents});
+      [list[S.i],list[j]]=[list[j],list[S.i]]; S.i=j; mnMark(); renderMenu(); return redrawS();
+    }
+  } else if(S.kind==="draft"){
+    if(a==="mode"){ S.mode=b.dataset.v; return redrawS(); }
+    if(a==="dcat"){ S.cats.splice(ci,1); return redrawS(); }
+    if(a==="ditem"){ S.cats[ci].items.splice(ii,1); return redrawS(); }
+  }
+});
+staticMn();
 
 staticText(); staticLoy();
 if(!token){ $("#loading").hidden=true; $("#bad").hidden=false; } else load();

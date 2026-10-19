@@ -10,6 +10,7 @@ import { generateImage } from "./images.mjs";
 import { findStockPhotos } from "./stock.mjs";
 import { describeImage, CONTEXT } from "./studio.mjs";
 import { bookingFor, siteCta } from "./bookings-links.mjs";
+import { menuFor } from "./menu-links.mjs";
 import { extractHtml, pageProblem, sanitize, assemble, readMeta, lintPage, BOOTSTRAP_CSS, BOOTSTRAP_ICONS_CSS, BOOTSTRAP_JS, ANIMATE_CSS } from "./webpage.mjs";
 import { directionPrompt } from "./directions.mjs";
 import { cleanLogo, analysePhoto, planImages, renderPlan, imgTag, fixPageImages, FRAMES, IMAGE_CSS } from "./siteimages.mjs";
@@ -176,7 +177,8 @@ export function designPrompt(client, { lang, assets, design, langs, direction, r
     p.payment && `Payment methods: ${p.payment}`,
     p.extras && `Other useful details: ${p.extras}`,
     p.bookingUrl && `Booking link: ${p.bookingUrl}`,
-    bookingFor(client) && `Online booking is open: a round "${bookingFor(client).kind === "room" ? "Book a room" : "Reserve a table"}" button is added automatically, fixed at the bottom centre of every page. Do not build a booking form or your own booking button; leave about 90px of free space at the very bottom of the page (padding under the footer) so it never covers content.`,
+    bookingFor(client) && `Online booking is open: a round "${bookingFor(client).kind === "room" ? "Book a room" : "Reserve a table"}" button is added automatically, fixed at the bottom centre of every page. Do not build a booking form or your own booking button; leave about ${menuFor(client) ? 150 : 90}px of free space at the very bottom of the page (padding under the footer) so it never covers content.`,
+    menuFor(client) && `A digital menu is online: a "${menuFor(client).label}" button is added automatically, fixed at the bottom centre (above the booking button if there is one) of every page. Do not build your own link to it. Leave about ${bookingFor(client) ? 150 : 90}px of free space at the very bottom of the page (padding under the footer) so the buttons never cover content.`,
     p.menuUrl && `Menu / catalogue link: ${p.menuUrl}`,
     social.length && `Social and review profiles: ${social.map(([k, v]) => `${k}: ${v}`).join(", ")}`,
     `Their customers speak: ${langs.map((l) => LANG_NAMES[l] ?? l).join(", ")} (this page is the ${L} version)`,

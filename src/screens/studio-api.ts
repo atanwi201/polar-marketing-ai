@@ -73,6 +73,7 @@ export interface StudioData {
   public: { url: string; reachable: boolean };
   apps: { x: boolean; youtube: boolean };
   limits?: { postsPerWeek: number };
+  offer?: { trialDays: number; plans: Record<"basic" | "pro", { name: string; price: number; setup: number; postsPerWeek: number; videosPerWeek: number }> } | null;
 }
 
 export type Result<T> = { kind: "ok"; data: T } | { kind: "unreachable" } | { kind: "auth" } | { kind: "error"; message: string };

@@ -408,6 +408,7 @@ details.panel summary{font:700 16px/24px var(--font-display);cursor:pointer;min-
   ${wallet ? `<a class="apple" href="${esc(wallet)}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6.5A2.5 2.5 0 0 1 5.5 4h13A2.5 2.5 0 0 1 21 6.5V8H3V6.5zM3 10h18v7.5a2.5 2.5 0 0 1-2.5 2.5h-13A2.5 2.5 0 0 1 3 17.5V10zm12 3a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3z"/></svg>Add to Apple Wallet</a>` : ""}
   ${google ? `<a class="apple gpay" href="${esc(google)}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6.5A2.5 2.5 0 0 1 5.5 4h13A2.5 2.5 0 0 1 21 6.5V8H3V6.5zM3 10h18v7.5a2.5 2.5 0 0 1-2.5 2.5h-13A2.5 2.5 0 0 1 3 17.5V10zm12 3a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3z"/></svg>Add to Google Wallet</a>` : ""}
   ${view.booking?.url ? `<a class="bk" id="bk" href="${esc(view.booking.url)}" data-es="${view.booking.kind === "room" ? "Reservar habitación" : "Reservar mesa"}">${view.booking.kind === "room" ? "Book a room" : "Book a table"}</a>` : ""}
+  ${view.menu?.url ? `<a class="bk" id="mn" href="${esc(view.menu.url)}" data-es="Carta">Menu</a>` : ""}
   <div class="panels">
     <section class="panel cr-card"><h3>Rewards</h3><ul class="list" id="rewards">${K.rewards(view)}</ul></section>
     <section class="panel cr-card"><h3>Activity</h3><ul class="list hist" id="history">${K.history(view)}</ul></section>
@@ -459,7 +460,7 @@ status();
 if(window.PolarTheme)PolarTheme.mount($("themeSel"),document.documentElement.lang);
 addEventListener("polar-theme",function(){var tc=document.querySelector('meta[name=theme-color]');if(tc)tc.content=K.col((view.program.design||{}).background,"#14232b")});
 var tc0=document.querySelector('meta[name=theme-color]');if(tc0)tc0.content=K.col((view.program.design||{}).background,"#14232b");
-var bk=$("bk");if(bk&&/^es/i.test(navigator.language||"")){bk.textContent=bk.getAttribute("data-es");document.documentElement.lang="es"}
+var bk=$("bk"),mn=$("mn");if(bk&&/^es/i.test(navigator.language||"")){bk.textContent=bk.getAttribute("data-es");document.documentElement.lang="es"}if(mn&&/^es/i.test(navigator.language||"")){mn.textContent=mn.getAttribute("data-es");document.documentElement.lang="es"}
 // big QR on a white screen, kept awake
 var lock=null;
 function wake(){try{if(navigator.wakeLock)navigator.wakeLock.request("screen").then(function(l){lock=l}).catch(function(){})}catch(e){}}

@@ -45,7 +45,7 @@ test("a declined business is blocked everywhere and sees the contact screen in i
   assert.match(page.text, /\/brand\/tokens\.css/);
   assert.match((await api("GET", `/portal/${en.token}`)).text, /Your business was declined/);
   assert.match((await api("GET", `/portal/${en.token}?l=es`)).text, /Tu negocio/);
-  for (const [m, path] of [["GET", ""], ["POST", "/briefs"], ["POST", "/profile"], ["GET", "/qr"], ["POST", "/upload"], ["GET", "/loyalty"], ["GET", "/bookings"], ["POST", "/messages"]]) {
+  for (const [m, path] of [["GET", ""], ["POST", "/briefs"], ["POST", "/profile"], ["GET", "/qr"], ["POST", "/upload"], ["GET", "/loyalty"], ["GET", "/bookings"], ["GET", "/expenses"], ["GET", "/menu"], ["PUT", "/menu"], ["POST", "/menu/import"], ["POST", "/expenses/scan"], ["POST", "/expenses/items"], ["GET", "/expenses/export?format=ods"], ["POST", "/messages"]]) {
     const r = await api(m, `/api/portal/${es.token}${path}`, m === "POST" ? {} : undefined);
     assert.equal(r.status, 403, `${m} ${path}`);
     assert.equal(r.data.code, "declined");
@@ -71,6 +71,11 @@ test("a declined business is blocked everywhere and sees the contact screen in i
   assert.match((await api("GET", `/book/${cfgCode}`)).text, /atanwi85@gmail\.com/);
   assert.equal((await api("GET", `/api/book/${cfgCode}/info`)).status, 403);
   assert.equal((await api("POST", `/api/book/${cfgCode}`, {})).status, 403);
+  const mc = (await api("GET", `/api/studio/menu?clientId=${cid}`)).data.config;
+  await api("PUT", `/api/studio/menu/config?clientId=${cid}`, { enabled: true });
+  assert.equal((await api("GET", `/menu/${mc.code}`)).status, 403);
+  assert.match((await api("GET", `/menu/${mc.code}`)).text, /atanwi85@gmail\.com/);
+  assert.equal((await api("GET", `/api/menu/${mc.code}`)).status, 403);
   const prog = (await api("POST", "/api/studio/loyalty/programs", { clientId: cid, name: "Club" })).data;
   const p = prog.program ?? prog;
   assert.equal((await api("GET", `/join/${p.joinCode}`)).status, 403);

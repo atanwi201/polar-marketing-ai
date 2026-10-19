@@ -457,8 +457,26 @@ test("the owner downloads a site as a zip and uploads a replacement", async () =
   assert.equal((await api("GET", "/api/studio")).data.clients.find((x) => x.id === c.id).site.kind, "upload");
 });
 
+test("the public landing page shows the owner's current prices", async () => {
+  const before = await (await fetch(`${B}/`)).text();
+  assert.match(before, /Publicado/);
+  assert.match(before, /"price":49/, "defaults until the owner saves prices");
+  assert.match(before, /href="\/login"/);
+  const saved = await api("POST", "/api/studio/settings/offer", { trialDays: 30, plans: { basic: { name: "Inicio", price: 39, setup: 0, postsPerWeek: 4, videosPerWeek: 0 }, pro: { name: "Pro <b>", price: "129", setup: -5, postsPerWeek: 7, videosPerWeek: 3 } } });
+  assert.equal(saved.status, 200);
+  assert.equal(saved.data.offer.plans.pro.setup, 0, "values are kept in range");
+  const page = await (await fetch(`${B}/`)).text();
+  assert.match(page, /"trialDays":30/);
+  assert.match(page, /"name":"Inicio","price":39/);
+  assert.doesNotMatch(page, /Pro <b>/, "no raw HTML from settings in the page");
+  assert.equal((await api("GET", "/api/studio")).data.offer.plans.pro.price, 129);
+  assert.equal((await fetch(`${B}/robots.txt`)).status, 200);
+  const range = await fetch(`${B}/brand/home/reel-dolphin.mp4`, { headers: { Range: "bytes=0-99" } });
+  assert.equal(range.status, 206);
+});
+
 test("landing page: the owner creates a password and signs in, a business enters with its code", async () => {
-  const home = await fetch(`${B}/`);
+  const home = await fetch(`${B}/login`);
   assert.equal(home.status, 200);
   assert.match(await home.text(), /Soy cliente/);
   assert.deepEqual((await api("GET", "/api/auth")).data, { admin: false, setup: true, fromEnv: false });
@@ -476,7 +494,7 @@ test("landing page: the owner creates a password and signs in, a business enters
   assert.equal((await fetch(`${B}/api/studio`, { headers: { cookie } })).status, 200);
   const admin = await fetch(`${B}/admin/`, { redirect: "manual" });
   assert.equal(admin.status, 302);
-  assert.equal(admin.headers.get("location"), "/");
+  assert.equal(admin.headers.get("location"), "/login");
   assert.equal((await fetch(`${B}/index.html`)).status, 404, "the app isn't reachable around the password");
   assert.deepEqual((await (await fetch(`${B}/api/auth`, { headers: { cookie } })).json()).admin, true);
   assert.equal((await api("POST", "/api/auth/login", { password: "wrong-password" })).status, 401);

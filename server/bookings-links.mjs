@@ -4,6 +4,7 @@ import { readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { db } from "./store.mjs";
 import { findConfig, bookingUrl } from "./bookings.mjs";
+import { menuFor, injectMenuCta } from "./menu-links.mjs";
 
 /** The public address of this server (a client's own-domain site must link to it absolutely). */
 export const serverBase = () => (process.env.PUBLIC_URL ?? `http://localhost:${process.env.PORT ?? 8787}`).replace(/\/$/, "");
@@ -37,7 +38,11 @@ export function injectBookingCta(html, { booking, lang = "en", color = "#111111"
 const accentOf = (client) => hex(client.profile?.colors?.accent, hex(client.profile?.colors?.primary, "#111111"));
 
 /** Page-building hook: the CTA for one language of a client's site. */
-export const siteCta = (html, client, lang) => injectBookingCta(html, { booking: bookingFor(client, { src: "website" }), lang, color: accentOf(client) });
+export function siteCta(html, client, lang) {
+  const booking = bookingFor(client, { src: "website" });
+  const withBooking = injectBookingCta(html, { booking, lang, color: accentOf(client) });
+  return injectMenuCta(withBooking, { menu: menuFor(client, { src: "website" }), booking: !!booking, lang }); // menu pill sits above the booking pill
+}
 
 /**
  * Cheap path for sites already built: add/remove the button in the live files without rebuilding.

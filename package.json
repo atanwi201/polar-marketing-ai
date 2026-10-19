@@ -13,7 +13,8 @@
     "typecheck": "tsc --noEmit",
     "deploy": "bash scripts/deploy.sh",
     "push-env": "bash scripts/push-env.sh",
-    "backup": "bash scripts/backup.sh"
+    "backup": "bash scripts/backup.sh",
+    "home-assets": "node scripts/home-assets.mjs"
   },
   "dependencies": {
     "@heyputer/puter.js": "^2.6.4",

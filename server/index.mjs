@@ -18,6 +18,7 @@ const { buildSite, SITES_DIR, startSiteRetries, siteBase, siteSlug, installUploa
 const { qrPng, qrSvg } = await import("./qr.mjs");
 const { editSite, undoSite, versionCount } = await import("./siteedit.mjs");
 const { approval, blockReason, usage, DEFAULT_WEEKLY } = await import("./limits.mjs");
+const { cleanOffer, publicOffer } = await import("./offer.mjs");
 const { declinedClientFor, declinedPage, declinedBody } = await import("./declined.mjs");
 const { legalPage } = await import("./legal.mjs");
 const { shareItem, checkAccounts, connections, maskAccounts, mergeAccounts, publicUrl, isPublic, TARGETS } = await import("./social.mjs");
@@ -29,6 +30,10 @@ const { handleLoyalty } = await import("./loyalty-routes.mjs");
 const loyalty = await import("./loyalty.mjs");
 const { handleBookings } = await import("./bookings-routes.mjs");
 const bookings = await import("./bookings.mjs");
+const { handleExpenses } = await import("./expenses-routes.mjs");
+const { handleMenu } = await import("./menu-routes.mjs");
+const menuData = await import("./menu.mjs");
+const expenses = await import("./expenses.mjs");
 const { bookingMailer } = await import("./booking-mail.mjs");
 const { handleWallet, pushUpdate } = await import("./wallet.mjs");
 const { walletStatus, buildPass } = await import("./pass.mjs");
@@ -103,6 +108,7 @@ const page = (name) => () => readFileSync(join(import.meta.dirname, name), "utf8
 const PORTAL_HTML = page("portal.html");
 const SIGNUP_HTML = page("signup.html");
 const LANDING_HTML = page("landing.html");
+const HOME_HTML = page("home.html");
 const PUTER_CALLBACK_HTML = `<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Puter</title><link rel="icon" href="/brand/logo/favicon.svg" type="image/svg+xml">
 <script src="/brand/theme.js"></script><link rel="stylesheet" href="/brand/tokens.css">
 <style>body{font:16px/24px var(--font-sans,system-ui);background:var(--bg);color:var(--ink);display:grid;place-items:center;min-height:100vh;margin:0}main{max-width:380px;padding:24px;text-align:center}h1{font:700 28px/1.15 var(--font-display,system-ui);margin:0 0 8px}p{color:var(--ink-2);margin:0}</style>
@@ -284,6 +290,13 @@ async function route(req, res, url) {
     return;
   }
 
+  if (await handleExpenses(req, res, url, seg, loyaltyCtx)) return;
+  if (await handleMenu(req, res, url, seg, loyaltyCtx)) {
+    // Turning the menu on/off or changing its dishes shows on already-built websites straight away (no rebuild).
+    if (req.method === "PUT" || req.method === "PATCH") void import("./bookings-links.mjs").then((m) => m.syncAllSites(SITES_DIR)).catch(() => {});
+    return;
+  }
+
   // --- AI proxy for the main app ---
   if (p === "/api/ai/status") {
     if (!KEYF()) return send(res, 200, { configured: false, provider: "openrouter" });
@@ -309,12 +322,21 @@ async function route(req, res, url) {
   }
 
   // --- Landing page: the owner signs in with a password, a business with its access code ---
-  if ((p === "/" || p === "/login") && req.method === "GET") {
+  // --- Public landing page (prices come from the owner's Plans & prices) ---
+  if (p === "/" && req.method === "GET") {
+    res.writeHead(200, { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-cache" });
+    return res.end(HOME_HTML().replaceAll("{{BASE}}", base(req)).replace("{{OFFER_JSON}}", JSON.stringify(publicOffer()).replace(/</g, "\\u003c")));
+  }
+  if (p === "/robots.txt" && req.method === "GET") {
+    res.writeHead(200, { "Content-Type": "text/plain; charset=utf-8" });
+    return res.end(`User-agent: *\nAllow: /\nDisallow: /admin/\nDisallow: /api/\nDisallow: /portal/\nDisallow: /login\n`);
+  }
+  if (p === "/login" && req.method === "GET") {
     res.writeHead(200, { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-cache" });
     return res.end(LANDING_HTML());
   }
   if ((p === "/admin" || p === "/admin/") && req.method === "GET") {
-    if (!auth.hasPassword() || !auth.isAdmin(req)) { res.writeHead(302, { Location: "/" }); return res.end(); }
+    if (!auth.hasPassword() || !auth.isAdmin(req)) { res.writeHead(302, { Location: "/login" }); return res.end(); }
     const app = join(root, "dist", "index.html");
     if (!existsSync(app)) { res.writeHead(302, { Location: "http://localhost:5173/admin/" }); return res.end(); } // dev: Vite serves it
     res.writeHead(200, { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-cache" });
@@ -487,7 +509,7 @@ async function route(req, res, url) {
     if (!kind && req.method === "GET") {
       const cap = await capabilities();
       return send(res, 200, {
-        ...db, settings: undefined, limits: { postsPerWeek: db.settings.limits?.postsPerWeek ?? DEFAULT_WEEKLY }, clients: db.clients.map(studioClient), ai: aiSettingsView(), images: imageSettingsView(),
+        ...db, settings: undefined, limits: { postsPerWeek: db.settings.limits?.postsPerWeek ?? DEFAULT_WEEKLY }, offer: db.settings.offer ?? null, clients: db.clients.map(studioClient), ai: aiSettingsView(), images: imageSettingsView(),
         video: { ffmpeg: cap.ffmpeg && cap.canvas, voices: cap.voices, lengths: LENGTHS },
         public: { url: publicUrl(), reachable: isPublic() },
         apps: { x: !!(process.env.X_API_KEY && process.env.X_API_SECRET), youtube: !!(process.env.YOUTUBE_CLIENT_ID && process.env.YOUTUBE_CLIENT_SECRET) },
@@ -567,6 +589,12 @@ async function route(req, res, url) {
         }
       }
       return send(res, 200, studioClient(c));
+    }
+    // Plans & prices: a copy for the public landing page.
+    if (kind === "settings" && oid === "offer" && req.method === "POST") {
+      db.settings.offer = cleanOffer(await readBody(req));
+      await save();
+      return send(res, 200, { offer: db.settings.offer });
     }
     if (kind === "settings" && oid === "limits" && req.method === "POST") {
       const b = await readBody(req);
@@ -667,6 +695,8 @@ async function route(req, res, url) {
       db.videos = db.videos.filter((x) => x.clientId !== oid);
       db.messages = db.messages.filter((x) => x.clientId !== oid);
       bookings.removeClientData(oid);
+      expenses.removeClientData(oid);
+      await menuData.removeClientData(oid);
       await save();
       return send(res, 200, { ok: true });
     }
@@ -816,6 +846,24 @@ async function route(req, res, url) {
     return res.end(sharePage({ item, kind: post ? "post" : "video", client, base: base(req), lang: url.searchParams.get("lang") ?? client.languages?.[0] }));
   }
 
+
+  // --- Landing page photos and the example Reel (byte ranges, so the video plays on iPhone) ---
+  if (seg[0] === "brand" && seg[1] === "home" && seg.length === 3 && /^[\w-]+\.(jpg|jpeg|png|webp|mp4)$/.test(seg[2]) && req.method === "GET") {
+    const file = join(BRAND_DIR, "home", seg[2]);
+    if (!existsSync(file)) return send(res, 404, { error: "not found" });
+    const size = statSync(file).size;
+    const head = { "Content-Type": MIME[seg[2].split(".").pop()], "Cache-Control": "public, max-age=86400", "Accept-Ranges": "bytes" };
+    const m = /^bytes=(\d*)-(\d*)$/.exec(req.headers.range ?? "");
+    if (m && (m[1] || m[2])) {
+      const start = m[1] ? Number(m[1]) : Math.max(0, size - Number(m[2]));
+      const end = m[1] && m[2] ? Math.min(Number(m[2]), size - 1) : size - 1;
+      if (start >= size || start > end) { res.writeHead(416, { "Content-Range": `bytes */${size}` }); return res.end(); }
+      res.writeHead(206, { ...head, "Content-Range": `bytes ${start}-${end}/${size}`, "Content-Length": end - start + 1 });
+      return createReadStream(file, { start, end }).pipe(res);
+    }
+    res.writeHead(200, { ...head, "Content-Length": size });
+    return createReadStream(file).pipe(res);
+  }
 
   // --- Brand: design tokens, logo and favicon set (also at the root paths browsers probe by default) ---
   const ROOT_ICONS = { "/favicon.ico": "logo/favicon.ico", "/apple-touch-icon.png": "logo/apple-touch-icon.png", "/apple-touch-icon-precomposed.png": "logo/apple-touch-icon.png", "/site.webmanifest": "site.webmanifest" };

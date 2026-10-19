@@ -6,7 +6,7 @@ import { withIgic } from "../core/biz";
 import { eur } from "../core/plans";
 import { navigate } from "../core/nav";
 import type { Client } from "../core/types";
-import { useStudio } from "../core/studio-sync";
+import { useStudio, publishOffer } from "../core/studio-sync";
 import { call } from "./studio-api";
 
 /** The weekly limit every business gets unless you set its own (Business › Overview). */
@@ -54,6 +54,7 @@ export default function Plans() {
     }
     setBusy(true);
     await saveOffer(o);
+    void publishOffer(o); // the landing page shows the new prices straight away
     setBusy(false);
     setDirty(false);
     toast("Prices saved. Clients on the list price pay the new price from their next invoice.");

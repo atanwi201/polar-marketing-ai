@@ -4,6 +4,7 @@ import { db } from "./store.mjs";
 import { approval } from "./limits.mjs";
 import * as bookings from "./bookings.mjs";
 import * as loyalty from "./loyalty.mjs";
+import * as menu from "./menu.mjs";
 
 export const OWNER_EMAIL = "atanwi85@gmail.com";
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
@@ -74,6 +75,7 @@ export function declinedClientFor(seg, siteSlugOf = (c) => c.siteSlug) {
     if (s[1] === "portal" && s[2]) c = db.clients.find((x) => x.token === s[2]);
     else if (s[1] === "book" && s[2]) c = clientById(bookings.findByCode(s[2])?.clientId);
     else if (s[1] === "booking" && s[2]) c = clientById(bookings.findByManageToken(s[2])?.clientId);
+    else if (s[1] === "menu" && s[2]) c = clientById(menu.findByCode(s[2])?.clientId);
     else if (s[1] === "loyalty" && s[2] && s[3]) {
       if (s[2] === "join") c = clientById(loyalty.ldb().programs.find((p) => p.joinCode === s[3])?.clientId);
       else if (s[2] === "staff") c = clientById(loyalty.ldb().programs.find((p) => p.staffToken === s[3])?.clientId);
@@ -83,6 +85,7 @@ export function declinedClientFor(seg, siteSlugOf = (c) => c.siteSlug) {
     if (s[0] === "portal") c = db.clients.find((x) => x.token === s[1]);
     else if (s[0] === "book") c = clientById(bookings.findByCode(s[1])?.clientId);
     else if (s[0] === "booking") c = clientById(bookings.findByManageToken(s[1])?.clientId);
+    else if (s[0] === "menu") c = clientById(menu.findByCode(s[1])?.clientId);
     else if (s[0] === "join") c = clientById(loyalty.ldb().programs.find((p) => p.joinCode === s[1])?.clientId);
     else if (s[0] === "staff") c = clientById(loyalty.ldb().programs.find((p) => p.staffToken === s[1])?.clientId);
     else if (s[0] === "card") c = clientById(loyalty.findProgram(loyalty.findByToken(s[1])?.programId)?.clientId);

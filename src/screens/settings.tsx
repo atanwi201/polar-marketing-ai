@@ -75,7 +75,7 @@ function PasswordCard() {
   return (
     <Card title="Admin password" aside={<Button small kind="primary" busy={busy} onClick={() => void save()}>Change password</Button>}>
       <div className="stack-sm">
-        <p className="small muted" style={{ margin: 0 }}>You type it on the home page to open this dashboard. Changing it signs out every other browser.</p>
+        <p className="small muted" style={{ margin: 0 }}>You type it on the sign-in page (/login) to open this dashboard. Changing it signs out every other browser.</p>
         <div className="form-grid">
           <Field label="Current password"><Input id="pw-cur" type="password" value={cur} onChange={setCur} /></Field>
           <Field label="New password" hint="At least 8 characters."><Input id="pw-new" type="password" value={next} onChange={setNext} /></Field>

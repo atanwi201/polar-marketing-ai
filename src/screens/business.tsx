@@ -13,12 +13,14 @@ import { FeedTab, AccountsEditor, SiteQrCard } from "./studio";
 import { VideosTab } from "./studio-videos";
 import { LoyaltyPanel } from "./loyalty";
 import { BookingsPanel } from "./bookings";
+import { ExpensesPanel } from "./expenses";
+import { MenuPanel } from "./menu";
 import { PlanPicker, ConsentEditor, STAGE_TONE } from "./clients";
 import { invTotal } from "./billing";
 import type { Client, Invoice, Lang } from "../core/types";
 
-type Tab = "overview" | "chat" | "posts" | "videos" | "website" | "loyalty" | "bookings" | "plan" | "accounts" | "details";
-const TABS: Tab[] = ["overview", "chat", "posts", "videos", "website", "loyalty", "bookings", "plan", "accounts", "details"];
+type Tab = "overview" | "chat" | "posts" | "videos" | "website" | "loyalty" | "bookings" | "expenses" | "menu" | "plan" | "accounts" | "details";
+const TABS: Tab[] = ["overview", "chat", "posts", "videos", "website", "loyalty", "bookings", "expenses", "menu", "plan", "accounts", "details"];
 const PLATFORMS = ["instagram", "facebook", "x", "youtube", "google", "tiktok", "linkedin"];
 
 export const initials = (n: string) => {
@@ -86,7 +88,7 @@ export default function Business() {
   const portal = sc?.token ? `${apiOrigin}/portal/${sc.token}` : "";
   const left = trialDaysLeft(client, offer);
 
-  const needsStudio = (content: ReactNode) => (sc ? content : <StartAutopilot client={client} data={data} offer={offer} act={act} />);
+  const needsStudio = (content: () => ReactNode) => (sc ? content() : <StartAutopilot client={client} data={data} offer={offer} act={act} />);
 
   return (
     <Page title={client.name} avatar={<Avatar name={client.name} logoFile={sc?.logoFile} size={48} />} intro={<span className="row wrap">
@@ -108,20 +110,24 @@ export default function Business() {
           { id: "website", label: "Website" },
           { id: "loyalty", label: "Loyalty" },
           { id: "bookings", label: "Bookings" },
+          { id: "expenses", label: "Expenses" },
+          { id: "menu", label: "Menu" },
           { id: "plan", label: "Plan & billing" },
           { id: "accounts", label: "Social accounts" },
           { id: "details", label: "Details" },
         ]} />
         <div style={{ marginTop: 16 }}>
           {tab === "overview" && <Overview client={client} sc={sc} data={data} offer={offer} posts={posts} videos={videos} messages={messages} flagged={flagged.length} portal={portal} setTab={setTab} act={act} />}
-          {tab === "chat" && needsStudio(<Chat sc={sc!} messages={messages} data={data!} act={act} />)}
-          {tab === "posts" && needsStudio(<><AskPost sc={sc!} act={act} /><FeedTab data={data!} nameOf={() => client.name} filter={sc?.id ?? ""} setFilter={() => {}} act={act} fixed /></>)}
-          {tab === "videos" && needsStudio(<VideosTab data={data!} nameOf={() => client.name} act={act} clientId={sc?.id} />)}
-          {tab === "website" && needsStudio(<Website sc={sc!} act={act} />)}
-          {tab === "loyalty" && needsStudio(<LoyaltyPanel clientId={sc!.id} clientName={client.name} />)}
-          {tab === "bookings" && needsStudio(<BookingsPanel clientId={sc!.id} clientName={client.name} />)}
+          {tab === "chat" && needsStudio(() => <Chat sc={sc!} messages={messages} data={data!} act={act} />)}
+          {tab === "posts" && needsStudio(() => <><AskPost sc={sc!} act={act} /><FeedTab data={data!} nameOf={() => client.name} filter={sc?.id ?? ""} setFilter={() => {}} act={act} fixed /></>)}
+          {tab === "videos" && needsStudio(() => <VideosTab data={data!} nameOf={() => client.name} act={act} clientId={sc?.id} />)}
+          {tab === "website" && needsStudio(() => <Website sc={sc!} act={act} />)}
+          {tab === "loyalty" && needsStudio(() => <LoyaltyPanel clientId={sc!.id} clientName={client.name} />)}
+          {tab === "bookings" && needsStudio(() => <BookingsPanel clientId={sc!.id} clientName={client.name} />)}
+          {tab === "expenses" && needsStudio(() => <ExpensesPanel clientId={sc?.id ?? ""} clientName={client.name} />)}
+          {tab === "menu" && needsStudio(() => <MenuPanel clientId={sc?.id ?? ""} clientName={client.name} />)}
           {tab === "plan" && <PlanTab client={client} invoices={invoices.filter((i) => i.clientId === client.id)} />}
-          {tab === "accounts" && needsStudio(<Accounts sc={sc!} data={data!} act={act} />)}
+          {tab === "accounts" && needsStudio(() => <Accounts sc={sc!} data={data!} act={act} />)}
           {tab === "details" && <Details client={client} sc={sc} act={act} />}
         </div>
       </Card>
@@ -181,11 +187,11 @@ function Overview({ client, sc, data, offer, posts, videos, messages, flagged, p
           <div className="stack-sm">
             <span className="small muted">Their access code</span>
             <span className="access-code">{sc.code}</span>
-            <span className="small faint">They type it on the home page ({apiOrigin.replace(/^https?:\/\//, "")}) to open their dashboard.</span>
+            <span className="small faint">They type it on the sign-in page ({apiOrigin.replace(/^https?:\/\//, "")}/login) to open their dashboard.</span>
           </div>
           <span className="row wrap">
             <CopyButton text={sc.code} label="Copy code" />
-            <CopyButton text={`Hola ${client.name}: entra en tu panel de Polar Marketing en ${apiOrigin}/ con tu código ${sc.code}`} label="Copy message for them" />
+            <CopyButton text={`Hola ${client.name}: entra en tu panel de Polar Marketing en ${apiOrigin}/login con tu código ${sc.code}`} label="Copy message for them" />
           </span>
         </div>
       )}

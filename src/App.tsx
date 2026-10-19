@@ -28,7 +28,7 @@ function useAdminAuth(): Auth {
       .then((d: { admin?: boolean; setup?: boolean }) => {
         if (typeof d?.setup !== "boolean") return setAuth("local");
         if (d.admin) return setAuth("signed-in");
-        location.replace("/#admin"); // the landing page asks for the password (or creates it the first time)
+        location.replace("/login#admin"); // the sign-in page asks for the password (or creates it the first time)
       })
       .catch(() => setAuth("local"));
   }, []);
@@ -37,7 +37,7 @@ function useAdminAuth(): Auth {
 
 async function signOut() {
   await fetch("/api/auth/logout", { method: "POST", credentials: "same-origin" }).catch(() => {});
-  location.href = "/";
+  location.href = "/login";
 }
 
 export default function App() {
