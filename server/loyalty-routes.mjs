@@ -37,7 +37,7 @@ const bin = (res, type, buf, extra = {}) => { res.writeHead(200, { "Content-Type
 const tooMany = (ctx, res) => ctx.send(res, 429, { error: "Too many tries. Please wait a few minutes." });
 const fail = (e, ctx, res) => ctx.send(res, e.status ?? 500, { error: e.status ? e.message : "Something went wrong. Please try again." });
 
-const byToken = (t) => (typeof t === "string" ? L.ldb().programs.find((p) => p.staffToken === t) : undefined);
+const byToken = (t) => { const p = typeof t === "string" ? L.ldb().programs.find((x) => x.staffToken === t) : undefined; return p && L.staffTokenValid(p) ? p : undefined; };
 const byJoin = (c) => (typeof c === "string" ? L.ldb().programs.find((p) => p.joinCode === c) : undefined);
 
 async function walletInfo(ctx) {
@@ -225,7 +225,9 @@ async function manage(req, res, url, rest, scope, ctx) {
   // POST /upload {image: dataUrl} -> {file}: a logo, banner or background for a card design
   if (rest[0] === "upload" && rest.length === 1 && m === "POST") {
     const b = await ctx.readBody(req, 9e6);
-    return out(200, { file: await ctx.saveUpload(b?.image) });
+    const file = await ctx.saveUpload(b?.image);
+    L.recordUpload(file, owner ? "" : scope.clientId);
+    return out(200, { file });
   }
   if (rest[0] !== "programs") return false;
 
@@ -309,10 +311,9 @@ async function manage(req, res, url, rest, scope, ctx) {
   if (act === "qr.png" && rest.length === 3 && m === "GET") return bin(res, "image/png", await qrPng(L.joinUrl(p, base)), { "Content-Disposition": `inline; filename="join-${p.joinCode}.png"` }), true;
   if (act === "qr" && rest.length === 3 && m === "GET") { const u = L.joinUrl(p, base); return out(200, { url: u, svg: await qrSvg(u) }); }
   if (act === "regenerate-staff-token" && rest.length === 3 && m === "POST") {
-    p.staffToken = token();
-    p.updatedAt = now();
+    L.rotateStaffToken(p);
     await save();
-    return out(200, { staffToken: p.staffToken, staffUrl: L.staffUrl(p, base) });
+    return out(200, { staffToken: p.staffToken, staffTokenExpiresAt: p.staffTokenExpiresAt, staffUrl: L.staffUrl(p, base) });
   }
 
   if (act === "customers") {

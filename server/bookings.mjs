@@ -1,6 +1,7 @@
 // Reservations: one booking system per client business (db.bookings), no payments.
 // Restaurants book table slots (party size + opening hours); small hotels book rooms (date range + availability).
 // Dates are local calendar strings (YYYY-MM-DD), times "HH:MM", in the business's timezone (default Europe/Madrid).
+import { randomInt } from "node:crypto";
 import { db, id, token, now } from "./store.mjs";
 
 export class BookingError extends Error {
@@ -24,7 +25,7 @@ const bool = (v, d) => (typeof v === "boolean" ? v : d);
 const DATE = /^\d{4}-\d{2}-\d{2}$/, TIME = /^([01]\d|2[0-3]):[0-5]\d$/;
 const EMAIL = /^[^@\s]{1,64}@[^@\s]+\.[^@\s]{2,}$/;
 const CODE_ALPHABET = "abcdefghjkmnpqrstuvwxyz23456789";
-const rcode = (n) => Array.from({ length: n }, () => CODE_ALPHABET[Math.floor(Math.random() * CODE_ALPHABET.length)]).join("");
+const rcode = (n) => Array.from({ length: n }, () => CODE_ALPHABET[randomInt(CODE_ALPHABET.length)]).join("");
 
 // ---- date helpers (pure calendar math, no timezone surprises) ----
 const toDays = (d) => Math.round(Date.parse(d + "T00:00:00Z") / 864e5);

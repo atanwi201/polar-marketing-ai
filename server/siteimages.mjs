@@ -4,6 +4,7 @@
 // needs, and assigns each image to one place on the page. The model only lays the tags out.
 import { writeFile } from "node:fs/promises";
 import { join } from "node:path";
+import { guardImage } from "./images.mjs";
 
 const canvasLib = () => import("@napi-rs/canvas");
 
@@ -15,6 +16,7 @@ const canvasLib = () => import("@napi-rs/canvas");
  * whether it now has a transparent background.
  */
 export async function cleanLogo(src, out, { max = 640 } = {}) {
+  await guardImage(src); // magic bytes and pixel cap before the canvas decodes it
   const { createCanvas, loadImage } = await canvasLib();
   const img = await loadImage(src);
   const k = Math.min(1, max / Math.max(img.width, img.height));
@@ -80,6 +82,7 @@ export async function cleanLogo(src, out, { max = 640 } = {}) {
  * centre of the detail (edges), pulled a little towards the middle, which is how a designer crops.
  */
 export async function analysePhoto(src) {
+  await guardImage(src); // magic bytes and pixel cap before the canvas decodes it
   const { createCanvas, loadImage } = await canvasLib();
   const img = await loadImage(src);
   const N = 48;
@@ -114,6 +117,7 @@ export const FRAMES = {
 
 /** Crop `src` to a frame around its subject and save it. Returns the size and where the subject is in the crop. */
 export async function cropTo(src, out, frame, focus = { x: 0.5, y: 0.5 }) {
+  await guardImage(src); // magic bytes and pixel cap before the canvas decodes it
   const { createCanvas, loadImage } = await canvasLib();
   const img = await loadImage(src);
   const { ratio } = FRAMES[frame];

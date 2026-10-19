@@ -6,7 +6,10 @@ import * as bookings from "./bookings.mjs";
 import * as loyalty from "./loyalty.mjs";
 import * as menu from "./menu.mjs";
 
-export const OWNER_EMAIL = "atanwi85@gmail.com";
+import { contactEmail } from "./legal.mjs";
+
+/** Contact address comes from LEGAL_EMAIL (see legal.mjs); empty in production until configured. */
+export const ownerEmail = () => contactEmail();
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
 const langOf = (c, want) => (["es", "en"].includes(want) ? want : (c?.languages?.[0] ?? "es") === "en" ? "en" : "es");
 
@@ -16,16 +19,17 @@ const TEXT = {
 };
 
 /** The message for JSON API answers. */
-export const declinedMessage = (lang) => `${TEXT[lang].h}. ${lang === "es" ? "Contacta con" : "Contact"} ${OWNER_EMAIL}.`;
+export const declinedMessage = (lang) => `${TEXT[lang].h}.${ownerEmail() ? ` ${lang === "es" ? "Contacta con" : "Contact"} ${ownerEmail()}.` : ""}`;
 
 export function declinedBody(c, want) {
   const lang = langOf(c, want);
-  return { status: 403, code: "declined", error: declinedMessage(lang), contact: OWNER_EMAIL, lang, declinedUrl: `/declined?l=${lang}` };
+  return { status: 403, code: "declined", error: declinedMessage(lang), contact: ownerEmail() || undefined, lang, declinedUrl: `/declined?l=${lang}` };
 }
 
 export function declinedPage(c, want) {
   const lang = langOf(c, want), t = TEXT[lang], other = lang === "es" ? "en" : "es";
-  const mail = `mailto:${OWNER_EMAIL}?subject=${encodeURIComponent(t.subject)}`;
+  const addr = ownerEmail();
+  const mail = `mailto:${addr}?subject=${encodeURIComponent(t.subject)}`;
   return `<!doctype html>
 <html lang="${lang}">
 <head>
@@ -36,9 +40,6 @@ export function declinedPage(c, want) {
 <title>${esc(t.title)} · Polar Marketing</title>
 <script src="/brand/theme.js"></script>
 <link rel="icon" href="/brand/logo/favicon.svg" type="image/svg+xml">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;700&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/brand/tokens.css">
 <link rel="stylesheet" href="/brand/components.css">
 <style>
@@ -58,8 +59,8 @@ p{margin:0 0 24px;color:var(--ink-2)}
   <span class="cr-badge cr-badge--bad" style="margin-top:18px">${esc(t.title)}</span>
   <h1>${esc(t.h)}</h1>
   <p>${esc(t.p)}</p>
-  <a class="cr-btn cr-btn--primary cr-btn--lg cr-btn--block" href="${esc(mail)}" aria-label="${esc(t.ariaMail)} ${OWNER_EMAIL}">${esc(t.cta)}</a>
-  <a class="mail" href="${esc(mail)}">${OWNER_EMAIL}</a>
+  ${addr ? `<a class="cr-btn cr-btn--primary cr-btn--lg cr-btn--block" href="${esc(mail)}" aria-label="${esc(t.ariaMail)} ${esc(addr)}">${esc(t.cta)}</a>
+  <a class="mail" href="${esc(mail)}">${esc(addr)}</a>` : ""}
   <div class="lang"><a href="?l=${other}" hreflang="${other}">${other === "es" ? "Español" : "English"}</a></div>
 </main>
 </body>

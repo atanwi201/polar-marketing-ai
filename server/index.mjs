@@ -6,19 +6,29 @@
 import http from "node:http";
 import { readFileSync, existsSync, statSync, createReadStream } from "node:fs";
 import { writeFile, unlink } from "node:fs/promises";
-import { join, normalize } from "node:path";
+import { join, normalize, sep } from "node:path";
+import { pipeline } from "node:stream/promises";
+import { createHash, randomBytes } from "node:crypto";
 
 const root = join(import.meta.dirname, "..");
 loadEnv(join(root, ".env"));
 
+// A stream or promise that fails must never take the server down or print file paths.
+const scrub = (s) => String(s ?? "").split(root).join("<app>").replace(/(\/[\w.@-]+){3,}/g, "<path>");
+process.on("uncaughtException", (e) => console.error("[uncaught]", e?.code ?? e?.name ?? "Error", scrub(e?.message).slice(0, 200)));
+process.on("unhandledRejection", (e) => console.error("[unhandled]", e?.code ?? e?.name ?? "Error", scrub(e?.message ?? e).slice(0, 200)));
+const isFile = (f) => { try { return statSync(f).isFile(); } catch { return false; } };
+/** Stream a file to the response; a read error ends the response instead of crashing. */
+const streamFile = (res, file, opts) => { pipeline(createReadStream(file, opts), res).catch(() => res.destroy()); };
+
 const { complete, freeModels, rankModels, status, aiKey, providerNames, configureAi, keySources, openrouterKey, providerList, runWithProvider, listModels } = await import("./openrouter.mjs");
 const { db, save, id, token, now, MEDIA_DIR, DATA_DIR } = await import("./store.mjs");
-const { startPost, runPost, publish, startScheduler, redrawImage, describeImage } = await import("./studio.mjs");
+const { startPost, runPost, publish, startScheduler, redrawImage, describeImage, safeMediaFile } = await import("./studio.mjs");
 const { ownWebsite, ownSiteInfo, normalizeWebsiteUrl } = await import("./ownsite.mjs");
 const { buildSite, SITES_DIR, startSiteRetries, siteBase, siteSlug, installUploadedSite, downloadSite } = await import("./sitebuilder.mjs");
 const { qrPng, qrSvg } = await import("./qr.mjs");
 const { editSite, undoSite, versionCount } = await import("./siteedit.mjs");
-const { approval, blockReason, usage, DEFAULT_WEEKLY } = await import("./limits.mjs");
+const { approval, isApproved, blockReason, usage, DEFAULT_WEEKLY } = await import("./limits.mjs");
 const { cleanOffer, publicOffer } = await import("./offer.mjs");
 const { declinedClientFor, declinedPage, declinedBody } = await import("./declined.mjs");
 const { legalPage } = await import("./legal.mjs");
@@ -59,9 +69,13 @@ async function saveProfile(c, b, { newDesign = false, rebuild = true } = {}) {
 const { configureImages, imageEngine, checkEngine, GOOGLE_MODELS, OPENROUTER_IMAGE_MODELS, PROVIDERS } = await import("./images.mjs");
 const { configureStock, pexelsKey } = await import("./stock.mjs");
 db.settings ??= {};
-const { createAuth, newCode, findByCode, limiter } = await import("./auth.mjs");
+const { createAuth, newCode, findByCode, normCode, limiter } = await import("./auth.mjs");
 const auth = createAuth(db, save);
 const loginTries = limiter(10, 15 * 60e3), codeTries = limiter(12, 15 * 60e3);
+// Access codes are short, so guessing is throttled three ways: per IP (failures are never wiped by a
+// success, only by time), across all IPs together, and per 3-character code prefix.
+const codeTriesAll = limiter(300, 60 * 60e3), codePrefixTries = limiter(40, 60 * 60e3);
+const signupTries = limiter(30, 36e5), portalHits = limiter(300, 60e3), authHits = limiter(60, 15 * 60e3);
 // Every business gets a short access code to enter its dashboard from the landing page.
 for (const c of db.clients) if (c.siteEdit?.status === "working") c.siteEdit = { status: "idle" }; // a restart mid-change
 if (db.clients.some((c) => !c.code)) { for (const c of db.clients) c.code ||= newCode(db.clients); void save(); }
@@ -174,7 +188,8 @@ async function saveUpload(dataUrl) {
 
 async function addBrief(client, { text, image, imageFile }, reason = "brief") {
   if (typeof text !== "string" || text.trim().length < 3) throw Object.assign(new Error("Say what you want to market"), { status: 400 });
-  const brief = { id: id(), clientId: client.id, text: text.trim().slice(0, 2000), createdAt: now(), imageFile: image ? await saveUpload(image) : imageFile };
+  if (!image && imageFile != null && imageFile !== "") safeMediaFile(imageFile); // a client-supplied name must be a plain image in MEDIA_DIR (400 otherwise)
+  const brief = { id: id(), clientId: client.id, text: text.trim().slice(0, 2000), createdAt: now(), imageFile: image ? await saveUpload(image) : imageFile || undefined };
   db.briefs.push(brief);
   const post = startPost(client, brief, reason);
   return { brief, post };
@@ -186,7 +201,7 @@ const VIDEO_EDITS = { captions: 2200, title: 100, description: 4900, endCta: 60 
 const base = (req) => publicUrl() || `http://${req.headers.host ?? `localhost:${PORT}`}`;
 
 /** Studio view of a client: secrets masked, plus which platforms are ready to post. */
-const studioClient = (c) => ({ ...c, accounts: maskAccounts(c.accounts), connections: connections(c), approvalStatus: approval(c), usage: usage(c) });
+const studioClient = ({ sessions: _s, ...c }) => ({ ...c, accounts: maskAccounts(c.accounts), connections: connections(c), approvalStatus: approval(c), usage: usage(c) });
 
 /** Apply per-language text edits ({ captions: { es: "..." } }) with length limits. */
 function applyText(item, body, limits) {
@@ -203,7 +218,7 @@ function applyText(item, body, limits) {
 async function addVideo(client, b, reason) {
   if (typeof b.text !== "string" || b.text.trim().length < 3) throw Object.assign(new Error("Say what the video should promote"), { status: 400 });
   const cap = await capabilities();
-  if (!cap.ffmpeg) throw Object.assign(new Error("Video needs ffmpeg on the server (macOS: brew install ffmpeg)."), { status: 503 });
+  if (!cap.ffmpeg) throw Object.assign(new Error("Video needs ffmpeg on the server (macOS: brew install ffmpeg)."), { status: 503, expose: true });
   const imageFile = b.image ? await saveUpload(b.image) : undefined;
   const langs = (Array.isArray(b.langs) ? b.langs : []).filter((l) => LANGS.includes(l));
   return startVideo(client, {
@@ -237,7 +252,14 @@ loyalty.setOnCardChanged((c) => {
   pushGoogle(c, { client: db.clients.find((x) => x.id === c.clientId) }).catch((e) => console.warn("[google wallet push]", e.message));
 });
 // Reservations: confirmations go only to the customer who booked (transactional).
-bookings.setOnBookingChange(bookingMailer({ baseUrl: () => publicUrl() || `http://localhost:${PORT}`, save }));
+// Businesses still waiting for approval (or declined) do not send email through us yet.
+const mailBooking = bookingMailer({ baseUrl: () => publicUrl() || `http://localhost:${PORT}`, save });
+bookings.setOnBookingChange((b, ev) => {
+  const owner = db.clients.find((x) => x.id === b.clientId);
+  if (owner && !isApproved(owner)) return;
+  return mailBooking(b, ev);
+});
+// NOTE: loyalty issuance (cards/stamps) for unapproved businesses is enforced in loyalty-routes.mjs, not here.
 const loyaltyCtx = {
   send, readBody, saveUpload, isAdmin: (req) => auth.isAdmin(req), clientByToken: (t) => db.clients.find((x) => x.token === t), baseUrl: (req) => base(req), clientIp,
   designProgram: async (program, opts) => {
@@ -300,6 +322,7 @@ async function route(req, res, url) {
 
   // --- AI proxy for the main app ---
   if (p === "/api/ai/status") {
+    if (!auth.isAdmin(req)) return send(res, 200, { configured: !!KEYF() }); // no provider or model names for visitors
     if (!KEYF()) return send(res, 200, { configured: false, provider: "openrouter" });
     const providers = providerNames();
     const models = openrouterKey() ? await freeModels(openrouterKey()).catch(() => []) : [];
@@ -333,6 +356,13 @@ async function route(req, res, url) {
     return res.end(`User-agent: *\nAllow: /\nDisallow: /admin/\nDisallow: /api/\nDisallow: /portal/\nDisallow: /login\n`);
   }
   if (p === "/login" && req.method === "GET") {
+    // A saved client session skips the code prompt; declined businesses still get the declined screen.
+    const sc = clientBySession(req);
+    if (sc) {
+      if (approval(sc) === "declined") { res.writeHead(302, { Location: declinedBody(sc).declinedUrl || "/declined", "Cache-Control": "no-store" }); return res.end(); }
+      res.writeHead(302, { Location: `/portal/${sc.token}`, "Cache-Control": "no-store" });
+      return res.end();
+    }
     res.writeHead(200, { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-cache" });
     return res.end(LANDING_HTML());
   }
@@ -348,11 +378,13 @@ async function route(req, res, url) {
   }
   if (p === "/api/auth/login" && req.method === "POST") {
     const ip = clientIp(req);
+    if (!authHits.hit(ip)) return send(res, 429, { error: "Too many tries. Wait 15 minutes and try again." });
     if (loginTries.blocked(ip)) return send(res, 429, { error: "Too many tries. Wait 15 minutes and try again." });
     const b = await readBody(req);
     const pw = typeof b.password === "string" ? b.password : "";
     if (!auth.hasPassword()) {
-      // First run: whoever opens the landing page first creates the owner password.
+      // First run: whoever opens the landing page first creates the owner password (in production, only from this machine).
+      if (!auth.firstRunAllowed(req)) return send(res, 403, { error: "Set the owner password from the server itself (or with ADMIN_PASSWORD)." });
       if (pw.length < 8) return send(res, 400, { error: "Use at least 8 characters." });
       await auth.setPassword(pw);
     } else if (!auth.checkPassword(pw)) {
@@ -379,13 +411,21 @@ async function route(req, res, url) {
   }
   if (p === "/api/client-login" && req.method === "POST") {
     const ip = clientIp(req);
-    if (codeTries.blocked(ip)) return send(res, 429, { error: "Too many tries. Wait 15 minutes and try again." });
+    if (codeTries.blocked(ip) || codeTriesAll.blocked("*")) return send(res, 429, { error: "Too many tries. Wait 15 minutes and try again." });
     const b = await readBody(req);
+    const prefix = normCode(b.code).slice(0, 3);
+    if (prefix && codePrefixTries.blocked(prefix)) return send(res, 429, { error: "Too many tries. Wait 15 minutes and try again." });
     const c = findByCode(db.clients, b.code);
-    if (!c) { codeTries.fail(ip); return send(res, 404, { error: "We can't find that code. Check it and try again." }); }
-    codeTries.clear(ip);
+    if (!c) { codeTries.fail(ip); codeTriesAll.fail("*"); if (prefix) codePrefixTries.fail(prefix); return send(res, 404, { error: "We can't find that code. Check it and try again." }); }
+    // A correct code does not wipe the failures: otherwise one valid code would reset the guessing budget.
     if (approval(c) === "declined") return send(res, 403, declinedBody(c));
+    await startClientSession(req, res, c);
     return send(res, 200, { portalUrl: `/portal/${c.token}`, name: c.name });
+  }
+
+  if (p === "/api/client-logout" && req.method === "POST") {
+    await endClientSession(req, res);
+    return send(res, 200, { ok: true });
   }
 
   // --- Client sign-up (public): creates the client, builds their website, makes a first post ---
@@ -406,8 +446,9 @@ async function route(req, res, url) {
   if (p === "/api/signup" && req.method === "POST") {
     const ip = clientIp(req);
     const recent = (signupsByIp.get(ip) ?? []).filter((t) => Date.now() - t < 36e5);
-    if (recent.length >= 5) return send(res, 429, { error: "Too many sign-ups from here. Try again in an hour." });
-    const b = await readBody(req, 40e6);
+    if (recent.length >= 5 || !signupTries.hit(ip)) return send(res, 429, { error: "Too many sign-ups from here. Try again in an hour." });
+    if (signupsByIp.size > 5000) for (const [k, v] of signupsByIp) if (!v.some((t) => Date.now() - t < 36e5)) signupsByIp.delete(k);
+    const b = await readBody(req, 12e6);
     const c = {
       id: id(), token: token(), code: newCode(db.clients), createdAt: now(), source: "signup",
       name: str(b.name, 80), kind: str(b.kind, 60), town: str(b.town, 60), phone: str(b.phone, 30), email: str(b.email, 120),
@@ -439,6 +480,7 @@ async function route(req, res, url) {
     return res.end(PORTAL_HTML());
   }
   if (seg[0] === "api" && seg[1] === "portal" && seg[2]) {
+    if (!portalHits.hit(clientIp(req))) return send(res, 429, { error: "Too many requests. Wait a minute." });
     const c = db.clients.find((x) => x.token === seg[2]);
     if (!c) return send(res, 404, { error: "Unknown portal link" });
     if (seg.length === 3 && req.method === "GET") return send(res, 200, portalView(c));
@@ -677,6 +719,7 @@ async function route(req, res, url) {
       if (!c) return send(res, 404, { error: "Client not found" });
       c.token = token();
       c.code = newCode(db.clients); // a new link also means a new access code
+      c.sessions = []; // and every saved sign-in stops working
       await save();
       return send(res, 200, studioClient(c));
     }
@@ -699,16 +742,7 @@ async function route(req, res, url) {
       return send(res, 200, await checkAccounts(c));
     }
     if (kind === "clients" && oid && req.method === "DELETE") {
-      db.clients = db.clients.filter((x) => x.id !== oid);
-      db.briefs = db.briefs.filter((x) => x.clientId !== oid);
-      db.posts = db.posts.filter((x) => x.clientId !== oid);
-      await deleteMedia(db.videos.filter((x) => x.clientId === oid).flatMap(videoFiles));
-      db.videos = db.videos.filter((x) => x.clientId !== oid);
-      db.messages = db.messages.filter((x) => x.clientId !== oid);
-      bookings.removeClientData(oid);
-      expenses.removeClientData(oid);
-      await menuData.removeClientData(oid);
-      await save();
+      await (await import("./retention.mjs")).eraseClient(oid, { sitesDir: SITES_DIR, videoFiles });
       return send(res, 200, { ok: true });
     }
     if (kind === "briefs" && req.method === "POST" && !oid) {
@@ -861,7 +895,7 @@ async function route(req, res, url) {
   // --- Landing page photos and the example Reel (byte ranges, so the video plays on iPhone) ---
   if (seg[0] === "brand" && seg[1] === "home" && seg.length === 3 && /^[\w-]+\.(jpg|jpeg|png|webp|mp4)$/.test(seg[2]) && req.method === "GET") {
     const file = join(BRAND_DIR, "home", seg[2]);
-    if (!existsSync(file)) return send(res, 404, { error: "not found" });
+    if (!isFile(file)) return send(res, 404, { error: "not found" });
     const size = statSync(file).size;
     const head = { "Content-Type": MIME[seg[2].split(".").pop()], "Cache-Control": "public, max-age=86400", "Accept-Ranges": "bytes" };
     const m = /^bytes=(\d*)-(\d*)$/.exec(req.headers.range ?? "");
@@ -870,10 +904,10 @@ async function route(req, res, url) {
       const end = m[1] && m[2] ? Math.min(Number(m[2]), size - 1) : size - 1;
       if (start >= size || start > end) { res.writeHead(416, { "Content-Range": `bytes */${size}` }); return res.end(); }
       res.writeHead(206, { ...head, "Content-Range": `bytes ${start}-${end}/${size}`, "Content-Length": end - start + 1 });
-      return createReadStream(file, { start, end }).pipe(res);
+      return void streamFile(res, file, { start, end });
     }
     res.writeHead(200, { ...head, "Content-Length": size });
-    return createReadStream(file).pipe(res);
+    return void streamFile(res, file);
   }
 
   // --- Brand: design tokens, logo and favicon set (also at the root paths browsers probe by default) ---
@@ -881,7 +915,7 @@ async function route(req, res, url) {
   const brandRel = ROOT_ICONS[p] ?? (seg[0] === "brand" && seg.length >= 2 && seg.length <= 3 && /^[\w.-]+(\/[\w.-]+)?$/.test(seg.slice(1).join("/")) && /\.(css|js|json|svg|png|ico|webmanifest)$/.test(p) ? seg.slice(1).join("/") : null);
   if (brandRel && req.method === "GET") {
     const file = normalize(join(BRAND_DIR, brandRel));
-    if (!file.startsWith(BRAND_DIR) || !existsSync(file)) return send(res, 404, { error: "not found" });
+    if (!file.startsWith(BRAND_DIR + sep) || !isFile(file)) return send(res, 404, { error: "not found" });
     res.writeHead(200, { "Content-Type": file.endsWith(".webmanifest") ? "application/manifest+json" : MIME[file.split(".").pop()], "Cache-Control": "no-cache" });
     return res.end(readFileSync(file));
   }
@@ -889,7 +923,7 @@ async function route(req, res, url) {
   // --- Generated and uploaded images and videos (with byte ranges, so videos can seek) ---
   if (seg[0] === "media" && seg[1]) {
     const file = normalize(join(MEDIA_DIR, seg[1]));
-    if (!file.startsWith(MEDIA_DIR) || !existsSync(file)) return send(res, 404, { error: "not found" });
+    if (!file.startsWith(MEDIA_DIR + sep) || !isFile(file)) return send(res, 404, { error: "not found" });
     const size = statSync(file).size;
     const head = { "Content-Type": MIME[file.split(".").pop()] ?? "application/octet-stream", "Cache-Control": "public, max-age=31536000, immutable", "Accept-Ranges": "bytes", "Access-Control-Allow-Origin": "*" };
     if (url.searchParams.has("download")) head["Content-Disposition"] = `attachment; filename="${seg[1].replace(/[^\w.-]/g, "")}"`;
@@ -899,18 +933,19 @@ async function route(req, res, url) {
       const end = m[1] && m[2] ? Math.min(Number(m[2]), size - 1) : size - 1;
       if (start >= size || start > end) { res.writeHead(416, { "Content-Range": `bytes */${size}` }); return res.end(); }
       res.writeHead(206, { ...head, "Content-Range": `bytes ${start}-${end}/${size}`, "Content-Length": end - start + 1 });
-      return createReadStream(file, { start, end }).pipe(res);
+      if (req.method === "HEAD") return res.end();
+      return void streamFile(res, file, { start, end });
     }
     res.writeHead(200, { ...head, "Content-Length": size });
     if (req.method === "HEAD") return res.end();
-    return createReadStream(file).pipe(res);
+    return void streamFile(res, file);
   }
 
   // --- Client websites: sites/<client-name>/ ---
   if (seg[0] === "sites" && seg[1]) {
     if (!p.endsWith("/") && !p.split("/").pop().includes(".")) { res.writeHead(301, { Location: p + "/" }); return res.end(); }
     const file = normalize(join(SITES_DIR, ...seg.slice(1), p.endsWith("/") ? "index.html" : ""));
-    if (!file.startsWith(SITES_DIR) || !existsSync(file) || seg.slice(1).some((x) => x.startsWith("."))) return send(res, 404, { error: "not found" });
+    if (!file.startsWith(SITES_DIR + sep) || !isFile(file) || seg.slice(1).some((x) => x.startsWith("."))) return send(res, 404, { error: "not found" });
     res.writeHead(200, { "Content-Type": MIME[file.split(".").pop()] ?? (file.endsWith(".xml") ? "application/xml" : file.endsWith(".txt") ? "text/plain" : "application/octet-stream") });
     return res.end(readFileSync(file));
   }
@@ -919,26 +954,82 @@ async function route(req, res, url) {
   const dist = join(root, "dist");
   const file = normalize(join(dist, p));
   // The app itself (index.html) is only served at /admin, behind the password.
-  if (file.startsWith(dist) && existsSync(file) && !file.endsWith("/") && !file.endsWith(".html")) {
+  if (file.startsWith(dist + sep) && isFile(file) && !file.endsWith("/") && !file.endsWith(".html")) {
     res.writeHead(200, { "Content-Type": MIME[file.split(".").pop()] ?? "application/octet-stream" });
     return res.end(readFileSync(file));
   }
   send(res, 404, { error: "not found" });
 }
 
+// --- Saved client sign-in: after a correct access code, a 90-day sliding cookie lets /login skip the prompt ---
+const CLIENT_COOKIE = "isla_client", CLIENT_DAYS = 90;
+const shaHex = (v) => createHash("sha256").update(String(v)).digest("hex");
+const readCookie = (req, name) => { for (const part of (req.headers.cookie ?? "").split(";")) { const i = part.indexOf("="); if (i > 0 && part.slice(0, i).trim() === name) return part.slice(i + 1).trim(); } return ""; };
+function clientCookie(req, value, maxAge) {
+  const pub = process.env.PUBLIC_URL ?? "";
+  const secure = (pub ? /^https:/i.test(pub) : req.headers["x-forwarded-proto"] === "https") ? "; Secure" : "";
+  return `${CLIENT_COOKIE}=${value}; HttpOnly; SameSite=Lax; Path=/; Max-Age=${maxAge}${secure}`;
+}
+async function startClientSession(req, res, c) {
+  const t = randomBytes(32).toString("base64url");
+  c.sessions = [...(c.sessions ?? []).filter((x) => x.exp > Date.now()).slice(-9), { h: shaHex(t), exp: Date.now() + CLIENT_DAYS * 864e5 }];
+  await save();
+  res.setHeader("Set-Cookie", clientCookie(req, c.id + "." + t, CLIENT_DAYS * 86400));
+}
+/** The business this request's saved sign-in belongs to, if still valid; renews it (sliding). */
+function clientBySession(req) {
+  const v = readCookie(req, CLIENT_COOKIE), i = v.indexOf(".");
+  if (i < 1) return null;
+  const c = db.clients.find((x) => x.id === v.slice(0, i));
+  const h = shaHex(v.slice(i + 1));
+  const s = c?.sessions?.find((x) => x.h === h && x.exp > Date.now());
+  if (!s) return null;
+  if (s.exp - Date.now() < (CLIENT_DAYS - 1) * 864e5) { s.exp = Date.now() + CLIENT_DAYS * 864e5; void save(); }
+  return c;
+}
+async function endClientSession(req, res) {
+  const v = readCookie(req, CLIENT_COOKIE), i = v.indexOf(".");
+  const c = i > 0 ? db.clients.find((x) => x.id === v.slice(0, i)) : null;
+  if (c) { const h = shaHex(v.slice(i + 1)); c.sessions = (c.sessions ?? []).filter((x) => x.h !== h); await save(); }
+  res.setHeader("Set-Cookie", clientCookie(req, "", 0));
+}
+
+/** Headers every response gets. Client websites run with an opaque origin so their scripts cannot reach the owner's cookie. */
+function securityHeaders(req, res, pathname) {
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
+  if (pathname.startsWith("/sites/")) {
+    res.setHeader("X-Frame-Options", "SAMEORIGIN"); // the dashboard previews sites in a frame
+    res.setHeader("Content-Security-Policy", "default-src 'self' https:; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https:; img-src 'self' https: data:; font-src 'self' https: data:; media-src 'self' https:; frame-src https:; sandbox allow-scripts allow-forms allow-popups");
+  } else if (pathname.startsWith("/media/")) {
+    res.setHeader("X-Frame-Options", "SAMEORIGIN");
+    res.setHeader("Content-Security-Policy", "default-src 'none'; sandbox"); // an uploaded file can never run as a page
+  } else {
+    res.setHeader("X-Frame-Options", "DENY");
+    // No CSP for app pages: they rely on inline scripts.
+  }
+}
+
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url ?? "/", "http://x");
+  securityHeaders(req, res, url.pathname);
   try {
     // The dashboard can pick one AI provider for what it starts (x-ai-provider); only the owner may.
     const pick = auth.isAdmin(req) ? String(req.headers["x-ai-provider"] ?? "") : "";
     await runWithProvider(/^[a-z]+$/.test(pick) ? pick : "", () => route(req, res, url));
   } catch (e) {
-    if (res.headersSent) return res.end(`\u0000error:${e.message}`);
-    send(res, e.status ?? 502, { error: e.message });
+    const code = e.status ?? 502;
+    if (code >= 500) console.error("[error]", req.method, url.pathname.replace(/[0-9a-f]{12,}/gi, ":id"), code, scrub(e?.message).slice(0, 200));
+    // Server errors never echo internals (paths, upstream bodies); 4xx messages are meant for the caller.
+    const msg = code >= 500 && !e.expose ? "Something went wrong. Try again in a moment." : e.message;
+    if (res.headersSent) return res.end(`\u0000error:${msg}`);
+    send(res, code, { error: msg });
   }
 });
 
-server.listen(PORT, process.env.HOST || undefined, () => {
+// In production listen on loopback (nginx in front) unless HOST says otherwise.
+const HOST = process.env.HOST || (process.env.NODE_ENV === "production" ? "127.0.0.1" : undefined);
+server.listen(PORT, HOST, () => {
   console.log(`Polar Marketing API on http://localhost:${PORT}`);
   console.log(`  AI: ${KEYF() ? `${providerNames().join(" > ")} (first one with capacity answers)` : "No AI key in .env (GROQ_API_KEY, MISTRAL_API_KEY or OPENROUTER_API_KEY), so posts and sites wait until one is added"}`);
   console.log(`  Images: Pollinations (free, no key) · data in ${DATA_DIR} · sites in ${SITES_DIR}`);

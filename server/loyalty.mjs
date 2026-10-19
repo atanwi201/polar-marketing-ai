@@ -1,7 +1,9 @@
 // Loyalty cards: programmes, customers and every balance calculation (stamps, points, tiers, rewards, expiry).
 // Data lives in db.loyalty and is saved with the rest of the studio data.
 import { randomBytes, randomInt } from "node:crypto";
-import { db, save, id, token, now } from "./store.mjs";
+import { unlink } from "node:fs/promises";
+import { join } from "node:path";
+import { db, save, id, token, now, MEDIA_DIR } from "./store.mjs";
 
 export class LoyaltyError extends Error {
   constructor(message, status = 400) { super(message); this.status = status; }
@@ -42,6 +44,59 @@ export const findProgram = (pid) => ldb().programs.find((p) => p.id === pid);
 export const findCustomer = (cid) => ldb().customers.find((c) => c.id === cid || c.id.toLowerCase() === String(cid).toLowerCase());
 export const findByToken = (t) => (typeof t === "string" && t.length >= 8 ? ldb().customers.find((c) => c.cardToken === t) : undefined);
 export const clientOf = (p) => db.clients.find((c) => c.id === p?.clientId);
+
+// ---- staff link expiry (programme.staffTokenExpiresAt; programmes from before this field get one on first use) ----
+export const STAFF_TOKEN_DAYS = () => { const n = Number(process.env.LOYALTY_STAFF_TOKEN_DAYS); return Number.isFinite(n) && n > 0 ? n : 365; };
+export const newStaffTokenExpiry = (at = Date.now()) => new Date(at + STAFF_TOKEN_DAYS() * 864e5).toISOString();
+/** Rotate a programme's staff token (new secret, fresh expiry). */
+export function rotateStaffToken(program) {
+  program.staffToken = token();
+  program.staffTokenExpiresAt = newStaffTokenExpiry();
+  program.updatedAt = now();
+  return program.staffToken;
+}
+/** Is the staff link still usable? A legacy programme without an expiry is stamped now (backwards compatible). */
+export function staffTokenValid(program, at = Date.now()) {
+  if (!program?.staffToken) return false;
+  if (!program.staffTokenExpiresAt) { program.staffTokenExpiresAt = newStaffTokenExpiry(at); void save(); return true; }
+  return Date.parse(program.staffTokenExpiresAt) > at;
+}
+
+/** Remember who uploaded a card picture ("" = the studio owner), so designs can only use their own pictures. */
+export function recordUpload(file, clientId = "") {
+  if (typeof file !== "string" || !file) return;
+  (ldb().uploads ??= {})[file] = clientId ?? "";
+  void save();
+}
+
+// ---- design picture files: loy-<programStamp>-... belong to one programme ----
+export const designStamp = (programId) => String(programId ?? "x").replace(/[^\w-]/g, "").slice(0, 24) || "x";
+export const designFilePrefix = (programId) => `loy-${designStamp(programId)}-`;
+/** Is `file` still referenced by a programme (other than `exceptProgramId`) or a template? */
+export function fileStillUsed(file, exceptProgramId) {
+  const l = ldb();
+  const hit = (d) => d && [d.logoFile, d.stripFile, d.backgroundFile].includes(file);
+  return l.programs.some((p) => p.id !== exceptProgramId && hit(p.design)) || l.templates.some((t) => hit(t.design))
+    || db.clients.some((c) => c.logoFile === file || (c.photos ?? []).some((x) => x.file === file));
+}
+/** A tenant may only point its design at pictures it owns: its own loy- files, its logo/photos, files already in the design, or visible templates. */
+function guardDesign(next, prev, program) {
+  if (!next.design) return next;
+  const client = clientOf(program);
+  const visibleTemplates = ldb().templates.filter((t) => t.clientId === program.clientId || t.clientId === "");
+  const okFile = (field, f) => {
+    if (!f) return true;
+    if (f === prev?.[field]) return true;
+    if (field !== "logoFile" && f.startsWith(designFilePrefix(program.id))) return true;
+    if (field === "logoFile" && (f === client?.logoFile || (client?.photos ?? []).some((x) => x.file === f))) return true;
+    const up = ldb().uploads?.[f]; // pictures uploaded through the loyalty editor: by this business, or by the owner (admin)
+    if (up !== undefined && (up === "" || up === program.clientId)) return true;
+    return visibleTemplates.some((t) => t.design?.[field] === f);
+  };
+  const design = { ...next.design };
+  for (const field of ["logoFile", "stripFile", "backgroundFile"]) if (!okFile(field, design[field])) design[field] = prev?.[field] ?? "";
+  return { ...next, design };
+}
 
 // ---- design ----
 const PALETTES = [
@@ -140,14 +195,14 @@ export function createProgram(client, fields = {}) {
   const t = now();
   const base = {
     id: id(), clientId: client.id, name: type === "points" ? "Rewards club" : "Loyalty card", type, status: "draft", createdAt: t, updatedAt: t,
-    joinCode: uniqueJoinCode(), staffToken: token(),
+    joinCode: uniqueJoinCode(), staffToken: token(), staffTokenExpiresAt: newStaffTokenExpiry(),
     design: defaultDesign(client, type),
     stamps: { goal: 8, perVisit: 1, minSpendEur: 0 }, points: { perEuro: 1, perVisit: 0 },
     tiers: type === "custom" ? [{ name: "Bronze", minPoints: 0, perk: "" }, { name: "Silver", minPoints: 500, perk: "" }, { name: "Gold", minPoints: 1500, perk: "" }] : [],
     rewards: [], pointsExpireDays: null, terms: "", welcomeBonus: { stamps: 0, points: 0 },
   };
   const { rewards, status, ...rest } = fields; // new programmes always start as draft
-  const p = applyFields(base, rest);
+  const p = guardDesign(applyFields(base, rest), base.design, base);
   p.rewards = Array.isArray(rewards) ? sanitizeRewards(rewards, p.stamps.goal) : starterRewards(p.type, p.stamps.goal);
   ldb().programs.push(p);
   void save();
@@ -157,7 +212,7 @@ export function createProgram(client, fields = {}) {
 const PUSH_KEYS = ["design", "rewards", "name", "terms", "tiers", "stamps", "points"];
 /** Edit a programme. `changed` says whether the cards on phones should refresh. */
 export function updateProgram(program, fields = {}) {
-  const next = applyFields(program, fields);
+  const next = guardDesign(applyFields(program, fields), program.design, program);
   const changed = PUSH_KEYS.some((k) => JSON.stringify(next[k]) !== JSON.stringify(program[k]));
   Object.assign(program, next, { updatedAt: now() });
   for (const c of ldb().customers) if (c.programId === program.id) c.tier = tierFor(program, c.lifetimePoints).name;
@@ -173,6 +228,25 @@ export function removeProgram(program) {
   l.txns = l.txns.filter((t) => t.programId !== program.id);
   l.devices = l.devices.filter((d) => !ids.has(d.serial));
   void save();
+}
+
+/** Erase everything a business has in loyalty: programmes (and their staff tokens), customers, transactions, wallet device registrations, templates, card pictures. */
+export async function removeClientData(clientId) {
+  const l = ldb();
+  const progs = l.programs.filter((p) => p.clientId === clientId);
+  const progIds = new Set(progs.map((p) => p.id));
+  const custIds = new Set(l.customers.filter((c) => c.clientId === clientId || progIds.has(c.programId)).map((c) => c.id));
+  const files = new Set();
+  for (const p of progs) for (const f of [p.design?.stripFile, p.design?.backgroundFile]) if (f && f.startsWith(designFilePrefix(p.id))) files.add(f);
+  const counts = { programs: progs.length, customers: custIds.size, txns: l.txns.filter((t) => t.clientId === clientId || progIds.has(t.programId) || custIds.has(t.customerId)).length };
+  l.programs = l.programs.filter((p) => p.clientId !== clientId);
+  l.customers = l.customers.filter((c) => !custIds.has(c.id));
+  l.txns = l.txns.filter((t) => !(t.clientId === clientId || progIds.has(t.programId) || custIds.has(t.customerId)));
+  l.devices = l.devices.filter((d) => !custIds.has(d.serial));
+  l.templates = l.templates.filter((t) => t.clientId !== clientId);
+  for (const [f, owner] of Object.entries(l.uploads ?? {})) if (owner === clientId) { files.add(f); delete l.uploads[f]; }
+  for (const f of files) if (!fileStillUsed(f)) await unlink(join(MEDIA_DIR, f)).catch(() => {});
+  return counts;
 }
 
 export function duplicateProgram(program, { name, clientId, design } = {}) {

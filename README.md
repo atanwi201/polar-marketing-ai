@@ -61,3 +61,12 @@ Data lives in `data/` (git-ignored). Generated sites live in `sites/`.
 ## Develop
 
 See "Autonomous studio" above. `npm run dev:web` runs only the front end (demo mode).
+
+## Security, privacy and operations
+
+- **Production env:** set `NODE_ENV=production`, an admin password or `ADMIN_TOKEN`, and `LEGAL_NAME`, `LEGAL_NIF`, `LEGAL_ADDRESS`, `LEGAL_EMAIL` (optionally `LEGAL_PHONE`). Outside production `/privacy` and `/legal` show a red draft warning while any are missing; in production they show visible `[PENDIENTE]` markers and no personal contact address is exposed.
+- **Booking email:** use a sending domain verified in Resend (`BOOKING_FROM_EMAIL`; the sandbox sender only reaches the account owner). Confirmations go only to strictly validated addresses, at most 3 per recipient per day (plus 12 bookings/hour per IP and 60 mails/hour per business), never for pending or declined businesses.
+- **Third-party resources:** Polar's own public pages use a system font stack and load no Google Fonts or CDN scripts. Generated client sites may still use jsDelivr (Bootstrap) until self-hosted; the privacy page says so.
+- **Reverse proxy:** make nginx overwrite (not append) `X-Real-IP $remote_addr`; per-IP limits depend on it.
+- **Compliance docs** in `docs/privacy/`: `ropa.md`, `dpa-template.md`, `subprocessors.md`, `retention.md`, `breach-runbook.md` (72h AEPD). Placeholders are marked PENDING.
+- **Open items:** automatic retention purge, loyalty data in client erasure, secrets encrypted at rest, consent evidence for loyalty marketing.

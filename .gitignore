@@ -4,3 +4,17 @@ dist
 .DS_Store
 
 data
+
+# Customer content, backups, secrets and deploy state (never commit)
+sites/
+*.bak
+.env.*
+!.env.example
+releases/
+backups/
+polar-backups/
+scripts/deploy.config
+deploy/*.local
+
+# Local agent state (never commit)
+.claude/

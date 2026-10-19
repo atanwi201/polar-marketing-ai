@@ -1,7 +1,14 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { normalizeWebsiteUrl, ownWebsite, ownSiteInfo } from "./ownsite.mjs";
-import { buildSite } from "./sitebuilder.mjs";
+import { mkdtempSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+// Isolate from real data: set before the store module is first imported.
+const tmp = mkdtempSync(join(tmpdir(), "isla-unit-"));
+process.env.DATA_DIR = tmp;
+process.env.SITES_DIR = join(tmp, "sites");
+const { normalizeWebsiteUrl, ownWebsite, ownSiteInfo } = await import("./ownsite.mjs");
+const { buildSite } = await import("./sitebuilder.mjs");
 
 test("normalizeWebsiteUrl accepts domains and urls, rejects junk", () => {
   assert.equal(normalizeWebsiteUrl("tuweb.com"), "https://tuweb.com/");

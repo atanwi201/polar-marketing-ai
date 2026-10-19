@@ -178,9 +178,6 @@ const HEAD_COMMON = (title) => `<meta charset="utf-8">
 <title>${esc(title)}</title>
 <meta name="color-scheme" content="light dark">
 <script src="/brand/theme.js"></script>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;700&family=Figtree:wght@400;500;600;700;800&family=Fraunces:wght@600;800&family=Nunito:wght@600;800&display=swap" rel="stylesheet">
 <link rel="icon" href="/brand/logo/favicon.svg" type="image/svg+xml">
 <link rel="icon" href="/brand/logo/favicon.ico" sizes="48x48">
 <link rel="stylesheet" href="/brand/tokens.css">

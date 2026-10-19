@@ -4,6 +4,7 @@
 import { join } from "node:path";
 import { writeFile, unlink } from "node:fs/promises";
 import { MEDIA_DIR, now } from "./store.mjs";
+import { designFilePrefix, designStamp, fileStillUsed } from "./loyalty.mjs";
 import { complete as realComplete, aiKey as realAiKey } from "./openrouter.mjs";
 import { generateImage as realGenerateImage } from "./images.mjs";
 
@@ -283,7 +284,7 @@ export async function designProgram(program, client, { prompt = "", keep = [], d
   // Pictures (free engine). Kept pictures stay; a layout without a picture falls back to minimal.
   const wantLayout = ai ? (LAYOUTS.includes(ai.json.layout) ? ai.json.layout : "stripe") : "minimal";
   const layout = kept.has("layout") && LAYOUTS.includes(old.layout) ? old.layout : wantLayout;
-  const stamp = String(program?.id ?? "x").replace(/[^\w-]/g, "").slice(0, 24) || "x";
+  const stamp = designStamp(program?.id);
   const tag = Date.now().toString(36);
   const idea = imageText(ai?.json?.imagePrompt, client) + NO_TEXT;
   if (kept.has("stripFile") && old.stripFile) design.stripFile = safeFile(old.stripFile);
@@ -297,7 +298,7 @@ export async function designProgram(program, client, { prompt = "", keep = [], d
   // Replaced pictures are removed (only ours: loy-<id>-...).
   for (const f of ["stripFile", "backgroundFile"]) {
     const prev = old[f];
-    if (prev && prev !== design[f] && prev.startsWith("loy-")) await unlink(join(MEDIA_DIR, prev)).catch(() => {});
+    if (prev && prev !== design[f] && prev.startsWith(designFilePrefix(program?.id)) && !fileStillUsed(prev, program?.id)) await unlink(join(MEDIA_DIR, prev)).catch(() => {});
   }
   return normalizeDesign(design, client, fallback);
 }

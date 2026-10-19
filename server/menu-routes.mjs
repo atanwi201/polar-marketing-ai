@@ -3,6 +3,7 @@
 // A declined business never reaches here (blocked earlier in index.mjs).
 import { createReadStream, existsSync, statSync } from "node:fs";
 import { join } from "node:path";
+import { pipeline } from "node:stream/promises";
 import { db, save } from "./store.mjs";
 import { limiter } from "./auth.mjs";
 import { qrSvg, qrPng } from "./qr.mjs";
@@ -92,7 +93,7 @@ async function manage(req, res, url, rest, scopeClient, ctx) {
   if (rest[0] === "photo" && rest.length === 1 && m === "POST") {
     if (!hit(limits.photo, ip)) return out(429, { error: "Too many tries. Please wait a few minutes." });
     const b = await ctx.readBody(req, 14e6);
-    return out(200, { url: await M.savePhoto(b.image) });
+    return out(200, { url: await M.savePhoto(b.image, c.id) });
   }
   if (rest[0] === "import" && rest.length === 1 && m === "POST") {
     if (!hit(limits.ai, ip)) return out(429, { error: "Too many tries. Please wait a few minutes." });
@@ -119,11 +120,12 @@ async function pub(req, res, url, seg, ctx) {
   // Photos
   if (!json && seg[1] === "img" && seg.length === 3) {
     const f = seg[2];
-    const file = /^[\w.-]+$/.test(f) ? join(M.PHOTO_DIR, f) : "";
-    if (!file || !existsSync(file)) return ctx.send(res, 404, { error: "not found" }), true;
+    const file = /^[\w-]+\.[\w]+$/.test(f) ? join(M.PHOTO_DIR, f) : "";
+    let isF = false; try { isF = !!file && statSync(file).isFile(); } catch { /* missing */ }
+    if (!isF) return ctx.send(res, 404, { error: "not found" }), true;
     res.writeHead(200, { "Content-Type": "image/jpeg", "Content-Length": statSync(file).size, "Cache-Control": "public, max-age=31536000, immutable" });
     if (req.method === "HEAD") return res.end(), true;
-    createReadStream(file).pipe(res);
+    pipeline(createReadStream(file), res).catch(() => res.destroy());
     return true;
   }
 

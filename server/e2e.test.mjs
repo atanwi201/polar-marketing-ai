@@ -7,6 +7,7 @@ import { spawn, execFileSync } from "node:child_process";
 import { mkdtempSync, existsSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { blankedEnv, freePort, waitReady } from "./test-harness.mjs";
 
 const dir = mkdtempSync(join(tmpdir(), "isla-"));
 let hasFfmpeg = true;
@@ -30,7 +31,7 @@ const mock = http.createServer((req, res) => {
     const body = Buffer.concat(chunks).toString();
     const u = new URL(req.url, "http://x");
     const p = u.pathname;
-    if (p === "/openverse/v1/images/") return json(res, { results: [1, 2, 3, 4, 5, 6].map((i) => ({ url: `http://localhost:9901/stock/${u.searchParams.get("q").length}-${i}.jpg`, width: 1600, height: 1000, title: "Fresh fish", license: "cc0" })) });
+    if (p === "/openverse/v1/images/") return json(res, { results: [1, 2, 3, 4, 5, 6].map((i) => ({ url: `http://localhost:${MP}/stock/${u.searchParams.get("q").length}-${i}.jpg`, width: 1600, height: 1000, title: "Fresh fish", license: "cc0" })) });
     if (p.startsWith("/stock/")) { res.writeHead(200, { "Content-Type": "image/jpeg" }); return res.end(JPG); }
     if (p.startsWith("/prompt/")) { res.writeHead(200, { "Content-Type": "image/jpeg" }); return res.end(JPG); }
     if (p === "/v1/models") return json(res, { data: [
@@ -76,8 +77,8 @@ const mock = http.createServer((req, res) => {
       calls.push([req.method, p, req.headers.authorization ?? params.get("access_token") ?? (body.includes("PAGETOKEN") ? "PAGETOKEN" : "")]);
       if (p.startsWith("/rupload/")) return json(res, { success: true });
       if (p === "/graph/PAGE1/photos") return json(res, { id: "ph1", post_id: "PAGE1_77" });
-      if (p === "/graph/PAGE1/video_reels") return json(res, params.get("upload_phase") === "start" ? { video_id: "v55", upload_url: "http://localhost:9901/rupload/v55" } : { success: true });
-      if (p === "/graph/IG1/media") return json(res, params.get("media_type") === "REELS" ? { id: "c2", uri: "http://localhost:9901/rupload/c2" } : { id: "c1" });
+      if (p === "/graph/PAGE1/video_reels") return json(res, params.get("upload_phase") === "start" ? { video_id: "v55", upload_url: `http://localhost:${MP}/rupload/v55` } : { success: true });
+      if (p === "/graph/IG1/media") return json(res, params.get("media_type") === "REELS" ? { id: "c2", uri: `http://localhost:${MP}/rupload/c2` } : { id: "c1" });
       if (p === "/graph/IG1/media_publish") return json(res, { id: "m1" });
       if (p === "/graph/m1") return json(res, { permalink: "https://www.instagram.com/p/abc/" });
       if (p === "/graph/c1" || p === "/graph/c2") return json(res, { status_code: "FINISHED" });
@@ -97,7 +98,7 @@ const mock = http.createServer((req, res) => {
     if (p === "/token") return json(res, { access_token: "ya29.test" });
     if (p.startsWith("/yt/")) {
       calls.push([req.method, p, req.headers.authorization ?? ""]);
-      if (p === "/yt/upload/youtube/v3/videos" && req.method === "POST") return json(res, {}, 200, { Location: "http://localhost:9901/yt/upload/session1" });
+      if (p === "/yt/upload/youtube/v3/videos" && req.method === "POST") return json(res, {}, 200, { Location: `http://localhost:${MP}/yt/upload/session1` });
       if (p === "/yt/upload/session1" && req.method === "PUT") return json(res, { id: "yt123" });
     }
     res.writeHead(404); res.end();
@@ -105,7 +106,7 @@ const mock = http.createServer((req, res) => {
 });
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-const B = "http://localhost:8799";
+let MP, B; // mock port and server base URL: ephemeral, assigned in before()
 const api = async (method, path, body) => {
   const r = await fetch(B + path, { method, headers: body ? { "Content-Type": "application/json" } : {}, body: body ? JSON.stringify(body) : undefined });
   return { status: r.status, data: await r.json().catch(() => null), headers: r.headers };
@@ -114,17 +115,20 @@ const until = async (fn, tries = 80, ms = 250) => { for (let i = 0; i < tries; i
 
 let srv;
 before(async () => {
-  await new Promise((ok) => mock.listen(9901, ok));
+  await new Promise((ok) => mock.listen(0, "127.0.0.1", ok));
+  MP = mock.address().port;
+  const PORT = await freePort();
+  B = `http://localhost:${PORT}`;
   srv = spawn(process.execPath, [join(import.meta.dirname, "index.mjs")], {
     env: {
-      ...process.env, OPENROUTER_API_KEY: "test", OPENROUTER_BASE_URL: "http://localhost:9901/v1", POLLINATIONS_BASE_URL: "http://localhost:9901", OPENVERSE_URL: "http://localhost:9901/openverse", PEXELS_API_KEY: "",
-      PORT: "8799", DATA_DIR: dir, SITES_DIR: join(dir, "sites"), PUBLIC_URL: "https://studio.example", ADMIN_TOKEN: "",
-      META_GRAPH_URL: "http://localhost:9901/graph", X_API_URL: "http://localhost:9901/x", GOOGLE_TOKEN_URL: "http://localhost:9901/token",
-      YOUTUBE_API_URL: "http://localhost:9901/yt", GOOGLE_API_KEY: "", GEMINI_API_KEY: "", GROQ_API_KEY: "", MISTRAL_API_KEY: "", SILICONFLOW_API_KEY: "", DEEPSEEK_API_KEY: "", DASHSCOPE_API_KEY: "", OPENAI_API_KEY: "", PUTER_AUTH_TOKEN: "", AI_PROVIDERS: "openrouter", X_API_KEY: "ck", X_API_SECRET: "cs", YOUTUBE_CLIENT_ID: "gid", YOUTUBE_CLIENT_SECRET: "gs", SOCIAL_POLL_MS: "50",
+      ...process.env, ...blankedEnv(), OPENROUTER_API_KEY: "test", OPENROUTER_BASE_URL: `http://localhost:${MP}/v1`, POLLINATIONS_BASE_URL: `http://localhost:${MP}`, OPENVERSE_URL: `http://localhost:${MP}/openverse`, PEXELS_API_KEY: "",
+      PORT: String(PORT), DATA_DIR: dir, SITES_DIR: join(dir, "sites"), PUBLIC_URL: "https://studio.example", ADMIN_TOKEN: "",
+      META_GRAPH_URL: `http://localhost:${MP}/graph`, X_API_URL: `http://localhost:${MP}/x`, GOOGLE_TOKEN_URL: `http://localhost:${MP}/token`,
+      YOUTUBE_API_URL: `http://localhost:${MP}/yt`, GOOGLE_API_KEY: "", GEMINI_API_KEY: "", GROQ_API_KEY: "", MISTRAL_API_KEY: "", SILICONFLOW_API_KEY: "", DEEPSEEK_API_KEY: "", DASHSCOPE_API_KEY: "", OPENAI_API_KEY: "", PUTER_AUTH_TOKEN: "", AI_PROVIDERS: "openrouter", X_API_KEY: "ck", X_API_SECRET: "cs", YOUTUBE_CLIENT_ID: "gid", YOUTUBE_CLIENT_SECRET: "gs", SOCIAL_POLL_MS: "50",
     },
-    stdio: "ignore",
+    stdio: process.env.TEST_SERVER_LOG ? "inherit" : "ignore",
   });
-  await sleep(900);
+  await waitReady(B, srv);
 });
 after(() => { srv?.kill(); mock.close(); });
 
@@ -506,6 +510,25 @@ test("landing page: the owner creates a password and signs in, a business enters
   assert.equal(enter.status, 200);
   assert.equal(enter.data.portalUrl, `/portal/${token}`);
   assert.equal((await api("POST", "/api/client-login", { code: "ZZZ-999" })).status, 404);
+
+  // A correct code sets a long-lived HttpOnly session cookie; with it /login goes straight to the portal.
+  const sc = enter.headers?.get("set-cookie") ?? (await fetch(`${B}/api/client-login`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ code }) })).headers.get("set-cookie");
+  assert.match(sc, /^isla_client=[^;]+; HttpOnly; SameSite=Lax; Path=\/; Max-Age=7776000/);
+  const ck = sc.split(";")[0];
+  const skip = await fetch(`${B}/login`, { headers: { cookie: ck }, redirect: "manual" });
+  assert.equal(skip.status, 302);
+  assert.equal(skip.headers.get("location"), `/portal/${token}`);
+  assert.equal((await fetch(`${B}/login`, { redirect: "manual" })).status, 200, "no cookie, no skip");
+  assert.equal((await fetch(`${B}/login`, { headers: { cookie: "isla_client=bogus.value" }, redirect: "manual" })).status, 200);
+  // Logging out ends it; rotating the link (new token and code) ends every saved sign-in.
+  const out = await fetch(`${B}/api/client-logout`, { method: "POST", headers: { cookie: ck } });
+  assert.match(out.headers.get("set-cookie"), /Max-Age=0/);
+  assert.equal((await fetch(`${B}/login`, { headers: { cookie: ck }, redirect: "manual" })).status, 200);
+  const sc2 = (await fetch(`${B}/api/client-login`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ code }) })).headers.get("set-cookie").split(";")[0];
+  assert.equal((await fetch(`${B}/login`, { headers: { cookie: sc2 }, redirect: "manual" })).status, 302);
+  const cid2 = (await (await fetch(`${B}/api/studio`, { headers: { cookie } })).json()).clients.find((c) => c.token === token).id;
+  assert.equal((await fetch(`${B}/api/studio/clients/${cid2}/token`, { method: "POST", headers: { cookie } })).status, 200);
+  assert.equal((await fetch(`${B}/login`, { headers: { cookie: sc2 }, redirect: "manual" })).status, 200, "rotating invalidates the session");
 
   // Changing the password keeps this browser signed in; signing out ends the session.
   const change = await fetch(`${B}/api/auth/password`, { method: "POST", headers: { "Content-Type": "application/json", cookie }, body: JSON.stringify({ current: "olas-de-teide-1", next: "olas-de-teide-2" }) });

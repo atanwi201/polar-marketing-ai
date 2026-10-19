@@ -1,6 +1,13 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { oauth1, textFor, youtubeTitle, maskAccounts, mergeAccounts, connections } from "./social.mjs";
+import { mkdtempSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+// Isolate from real data: set before the store module is first imported.
+const tmp = mkdtempSync(join(tmpdir(), "isla-unit-"));
+process.env.DATA_DIR = tmp;
+process.env.SITES_DIR = join(tmp, "sites");
+const { oauth1, textFor, youtubeTitle, maskAccounts, mergeAccounts, connections } = await import("./social.mjs");
 
 test("OAuth 1.0a signature matches X's documented example", () => {
   // https://developer.x.com/en/docs/authentication/oauth-1-0a/creating-a-signature

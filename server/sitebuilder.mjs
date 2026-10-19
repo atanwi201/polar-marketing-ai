@@ -4,7 +4,7 @@
 // server/webpage.mjs makes it safe and adds the SEO head. Plain HTML + CSS, no JavaScript.
 // There is no template fallback: if the AI is unavailable the build waits (status "waiting") and retries.
 import { mkdir, writeFile, rm, rename } from "node:fs/promises";
-import { join } from "node:path";
+import { join, dirname, basename } from "node:path";
 import { db, save, now } from "./store.mjs";
 import { readSiteZip, writeSiteFiles, zipSite } from "./sitezip.mjs";
 import { referenceBlock } from "./reference.mjs";
@@ -95,8 +95,7 @@ export async function buildSite(client, { newDesign = false } = {}) {
     await writeFile(join(work, "sitemap.xml"), sitemap(result.langs, base, at));
     await writeFile(join(work, "robots.txt"), `User-agent: *\nAllow: /\n\nSitemap: ${base}/sitemap.xml\n`);
     await writeFile(join(work, "site.json"), JSON.stringify({ client: client.name, builtAt: at, base, languages: result.langs, kind: result.kind, design: result.design, models: result.models }, null, 1));
-    await rm(dir, { recursive: true, force: true });
-    await rename(work, dir);
+    await swapDir(work, dir);
     client.site = {
       status: "ready", builtAt: at, path: `sites/${client.siteSlug}/`, url: `/sites/${client.siteSlug}/`, kind: result.kind,
       design: result.design ?? design, models: result.models, languages: result.langs, attempts: 0,
@@ -121,6 +120,24 @@ export async function buildSite(client, { newDesign = false } = {}) {
 }
 
 /**
+ * Put the finished folder `work` in place of `dir` with renames only: the old site is moved aside first
+ * (to `keep`, or a temporary name that is deleted afterwards), and moved back if the final rename fails,
+ * so a crash or error never leaves the slug without a site and never leaves a half-written one live.
+ */
+export async function swapDir(work, dir, keep = join(dirname(dir), `.${basename(dir)}.old-${process.pid}`)) {
+  await rm(keep, { recursive: true, force: true });
+  const hadOld = await rename(dir, keep).then(() => true, () => false);
+  try {
+    await rename(work, dir);
+  } catch (e) {
+    if (hadOld) await rename(keep, dir).catch(() => {});
+    await rm(work, { recursive: true, force: true }).catch(() => {});
+    throw e;
+  }
+  if (keep.endsWith(`.old-${process.pid}`)) await rm(keep, { recursive: true, force: true }).catch(() => {});
+}
+
+/**
  * Replace the live site with an uploaded zip (checked first). The previous site is kept as
  * sites/.<slug>.previous (one level) in case the upload was a mistake.
  */
@@ -134,10 +151,8 @@ export async function installUploadedSite(client, buf) {
     const work = join(SITES_DIR, `.${client.siteSlug}.uploading`);
     const backup = join(SITES_DIR, `.${client.siteSlug}.previous`);
     await rm(work, { recursive: true, force: true });
-    await writeSiteFiles(files, work);
-    await rm(backup, { recursive: true, force: true });
-    await rename(dir, backup).catch(() => {});
-    await rename(work, dir);
+    try { await writeSiteFiles(files, work); } catch (e) { await rm(work, { recursive: true, force: true }).catch(() => {}); throw e; }
+    await swapDir(work, dir, backup);
     const at = now();
     const langs = [...new Set(["", ...Object.keys(files).map((p) => p.split("/")).filter((p) => p.length === 2 && p[1] === "index.html" && /^[a-z]{2}$/.test(p[0])).map((p) => p[0])])].filter(Boolean);
     client.site = {

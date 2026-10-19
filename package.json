@@ -9,7 +9,7 @@
     "api": "node server/index.mjs",
     "build": "tsc --noEmit && vite build && node scripts/to-artifact.mjs",
     "start": "npm run build && node server/index.mjs",
-    "test": "node --test server/*.test.mjs",
+    "test": "node --test --test-concurrency=1 server/*.test.mjs",
     "typecheck": "tsc --noEmit",
     "deploy": "bash scripts/deploy.sh",
     "push-env": "bash scripts/push-env.sh",

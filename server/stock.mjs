@@ -2,6 +2,8 @@
 // pexels.com/api); otherwise Openverse, which needs no key and returns only public-domain (CC0)
 // photographs, so nothing needs a credit line.
 import { complete, aiKey, withClientAi } from "./openrouter.mjs";
+import { guardedFetch, readCapped } from "./reference.mjs";
+import { isRasterMagic } from "./images.mjs";
 
 const KEY = aiKey;
 const OPENVERSE = () => (process.env.OPENVERSE_URL ?? "https://api.openverse.org").replace(/\/$/, "");
@@ -76,11 +78,16 @@ const BAD_TAGS = /^(art|painting|watercolou?r|vintage|drawing|illustration|engra
 const notForUs = (p) => !PEOPLE.test(p.title) && !(p.tags ?? []).some((t) => BAD_TAGS.test(t));
 
 /** Download a photo; returns the bytes (or throws when it isn't a usable image). */
-export async function downloadPhoto(url, { fetchImpl = fetch } = {}) {
-  const r = await fetchImpl(url, { headers: { "User-Agent": "Mozilla/5.0 IslaAutopilot/1.0" }, signal: AbortSignal.timeout(30e3), redirect: "follow" });
+export async function downloadPhoto(url, { fetchImpl, lookupImpl } = {}) {
+  // Public hosts only, connection pinned to the checked address, redirects re-checked, size capped.
+  // OPENVERSE_URL is only ever set in development/tests (a local stand-in for the search service): then its photo links are local too.
+  const { res: r } = process.env.OPENVERSE_URL && !fetchImpl
+    ? { res: await fetch(url, { headers: { "User-Agent": "Mozilla/5.0 IslaAutopilot/1.0" }, signal: AbortSignal.timeout(30e3) }) }
+    : await guardedFetch(url, { fetchImpl, lookupImpl, maxBytes: 15e6, timeout: 30e3, headers: { "User-Agent": "Mozilla/5.0 IslaAutopilot/1.0" } });
   if (!r.ok) throw new Error(`download ${r.status}`);
   if (!/^image\/(jpeg|png|webp)/i.test(r.headers.get("content-type") ?? "")) throw new Error("not a photo");
-  const buf = Buffer.from(await r.arrayBuffer());
+  const buf = await readCapped(r, 15e6);
+  if (!isRasterMagic(buf)) throw new Error("not a photo");
   if (buf.length < 200) throw new Error("too small");
   if (await isGrey(buf)) throw new Error("black and white");
   return buf;
@@ -119,7 +126,7 @@ export async function findStockPhotos(client, need, save, { fetchImpl = fetch } 
       if (used.has(p.url)) continue;
       used.add(p.url);
       try {
-        const size = await save(await downloadPhoto(p.url, { fetchImpl }), out.length + 1, wide);
+        const size = await save(await downloadPhoto(p.url, { fetchImpl: fetchImpl === fetch ? undefined : fetchImpl }), out.length + 1, wide);
         out.push({ index: out.length + 1, title: p.title, query: q, source: p.source, service, ...size });
         return true;
       } catch (e) { console.warn("Stock photo skipped:", e.message); }

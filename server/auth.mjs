@@ -4,6 +4,7 @@ import { scryptSync, randomBytes, randomInt, createHash, timingSafeEqual } from 
 
 const COOKIE = "isla_admin";
 const SESSION_DAYS = 30;
+const isProd = () => process.env.NODE_ENV === "production";
 const sha = (s) => createHash("sha256").update(s).digest("hex");
 
 export function hashPassword(pw) {
@@ -37,7 +38,18 @@ export function createAuth(db, save) {
   function isAdmin(req) {
     if (envToken() && req.headers["x-admin-token"] && sameText(req.headers["x-admin-token"], envToken())) return true;
     if (sessionOk(req)) return true;
+    // Fail closed in production: with no password and no token configured nobody is the owner until
+    // the first-run password is set (from this machine only). Dev and tests keep the open first run.
+    if (isProd()) return false;
     return !hasPassword() && !envToken();
+  }
+
+  /** May this request create the very first owner password? Any request in dev; loopback only in production. */
+  function firstRunAllowed(req) {
+    if (!isProd()) return true;
+    const local = /^(::ffff:)?127\.|^::1$/.test(req.socket?.remoteAddress ?? "");
+    // Behind a proxy every request looks local, but the proxy adds the visitor's address.
+    return local && !req.headers["x-real-ip"] && !req.headers["x-forwarded-for"];
   }
 
   function checkPassword(pw) {
@@ -50,7 +62,9 @@ export function createAuth(db, save) {
     const s = state();
     s.sessions = [...s.sessions.filter((x) => x.exp > Date.now()).slice(-19), { h: sha(t), exp: Date.now() + SESSION_DAYS * 864e5 }];
     await save();
-    const secure = req.headers["x-forwarded-proto"] === "https" || /^https:/.test(process.env.PUBLIC_URL ?? "") ? "; Secure" : "";
+    // Secure comes from config when PUBLIC_URL is set; only without it do we trust the proxy's header.
+    const pub = process.env.PUBLIC_URL ?? "";
+    const secure = (pub ? /^https:/i.test(pub) : req.headers["x-forwarded-proto"] === "https") ? "; Secure" : "";
     res.setHeader("Set-Cookie", `${COOKIE}=${t}; HttpOnly; SameSite=Lax; Path=/; Max-Age=${SESSION_DAYS * 86400}${secure}`);
   }
 
@@ -66,7 +80,7 @@ export function createAuth(db, save) {
     await save();
   }
 
-  return { isAdmin, hasPassword, checkPassword, startSession, endSession, setPassword, fromEnv: () => !!envPassword() };
+  return { isAdmin, firstRunAllowed, hasPassword, checkPassword, startSession, endSession, setPassword, fromEnv: () => !!envPassword() };
 }
 
 // ---------- Business access codes ----------
@@ -87,12 +101,23 @@ export const findByCode = (clients, code) => {
   return n.length === 6 ? clients.find((c) => c.code && normCode(c.code) === n) : undefined;
 };
 
-/** Simple per-IP limiter: allow `max` failed tries per `windowMs`. */
-export function limiter(max, windowMs) {
+/**
+ * Per-key limiter: allow `max` hits per `windowMs`. Old entries are pruned (on a timer and when the
+ * map grows), and the map is capped so spoofed keys cannot grow it without bound.
+ */
+export function limiter(max, windowMs, { maxKeys = 20000 } = {}) {
   const hits = new Map();
+  const live = (k) => (hits.get(k) ?? []).filter((t) => Date.now() - t < windowMs);
+  const prune = () => { for (const k of hits.keys()) { const l = live(k); if (l.length) hits.set(k, l); else hits.delete(k); } };
+  setInterval(prune, Math.max(windowMs, 6e4)).unref();
   return {
-    blocked: (ip) => (hits.get(ip) ?? []).filter((t) => Date.now() - t < windowMs).length >= max,
-    fail: (ip) => hits.set(ip, [...(hits.get(ip) ?? []).filter((t) => Date.now() - t < windowMs), Date.now()]),
+    blocked: (ip) => live(ip).length >= max,
+    fail(ip) {
+      if (hits.size >= maxKeys) { prune(); while (hits.size >= maxKeys) hits.delete(hits.keys().next().value); }
+      hits.set(ip, [...live(ip), Date.now()]);
+    },
+    /** Count a hit and say whether it is allowed. */
+    hit(ip) { if (this.blocked(ip)) return false; this.fail(ip); return true; },
     clear: (ip) => hits.delete(ip),
   };
 }

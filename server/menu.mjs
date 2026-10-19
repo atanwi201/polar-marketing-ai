@@ -3,6 +3,7 @@
 // Money is kept in cents (integers). Photos live in MEDIA_DIR/menu and are served at /menu/img/<file>.
 import { writeFile, unlink, mkdir } from "node:fs/promises";
 import { join } from "node:path";
+import { randomInt, randomBytes } from "node:crypto";
 import { db, id, now, MEDIA_DIR } from "./store.mjs";
 import { complete, aiKey, extractJson, withClientAi } from "./openrouter.mjs";
 
@@ -27,7 +28,7 @@ export function mdb() {
 
 // ---- config ----
 const CODE_ALPHABET = "abcdefghjkmnpqrstuvwxyz23456789";
-const rcode = (n) => Array.from({ length: n }, () => CODE_ALPHABET[Math.floor(Math.random() * CODE_ALPHABET.length)]).join("");
+const rcode = (n) => Array.from({ length: n }, () => CODE_ALPHABET[randomInt(CODE_ALPHABET.length)]).join("");
 function uniqueCode() { let c; do c = rcode(8); while (mdb().configs.some((x) => x.code === c)); return c; }
 
 export const findConfig = (clientId) => mdb().configs.find((c) => c.clientId === clientId);
@@ -67,7 +68,15 @@ const textMap = (m, n) => {
   return out;
 };
 const safeId = (v) => (typeof v === "string" && /^[\w-]{1,40}$/.test(v) ? v : "");
-const PHOTO = /^\/menu\/img\/[\w.-]+$/;
+const PHOTO = /^\/menu\/img\/[\w][\w.-]*$/;
+
+// Photo ownership: new files are named <clientId>_<id>.jpg. A tenant may only reference files it owns (that name prefix)
+// or legacy unprefixed files already in its own tree, and only ever unlinks files it owns that nobody else references.
+const photoFile = (url) => (typeof url === "string" && PHOTO.test(url) ? url.slice("/menu/img/".length) : "");
+export const photoOwnedBy = (file, clientId) => {
+  const pre = `${clientId}_`;
+  return !!clientId && typeof file === "string" && file.startsWith(pre) && /^[a-z0-9]+\.jpg$/.test(file.slice(pre.length));
+};
 
 function cleanPrice(it) {
   if (it?.priceCents === null || it?.priceCents === undefined || it?.priceCents === "") return null;
@@ -76,11 +85,11 @@ function cleanPrice(it) {
 }
 
 /** Validate a full tree into stored categories: caps sizes, assigns ids, drops unnamed entries. Pure apart from id(). */
-export function cleanCategories(list, { defaultLang = "es" } = {}) {
+export function cleanCategories(list, { defaultLang = "es", ownerId, existing } = {}) {
   if (!Array.isArray(list)) return [];
   const seenC = new Set(), seenI = new Set();
   const resolve = (m, n) => { const t = textMap(m, n); if (t._) { t[defaultLang] = t._; delete t._; } return t; };
-  const uid = (v, seen) => { let x = safeId(v); if (!x || seen.has(x)) x = id() + Math.random().toString(36).slice(2, 5); seen.add(x); return x; };
+  const uid = (v, seen) => { let x = safeId(v); if (!x || seen.has(x)) x = id() + randomBytes(3).toString("hex"); seen.add(x); return x; };
   const out = [];
   for (const c of list.slice(0, MAX_CATEGORIES)) {
     const name = resolve(c?.name, 80);
@@ -92,7 +101,7 @@ export function cleanCategories(list, { defaultLang = "es" } = {}) {
       items.push({
         id: uid(it.id, seenI), name: iname, description: resolve(it.description, 400), priceCents: cleanPrice(it),
         allergens: [...new Set((Array.isArray(it.allergens) ? it.allergens : []).filter((a) => ALLERGENS.includes(a)))],
-        photo: typeof it.photo === "string" && PHOTO.test(it.photo) ? it.photo : "",
+        photo: typeof it.photo === "string" && PHOTO.test(it.photo) && (ownerId === undefined || photoOwnedBy(photoFile(it.photo), ownerId) || existing?.has(it.photo)) ? it.photo : "",
         available: it.available !== false,
       });
     }
@@ -104,21 +113,34 @@ export function cleanCategories(list, { defaultLang = "es" } = {}) {
 const photosOf = (cats) => new Set(cats.flatMap((c) => c.items.map((i) => i.photo)).filter(Boolean));
 const fileOf = (url) => url.slice("/menu/img/".length);
 
-/** Replace the whole tree. Photos no longer referenced are deleted from disk. */
+/** Is this photo URL still used by a menu other than `clientId`'s? */
+const usedByOthers = (url, clientId) => mdb().configs.some((c) => c.clientId !== clientId && photosOf(c.categories).has(url));
+async function unlinkPhoto(url, clientId) {
+  const f = photoFile(url);
+  if (!f || usedByOthers(url, clientId)) return;
+  await unlink(join(PHOTO_DIR, f)).catch(() => {});
+}
+
+/** Replace the whole tree. Only photos this client owns may be referenced; unreferenced owned photos are deleted from disk. */
 export async function replaceCategories(cfg, list) {
   const before = photosOf(cfg.categories);
-  cfg.categories = cleanCategories(list, { defaultLang: cfg.languages[0] });
+  cfg.categories = cleanCategories(list, { defaultLang: cfg.languages[0], ownerId: cfg.clientId, existing: before });
   cfg.updatedAt = now();
   const after = photosOf(cfg.categories);
-  for (const p of before) if (!after.has(p)) await unlink(join(PHOTO_DIR, fileOf(p))).catch(() => {});
+  for (const p of before) if (!after.has(p)) await unlinkPhoto(p, cfg.clientId);
   return cfg.categories;
 }
 
 export async function removeClientData(clientId) {
   const m = mdb();
   const cfg = m.configs.find((c) => c.clientId === clientId);
-  for (const p of cfg ? photosOf(cfg.categories) : []) await unlink(join(PHOTO_DIR, fileOf(p))).catch(() => {});
   m.configs = m.configs.filter((c) => c.clientId !== clientId);
+  for (const p of cfg ? photosOf(cfg.categories) : []) await unlinkPhoto(p, clientId);
+  // Files this client uploaded but never saved into the tree.
+  try {
+    const { readdir } = await import("node:fs/promises");
+    for (const f of await readdir(PHOTO_DIR)) if (photoOwnedBy(f, clientId)) await unlink(join(PHOTO_DIR, f)).catch(() => {});
+  } catch { /* no photo folder yet */ }
 }
 
 // ---- public view ----
@@ -141,7 +163,7 @@ export function publicView(cfg, client, lang) {
 // ---- photos ----
 const PHOTO_URL = /^data:image\/(jpeg|png|webp);base64,([A-Za-z0-9+/=]+)$/;
 /** Downsize an uploaded photo to a JPEG (max 1200px) and store it. Returns its public URL. */
-export async function savePhoto(dataUrl) {
+export async function savePhoto(dataUrl, ownerId = "") {
   const m = PHOTO_URL.exec(dataUrl ?? "");
   if (!m) throw new MenuError("Send a JPEG, PNG or WebP photo.");
   if (dataUrl.length > 12e6) throw new MenuError("That photo is too large. Try a smaller one.", 413);
@@ -158,7 +180,7 @@ export async function savePhoto(dataUrl) {
     out = cv.toBuffer("image/jpeg", 82);
   } catch { throw new MenuError("We could not read that photo. Try another one."); }
   await mkdir(PHOTO_DIR, { recursive: true });
-  const file = `${id()}.jpg`;
+  const file = `${/^[\w-]+$/.test(ownerId) ? ownerId + "_" : ""}${id()}.jpg`;
   await writeFile(join(PHOTO_DIR, file), out);
   return `/menu/img/${file}`;
 }

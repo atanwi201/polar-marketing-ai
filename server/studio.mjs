@@ -1,7 +1,7 @@
 // The autonomous content studio. A client says what to market (optionally with a photo); the AI
 // writes the posts and a brand-new image every time, then publishes or queues them on its own.
 // The scheduler keeps each client on autopilot at their posts-per-week rate.
-import { join } from "node:path";
+import { join, resolve, dirname } from "node:path";
 import { readFile, unlink } from "node:fs/promises";
 import { db, save, id, token, now, MEDIA_DIR } from "./store.mjs";
 import { complete, aiKey, withClientAi } from "./openrouter.mjs";
@@ -25,9 +25,22 @@ export const CONTEXT =
   "Write natural, native-quality social posts for local businesses and their tourist customers. " +
   "Never invent prices, opening hours, awards or facts that are not in the brief. No emoji spam: at most two per caption.";
 
+/**
+ * A client-supplied media file name is only accepted as a plain image name inside MEDIA_DIR
+ * (no separators, no dots-dots). Returns the name, or throws a 400.
+ */
+export function safeMediaFile(file) {
+  const bad = () => Object.assign(new Error("Invalid image file"), { status: 400 });
+  if (typeof file !== "string" || !/^[\w-]+\.(jpe?g|png|webp)$/.test(file)) throw bad();
+  const full = resolve(MEDIA_DIR, file);
+  if (dirname(full) !== resolve(MEDIA_DIR)) throw bad();
+  return file;
+}
+
 /** Describe an uploaded photo with a free vision model, so the new image can build on it. */
 export async function describeImage(file) {
-  if (!KEY()) return "";
+  if (!KEY()) { safeMediaFile(file); return ""; }
+  safeMediaFile(file);
   const buf = await readFile(join(MEDIA_DIR, file));
   const ext = file.split(".").pop();
   const url = `data:image/${ext === "jpg" ? "jpeg" : ext};base64,${buf.toString("base64")}`;
@@ -146,7 +159,7 @@ async function drawPostImage(client, post) {
     const brief = db.briefs.find((b) => b.id === post.briefId);
     const raw = post.overlay ? file.replace(/\.jpg$/, "-raw.jpg") : file;
     const img = await generateImage(post.imagePrompt, join(MEDIA_DIR, raw), {
-      size: post.overlay ? POST_SIZE : client.imageSize ?? [1080, 1080], reference: brief?.imageFile ? join(MEDIA_DIR, brief.imageFile) : undefined,
+      size: post.overlay ? POST_SIZE : client.imageSize ?? [1080, 1080], reference: brief?.imageFile ? join(MEDIA_DIR, safeMediaFile(brief.imageFile)) : undefined,
     });
     // Offer posts from the assistant get the offer written on the new image too.
     if (post.overlay) {

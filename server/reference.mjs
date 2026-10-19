@@ -1,48 +1,148 @@
 // "A website I like": fetch an example site the owner or the client points to and boil it down to a design
 // brief for the model (structure, type, colours, mood). Only public http(s) pages, never this machine's own
-// network: private and local addresses are refused, redirects are re-checked, size and time are capped.
+// network: private and local addresses are refused, the connection is pinned to the address that was checked
+// (no DNS rebinding), redirects are re-checked on every hop, size and time are capped.
 import { lookup } from "node:dns/promises";
 import { isIP } from "node:net";
+import http from "node:http";
+import https from "node:https";
 
 const MAX_PAGE = 1.5e6;
 const MAX_CSS = 300e3;
 const TIMEOUT = 12e3;
 
-/** True for addresses that must never be fetched: loopback, private, link-local, CGNAT, multicast, unique-local. */
-export function isPrivateAddress(ip) {
-  if (isIP(ip) === 4) {
-    const [a, b] = ip.split(".").map(Number);
-    return a === 0 || a === 10 || a === 127 || a >= 224 || (a === 100 && b >= 64 && b <= 127) || (a === 169 && b === 254) || (a === 172 && b >= 16 && b <= 31) || (a === 192 && b === 168) || (a === 192 && b === 0);
-  }
-  const v = ip.toLowerCase();
-  if (v.startsWith("::ffff:")) return isPrivateAddress(v.slice(7));
-  return v === "::" || v === "::1" || v.startsWith("fe8") || v.startsWith("fe9") || v.startsWith("fea") || v.startsWith("feb") || v.startsWith("fc") || v.startsWith("fd") || v.startsWith("ff");
+function v4Private(a, b, c) {
+  return a === 0 || a === 10 || a === 127 || a >= 224 || (a === 100 && b >= 64 && b <= 127) || (a === 169 && b === 254) || (a === 172 && b >= 16 && b <= 31)
+    || (a === 192 && b === 168) || (a === 192 && b === 0 && c <= 2) || (a === 198 && (b === 18 || b === 19)) || (a === 198 && b === 51 && c === 100) || (a === 203 && b === 0 && c === 113);
 }
 
-async function assertPublic(u, lookupImpl) {
+/** The eight 16-bit groups of an IPv6 address (handles "::" and an embedded dotted IPv4), or null. */
+function parseV6(ip) {
+  let s = ip.toLowerCase().split("%")[0];
+  const dotted = /(\d+\.\d+\.\d+\.\d+)$/.exec(s);
+  if (dotted) {
+    if (isIP(dotted[1]) !== 4) return null;
+    const [a, b, c, d] = dotted[1].split(".").map(Number);
+    s = s.slice(0, dotted.index) + ((a << 8) | b).toString(16) + ":" + ((c << 8) | d).toString(16);
+  }
+  const halves = s.split("::");
+  if (halves.length > 2) return null;
+  const left = halves[0] ? halves[0].split(":") : [];
+  const right = halves.length === 2 && halves[1] ? halves[1].split(":") : [];
+  const fill = halves.length === 2 ? 8 - left.length - right.length : 0;
+  if (fill < 0 || (halves.length === 1 && left.length !== 8)) return null;
+  const g = [...left, ...Array(fill).fill("0"), ...right];
+  if (g.length !== 8 || g.some((x) => !/^[0-9a-f]{1,4}$/.test(x))) return null;
+  return g.map((x) => parseInt(x, 16));
+}
+
+/** True for addresses that must never be fetched: loopback, private, link-local, CGNAT, multicast, unique-local, and IPv6 forms that embed those. Anything unparsable counts as private. */
+export function isPrivateAddress(ip) {
+  const s = String(ip ?? "").trim().replace(/^\[|\]$/g, "");
+  if (isIP(s) === 4) { const [a, b, c] = s.split(".").map(Number); return v4Private(a, b, c); }
+  if (isIP(s.split("%")[0]) !== 6) return true;
+  const g = parseV6(s);
+  if (!g) return true;
+  const v4 = (hi, lo) => v4Private(hi >> 8, hi & 255, lo >> 8);
+  if (g.every((x) => x === 0) || (g.slice(0, 7).every((x) => x === 0) && g[7] === 1)) return true; // :: and ::1
+  if (g.slice(0, 5).every((x) => x === 0) && (g[5] === 0xffff || g[5] === 0)) return v4(g[6], g[7]); // ::ffff:a.b.c.d (both spellings) and ::a.b.c.d
+  if (g[0] === 0x64 && g[1] === 0xff9b) return g[2] !== 0 || g.slice(3, 6).some((x) => x !== 0) ? true : v4(g[6], g[7]); // NAT64 64:ff9b::/96 (and the local-use /48)
+  if (g[0] === 0x2002) return v4(g[1], g[2]); // 6to4
+  if (g[0] === 0x2001 && (g[1] === 0 || g[1] === 0xdb8)) return true; // Teredo, documentation
+  if (g[0] === 0x100 && g[1] === 0 && g[2] === 0 && g[3] === 0) return true; // discard prefix
+  if ((g[0] & 0xfe00) === 0xfc00) return true; // fc00::/7
+  if ((g[0] & 0xffc0) === 0xfe80 || (g[0] & 0xffc0) === 0xfec0) return true; // fe80::/10, fec0::/10
+  if ((g[0] & 0xff00) === 0xff00) return true; // multicast
+  return false;
+}
+
+/** Resolve a hostname and refuse anything private. Returns the first public address { address, family }. */
+async function assertPublic(u, lookupImpl, { resolve = true } = {}) {
   if (!/^https?:$/.test(u.protocol)) throw new Error("Only http and https links are allowed");
   if (u.port && !["80", "443"].includes(u.port)) throw new Error("That link uses an unusual port");
   if (u.username || u.password) throw new Error("Links with a login are not allowed");
-  const host = u.hostname.replace(/^\[|\]$/g, "");
+  const host = u.hostname.replace(/^\[|\]$/g, "").replace(/\.$/, "");
   if (host === "localhost" || host.endsWith(".localhost") || host.endsWith(".local") || host.endsWith(".internal")) throw new Error("That link points to a private address");
-  const addrs = isIP(host) ? [{ address: host }] : await lookupImpl(host, { all: true }).catch(() => { throw new Error("That website could not be found"); });
+  if (isIP(host)) {
+    if (isPrivateAddress(host)) throw new Error("That link points to a private address");
+    return { address: host, family: isIP(host) };
+  }
+  if (!resolve) return null;
+  const addrs = await lookupImpl(host, { all: true }).catch(() => { throw new Error("That website could not be found"); });
   if (!addrs.length || addrs.some((a) => isPrivateAddress(a.address))) throw new Error("That link points to a private address");
+  return { address: addrs[0].address, family: addrs[0].family ?? isIP(addrs[0].address) };
+}
+
+/** fetch() that connects to one pre-validated address (no second DNS lookup), caps the body and never follows redirects. */
+export function pinnedFetch(href, { pinned, headers = {}, signal, maxBytes = MAX_PAGE } = {}) {
+  const u = new URL(href);
+  const lib = u.protocol === "https:" ? https : http;
+  return new Promise((resolve, reject) => {
+    const req = lib.request(u, {
+      method: "GET", headers, signal,
+      lookup: pinned ? (_h, opts, cb) => (opts?.all ? cb(null, [{ address: pinned.address, family: pinned.family }]) : cb(null, pinned.address, pinned.family)) : undefined,
+    }, (res) => {
+      const chunks = [];
+      let size = 0;
+      const h = new Headers();
+      for (const [k, v] of Object.entries(res.headers)) if (v != null) h.set(k, Array.isArray(v) ? v.join(", ") : String(v));
+      const status = res.statusCode;
+      if (status >= 300 && status < 400) { res.resume(); return resolve(new Response(null, { status, headers: h })); }
+      res.on("data", (c) => { size += c.length; chunks.push(c); if (size > maxBytes) { res.destroy(); finish(); } });
+      let done = false;
+      const finish = () => { if (done) return; done = true; resolve(new Response([204, 205, 304].includes(status) ? null : Buffer.concat(chunks).subarray(0, maxBytes), { status, headers: h })); };
+      res.on("end", finish); res.on("close", finish);
+      res.on("error", reject);
+    });
+    req.on("error", reject);
+    req.end();
+  });
+}
+
+/**
+ * GET a public URL: every hop (up to `maxRedirects`) is validated and connected to the validated address.
+ * Returns { res, url }; the caller reads the body (already capped by maxBytes with the default transport).
+ */
+export async function guardedFetch(url, { fetchImpl, lookupImpl, maxRedirects = 3, maxBytes = MAX_PAGE, headers = {}, timeout = TIMEOUT } = {}) {
+  // A test can inject fetchImpl (then no real DNS is done unless lookupImpl is injected too).
+  const injected = !!fetchImpl;
+  const doFetch = fetchImpl ?? pinnedFetch;
+  const look = lookupImpl ?? lookup;
+  let u = new URL(url);
+  for (let hop = 0; hop <= maxRedirects; hop++) {
+    const pinned = await assertPublic(u, look, { resolve: !injected || !!lookupImpl });
+    const res = await doFetch(u.href, { redirect: "manual", signal: AbortSignal.timeout(timeout), headers, pinned, maxBytes });
+    if (res.status >= 300 && res.status < 400 && res.headers.get("location")) { u = new URL(res.headers.get("location"), u); continue; }
+    return { res, url: u.href };
+  }
+  throw new Error("Too many redirects");
+}
+
+/** Read a response body up to `max` bytes. */
+export async function readCapped(res, max) {
+  if (res.body && typeof res.body.getReader === "function") {
+    const reader = res.body.getReader();
+    const chunks = [];
+    let size = 0;
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      chunks.push(value); size += value.length;
+      if (size > max) { await reader.cancel().catch(() => {}); break; }
+    }
+    return Buffer.concat(chunks).subarray(0, max);
+  }
+  return Buffer.from(await res.arrayBuffer()).subarray(0, max);
 }
 
 /** GET a public page as text (capped), following up to 3 redirects with the same checks each time. */
-export async function safeGet(url, { fetchImpl = fetch, lookupImpl = lookup, max = MAX_PAGE, accept = "text/html" } = {}) {
-  let u = new URL(url);
-  for (let hop = 0; hop < 4; hop++) {
-    await assertPublic(u, lookupImpl);
-    const r = await fetchImpl(u.href, { redirect: "manual", signal: AbortSignal.timeout(TIMEOUT), headers: { "User-Agent": "Mozilla/5.0 (compatible; IslaDesignBot/1.0)", Accept: accept } });
-    if (r.status >= 300 && r.status < 400 && r.headers.get("location")) { u = new URL(r.headers.get("location"), u); continue; }
-    if (!r.ok) throw new Error(`That website answered ${r.status}`);
-    const type = r.headers.get("content-type") ?? "";
-    if (accept === "text/html" && type && !/html|xml/i.test(type)) throw new Error("That link is not a web page");
-    const buf = Buffer.from(await r.arrayBuffer());
-    return { text: buf.subarray(0, max).toString("utf8"), url: u.href };
-  }
-  throw new Error("Too many redirects");
+export async function safeGet(url, { fetchImpl, lookupImpl, max = MAX_PAGE, accept = "text/html" } = {}) {
+  const { res: r, url: finalUrl } = await guardedFetch(url, { fetchImpl, lookupImpl, maxBytes: max, headers: { "User-Agent": "Mozilla/5.0 (compatible; IslaDesignBot/1.0)", Accept: accept } });
+  if (!r.ok) throw new Error(`That website answered ${r.status}`);
+  const type = r.headers.get("content-type") ?? "";
+  if (accept === "text/html" && type && !/html|xml/i.test(type)) throw new Error("That link is not a web page");
+  const buf = await readCapped(r, max);
+  return { text: buf.toString("utf8"), url: finalUrl };
 }
 
 const strip = (s) => s.replace(/<[^>]+>/g, " ").replace(/&nbsp;/g, " ").replace(/&amp;/g, "&").replace(/\s+/g, " ").trim();

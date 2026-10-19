@@ -4,11 +4,14 @@ import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
 import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
+import http from "node:http";
 import { join } from "node:path";
+import { blankedEnv, freePort, waitReady } from "./test-harness.mjs";
 
 const dir = mkdtempSync(join(tmpdir(), "declined-"));
-const PORT = 8811, B = `http://localhost:${PORT}`;
-const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+let PORT, B;
+// Local stand-in for every outbound provider (Pollinations, Gemini, OpenRouter...): answers 503 so nothing leaves the machine.
+const offline = http.createServer((req, res) => { res.writeHead(503); res.end("offline"); });
 const api = async (method, path, body, headers = {}) => {
   const r = await fetch(B + path, { method, headers: { ...(body ? { "Content-Type": "application/json" } : {}), ...headers }, body: body ? JSON.stringify(body) : undefined });
   const text = await r.text();
@@ -17,13 +20,18 @@ const api = async (method, path, body, headers = {}) => {
 };
 let srv;
 before(async () => {
+  await new Promise((ok) => offline.listen(0, "127.0.0.1", ok));
+  const off = `http://127.0.0.1:${offline.address().port}`;
+  PORT = await freePort();
+  B = `http://localhost:${PORT}`;
   srv = spawn(process.execPath, [join(import.meta.dirname, "index.mjs")], {
-    env: { ...process.env, PORT: String(PORT), DATA_DIR: dir, SITES_DIR: join(dir, "sites"), PUBLIC_URL: "https://studio.example", ADMIN_TOKEN: "", OPENROUTER_API_KEY: "", GROQ_API_KEY: "", MISTRAL_API_KEY: "", AI_PROVIDERS: "openrouter" },
+    env: { ...process.env, ...blankedEnv(), PORT: String(PORT), DATA_DIR: dir, SITES_DIR: join(dir, "sites"), PUBLIC_URL: "https://studio.example", AI_PROVIDERS: "openrouter",
+      POLLINATIONS_BASE_URL: off, POLLINATIONS_GAP_MS: "0", OPENROUTER_BASE_URL: off, GOOGLE_AI_BASE_URL: off, GROQ_BASE_URL: off, MISTRAL_BASE_URL: off, GEMINI_BASE_URL: off, DEEPSEEK_BASE_URL: off, SILICONFLOW_BASE_URL: off, ALIBABA_BASE_URL: off, OPENAI_BASE_URL: off, OPENVERSE_URL: off, PEXELS_URL: off },
     stdio: "ignore",
   });
-  await sleep(900);
+  await waitReady(B, srv);
 });
-after(() => { srv?.kill(); rmSync(dir, { recursive: true, force: true }); });
+after(() => { srv?.kill(); offline.close(); rmSync(dir, { recursive: true, force: true }); });
 
 const signup = async (name, languages) => (await fetch(B + "/api/signup", { method: "POST", body: JSON.stringify({ name, kind: "Bar", town: "X", phone: "+34 600", email: "a@b.es", languages, offer: "Tapas", acceptTerms: true }) }).then((r) => r.json()));
 

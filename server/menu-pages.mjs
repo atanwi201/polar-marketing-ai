@@ -82,9 +82,6 @@ ${HEAD}
 <meta name="theme-color" content="${primary}">
 <title>${esc(`${t.menu} - ${name}`)}</title>
 ${logo ? `<link rel="icon" href="/media/${esc(logo)}"><link rel="apple-touch-icon" href="/media/${esc(logo)}">` : `<link rel="icon" href="/brand/logo/favicon.svg" type="image/svg+xml">`}
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=${font.gf}&display=swap" rel="stylesheet">
 <style>
 :root{--primary:${primary};--on-primary:${onColor(primary)};--accent:${accent};--accent-ink:${accentInk};--bg:#fbfaf7;--card:#ffffff;--ink:#1b1b1b;--ink2:#5b5b5b;--line:#e8e4dc}
 *{box-sizing:border-box}html{-webkit-text-size-adjust:100%;scroll-behavior:smooth;scroll-padding-top:64px}

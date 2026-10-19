@@ -47,10 +47,75 @@ async function freeModel(fetchImpl) {
   return want && (!freeModels.list.length || freeModels.list.includes(want)) ? want : freeModels.list[0] ?? want ?? "flux";
 }
 
+
+// ---------- Upload hardening: magic bytes and pixel caps ----------
+
+/** What the first bytes say a file is: "jpeg" | "png" | "webp" | "gif" | "mp4" | "mov" | "webm" | null. Never trusts a Content-Type. */
+export function sniffMedia(buf) {
+  const b = buf instanceof Uint8Array ? buf : new Uint8Array(0);
+  const at = (i, s) => s.length + i <= b.length && [...s].every((c, k) => b[i + k] === c.charCodeAt(0));
+  if (b.length >= 3 && b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff) return "jpeg";
+  if (b.length >= 8 && b[0] === 0x89 && at(1, "PNG") && b[4] === 0x0d && b[5] === 0x0a && b[6] === 0x1a && b[7] === 0x0a) return "png";
+  if (at(0, "RIFF") && at(8, "WEBP")) return "webp";
+  if (at(0, "GIF87a") || at(0, "GIF89a")) return "gif";
+  if (b.length >= 4 && b[0] === 0x1a && b[1] === 0x45 && b[2] === 0xdf && b[3] === 0xa3) return "webm";
+  if (at(4, "ftyp")) return at(8, "qt") ? "mov" : "mp4";
+  return null;
+}
+export const isRasterMagic = (buf) => ["jpeg", "png", "webp", "gif"].includes(sniffMedia(buf));
+export const isVideoMagic = (buf) => ["mp4", "mov", "webm"].includes(sniffMedia(buf));
+
+/** Pixel size read from the header (no decoding), or null when it can't be told. */
+export function imageSize(buf) {
+  const kind = sniffMedia(buf);
+  const b = buf;
+  try {
+    if (kind === "png") return { w: Buffer.from(b.buffer, b.byteOffset, b.length).readUInt32BE(16), h: Buffer.from(b.buffer, b.byteOffset, b.length).readUInt32BE(20) };
+    if (kind === "gif") return { w: b[6] | (b[7] << 8), h: b[8] | (b[9] << 8) };
+    if (kind === "webp") {
+      const t = String.fromCharCode(...b.subarray(12, 16));
+      if (t === "VP8X") return { w: 1 + (b[24] | (b[25] << 8) | (b[26] << 16)), h: 1 + (b[27] | (b[28] << 8) | (b[29] << 16)) };
+      if (t === "VP8L") return { w: 1 + (((b[22] & 0x3f) << 8) | b[21]), h: 1 + (((b[24] & 0x0f) << 10) | (b[23] << 2) | ((b[22] & 0xc0) >> 6)) };
+      if (t === "VP8 ") return { w: (b[26] | (b[27] << 8)) & 0x3fff, h: (b[28] | (b[29] << 8)) & 0x3fff };
+    }
+    if (kind === "jpeg") {
+      let i = 2;
+      while (i + 9 < b.length) {
+        if (b[i] !== 0xff) { i++; continue; }
+        const m = b[i + 1];
+        if (m === 0xff) { i++; continue; }
+        if (m >= 0xc0 && m <= 0xcf && m !== 0xc4 && m !== 0xc8 && m !== 0xcc) return { h: (b[i + 5] << 8) | b[i + 6], w: (b[i + 7] << 8) | b[i + 8] };
+        i += 2 + ((b[i + 2] << 8) | b[i + 3]);
+      }
+    }
+  } catch { /* fall through */ }
+  return null;
+}
+
+export const MAX_PIXELS = 50e6; // ~7000x7000: bigger images are refused before the canvas decodes them
+/** Throws unless buf is a jpeg/png/webp/gif of a sane pixel size. */
+export function assertSafeImage(buf, { maxPixels = MAX_PIXELS } = {}) {
+  if (!isRasterMagic(buf)) throw new Error("That file is not a valid picture");
+  const s = imageSize(buf);
+  if (!s || !s.w || !s.h) throw new Error("That picture's size could not be read");
+  if (s.w * s.h > maxPixels || s.w > 20000 || s.h > 20000) throw new Error("That picture is too large (pixels)");
+  return s;
+}
+/** assertSafeImage for a Buffer or a file path (reads at most the first 512 KB of a file). */
+export async function guardImage(src, opts) {
+  if (typeof src === "string") {
+    const { open } = await import("node:fs/promises");
+    const fh = await open(src, "r");
+    try { const head = Buffer.alloc(512 * 1024); const { bytesRead } = await fh.read(head, 0, head.length, 0); return assertSafeImage(head.subarray(0, bytesRead), opts); } finally { await fh.close(); }
+  }
+  return assertSafeImage(src, opts);
+}
+
 const LOGO_STRIP = 0.075; // share of the height cut from the bottom
 
 /** Crop the bottom strip, cover-fit to w x h, re-encode as JPEG. Returns the input if it can't. */
 export async function finishImage(buf, [w, h], { strip = LOGO_STRIP } = {}) {
+  assertSafeImage(buf); // magic bytes + pixel cap before anything decodes it
   let canvas;
   try { canvas = await import("@napi-rs/canvas"); } catch { return buf; }
   try {

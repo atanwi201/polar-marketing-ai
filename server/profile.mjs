@@ -61,17 +61,26 @@ export async function saveDataImage(dataUrl, prefix = "up") {
   return file;
 }
 
-/** New logo, new photos (data URLs or uploaded files), photos removed. */
+/**
+ * New logo, new photos (data URLs or uploaded files), photos removed.
+ * Every await happens first; the client is then updated in one synchronous step from its CURRENT state,
+ * so two concurrent saves cannot drop each other's photos or logo.
+ */
 export async function applyImages(client, { logo, logoFile, photos = [], photoFiles = [], removePhotos = [] } = {}) {
-  if (logo || logoFile) {
-    const old = client.logoFile;
-    client.logoFile = logoFile ?? (await saveDataImage(logo, "logo"));
-    if (old && old !== client.logoFile && old.startsWith("logo-")) await unlink(join(MEDIA_DIR, old)).catch(() => {});
-  }
+  const newLogo = logo || logoFile ? (logoFile ?? (await saveDataImage(logo, "logo"))) : "";
+  const room = Math.max(0, MAX_PHOTOS - (client.photos ?? []).length + removePhotos.length);
+  const saved = [];
+  for (const d of photos.slice(0, room)) saved.push(await saveDataImage(d, "photo"));
+  // ---- synchronous merge from the current state ----
+  let oldLogo = "";
+  if (newLogo) { oldLogo = client.logoFile; client.logoFile = newLogo; }
   const list = (client.photos ?? []).filter((p) => !removePhotos.includes(p.file));
   for (const f of photoFiles) if (list.length < MAX_PHOTOS && !list.some((p) => p.file === f)) list.push({ file: f });
-  for (const d of photos) if (list.length < MAX_PHOTOS) list.push({ file: await saveDataImage(d, "photo") });
+  const dropped = [];
+  for (const f of saved) { if (list.length < MAX_PHOTOS) list.push({ file: f }); else dropped.push(f); }
   client.photos = list;
+  if (oldLogo && oldLogo !== client.logoFile && oldLogo.startsWith("logo-")) await unlink(join(MEDIA_DIR, oldLogo)).catch(() => {});
+  for (const f of dropped) await unlink(join(MEDIA_DIR, f)).catch(() => {});
 }
 
 /** What's still missing for a great website (shown to the business as a checklist). */

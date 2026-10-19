@@ -1,0 +1,48 @@
+[Unit]
+Description=Polar Marketing (isla-autopilot)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=isla
+Group=isla
+WorkingDirectory=/opt/isla-autopilot/current
+EnvironmentFile=/opt/isla-autopilot/.env
+Environment=NODE_ENV=production HOST=127.0.0.1 PORT=8787
+ExecStart=/opt/node22/bin/node server/index.mjs
+Restart=on-failure
+RestartSec=3
+StartLimitIntervalSec=60
+StartLimitBurst=5
+TimeoutStopSec=20
+
+# Hardening. Writable: data/ and sites/ (shared, outside releases/). PrivateTmp is fine: video.mjs uses its own tmpdir.
+NoNewPrivileges=yes
+ProtectSystem=strict
+ReadWritePaths=/opt/isla-autopilot/data /opt/isla-autopilot/sites
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+ProtectHostname=yes
+RestrictSUIDSGID=yes
+RestrictNamespaces=yes
+RestrictRealtime=yes
+LockPersonality=yes
+MemoryDenyWriteExecute=no
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+SystemCallArchitectures=native
+CapabilityBoundingSet=
+AmbientCapabilities=
+UMask=0077
+MemoryMax=1500M
+TasksMax=256
+# Note: MemoryDenyWriteExecute=no because Node's JIT needs W+X pages.
+
+[Install]
+WantedBy=multi-user.target

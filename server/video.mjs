@@ -181,7 +181,7 @@ async function voiceOver(text, lang, file) {
     file = original;
     await run("say", ["-v", voice, "-r", "175", "-o", file, clean(text)], { timeout: 60e3 });
   }
-  const { stdout } = await run(FFMPEG().replace(/ffmpeg$/, "ffprobe"), ["-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", file]).catch(() => ({ stdout: "0" }));
+  const { stdout } = await run(ffprobeBin(), ["-v", "error", "-protocol_whitelist", "file", "-show_entries", "format=duration", "-of", "csv=p=0", file]).catch(() => ({ stdout: "0" }));
   return { file, duration: Number(stdout) || 0 };
 }
 
@@ -200,9 +200,21 @@ export function timeline(seconds, n) {
   return { scene: Math.round(scene * 100) / 100, end: END, total: Math.round((n * scene + END - n * FADE) * 100) / 100 };
 }
 
+/** Input hardening: every -i may only read local files (no http, concat/HLS playlists pulling other protocols, etc.). */
+export function hardenInputs(args) {
+  const out = [];
+  for (let i = 0; i < args.length; i++) {
+    if (args[i] === "-i") out.push("-protocol_whitelist", "file");
+    out.push(args[i]);
+  }
+  return out;
+}
+/** ffprobe path next to ffmpeg. */
+export const ffprobeBin = () => FFMPEG().replace(/ffmpeg$/, "ffprobe");
+
 export function ffmpeg(args, timeoutMs = 10 * 60e3) {
   return new Promise((ok, fail) => {
-    const p = spawn(FFMPEG(), args, { stdio: ["ignore", "ignore", "pipe"] });
+    const p = spawn(FFMPEG(), hardenInputs(args), { stdio: ["ignore", "ignore", "pipe"] });
     let err = "";
     const timer = setTimeout(() => p.kill("SIGKILL"), timeoutMs);
     p.stderr.on("data", (d) => { err = (err + d).slice(-4000); });

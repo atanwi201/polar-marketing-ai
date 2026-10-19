@@ -17,6 +17,15 @@ const stamp = (c) => Date.parse(c.updatedAt ?? c.lastVisitAt ?? c.createdAt ?? "
 const same = (a, b) => { const x = Buffer.from(String(a)), y = Buffer.from(String(b)); return x.length === y.length && timingSafeEqual(x, y); };
 const origin = (req) => `${req.headers["x-forwarded-proto"] ?? "http"}://${req.headers.host}`;
 
+export const LOG_MAX_BYTES = 8e3, LOG_MAX_LINES = 20, LOG_MAX_CHARS = 300, LOG_PER_MINUTE = 30;
+const logHits = new Map();
+function logAllowed(key, at = Date.now()) {
+  if (logHits.size > 5000) for (const [k, v] of logHits) if (at - v.start > 60e3) logHits.delete(k);
+  let h = logHits.get(key);
+  if (!h || at - h.start > 60e3) { h = { start: at, n: 0 }; logHits.set(key, h); }
+  return ++h.n <= LOG_PER_MINUTE;
+}
+
 /** Handles /wallet/v1/... Returns true when the request was for the wallet service. */
 export async function handleWallet(req, res, url, seg, ctx) {
   const parts = url.pathname.split("/").filter(Boolean);
@@ -35,8 +44,11 @@ export async function handleWallet(req, res, url, seg, ctx) {
   try {
     // POST /wallet/v1/log
     if (r[0] === "log" && req.method === "POST") {
-      const body = await readBody(req).catch(() => ({}));
-      for (const line of body.logs ?? []) console.warn("[wallet]", String(line).slice(0, 500));
+      // Unauthenticated by design (Apple sends it without a token), so it is bounded: 8 KB body, 20 lines, 300 chars each, 30 posts a minute per address.
+      if (!logAllowed(ctx.clientIp?.(req) ?? req.socket?.remoteAddress ?? "?")) { ok(429, { "Retry-After": "60" }); return true; }
+      const body = await readBody(req, LOG_MAX_BYTES).catch(() => ({}));
+      const logs = Array.isArray(body?.logs) ? body.logs.slice(0, LOG_MAX_LINES) : [];
+      for (const line of logs) console.warn("[wallet]", String(line).replace(/[\x00-\x1f\x7f]+/g, " ").slice(0, LOG_MAX_CHARS));
       ok(200); return true;
     }
     // /wallet/v1/devices/:deviceId/registrations/:passTypeId[/:serial]

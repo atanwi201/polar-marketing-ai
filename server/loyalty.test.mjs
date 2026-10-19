@@ -217,9 +217,9 @@ test("sanitize: rewards, design files and bounds", () => {
   assert.equal(p.rewards.length, 2);
   assert.equal(p.rewards[0].cost, 6); // capped at goal
   assert.equal(p.rewards[1].cost, 1);
-  const { program } = L.updateProgram(p, { design: { logoFile: "../../etc/passwd", stripFile: "a.png", accent: "#ABCDEF", stampIcon: "🍕🍕🍕" } });
+  const { program } = L.updateProgram(p, { design: { logoFile: "../../etc/passwd", stripFile: `${L.designFilePrefix(p.id)}a.png`, accent: "#ABCDEF", stampIcon: "🍕🍕🍕" } });
   assert.equal(program.design.logoFile, "");
-  assert.equal(program.design.stripFile, "a.png");
+  assert.equal(program.design.stripFile, `${L.designFilePrefix(p.id)}a.png`);
   assert.equal(program.design.accent, "#abcdef");
   assert.equal([...program.design.stampIcon].length, 2);
 });
