@@ -98,7 +98,7 @@ export default function Business() {
       actions={<>
         <Badge tone={STAGE_TONE[client.stage]}>{STAGE_LABEL[client.stage]}{left != null ? ` · ${left > 0 ? `${left} days left` : "ended"}` : ""}</Badge>
         {portal && <a className="btn btn-secondary" href={portal} target="_blank" rel="noreferrer" style={{ textDecoration: "none" }}>Open their dashboard</a>}
-        {sc?.site?.url && sc.site.status === "ready" && <a className="btn btn-ghost" href={siteUrl(sc.site.url)} target="_blank" rel="noreferrer" style={{ textDecoration: "none" }}>Website</a>}
+        {sc?.websiteMode === "own" && sc.websiteUrl ? <a className="btn btn-ghost" href={sc.websiteUrl} target="_blank" rel="noreferrer" style={{ textDecoration: "none" }}>Own website</a> : sc?.site?.url && sc.site.status === "ready" && <a className="btn btn-ghost" href={siteUrl(sc.site.url)} target="_blank" rel="noreferrer" style={{ textDecoration: "none" }}>Website</a>}
       </>}>
       {sc && sc.approvalStatus && sc.approvalStatus !== "approved" && <ApprovalBanner sc={sc} act={act} />}
       <Card>
@@ -156,8 +156,8 @@ function Overview({ client, sc, data, offer, posts, videos, messages, flagged, p
         </button>
         <button type="button" className="biz-stat" onClick={() => setTab("website")}>
           <span className="biz-stat-label">Website</span>
-          <span className="biz-stat-value">{sc?.site ? { ready: "Live", building: "Being built", waiting: "Being built", failed: "Not built" }[sc.site.status] : "None"}</span>
-          <span className="small muted">{sc?.site?.builtAt ? `Updated ${fmtDate(sc.site.builtAt)}` : "Built when the autopilot starts"}</span>
+          <span className="biz-stat-value">{sc?.websiteMode === "own" ? "Own website" : sc?.site ? { ready: "Live", building: "Being built", waiting: "Being built", failed: "Not built" }[sc.site.status] : "None"}</span>
+          <span className="small muted">{sc?.websiteMode === "own" ? (sc.websiteUrl ? sc.websiteUrl.replace(/^https?:\/\//, "").replace(/\/$/, "") : "No link saved yet") : sc?.site?.builtAt ? `Updated ${fmtDate(sc.site.builtAt)}` : "Built when the autopilot starts"}</span>
         </button>
         <button type="button" className="biz-stat" onClick={() => setTab("posts")}>
           <span className="biz-stat-label">Posts</span>
@@ -467,6 +467,8 @@ function SiteChat({ sc, act }: { sc: SClient; act: Act }) {
   );
 }
 
+const isHttpUrl = (v: string) => { try { const u = new URL(/^https?:\/\//i.test(v) ? v : `https://${v}`); return /^https?:$/.test(u.protocol) && /\.[a-z]{2,}$/i.test(u.hostname); } catch { return false; } };
+
 function Website({ sc, act }: { sc: SClient; act: Act }) {
   const [domain, setDomain] = useState(sc.domain ?? "");
   const [p, setP] = useState<Profile>(() => structuredClone(sc.profile ?? {}));
@@ -479,6 +481,18 @@ function Website({ sc, act }: { sc: SClient; act: Act }) {
   const [useLogoColors, setUseLogoColors] = useState(!sc.profile?.colors?.primary);
   const [busy, setBusy] = useState("");
   useEffect(() => { setP(structuredClone(sc.profile ?? {})); setOffer(sc.offer ?? ""); setHours(sc.hours ?? ""); }, [sc.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  const [mode, setMode] = useState<"ai" | "own">(sc.websiteMode === "own" ? "own" : "ai");
+  const [ownUrl, setOwnUrl] = useState(sc.websiteUrl ?? "");
+  const [savingMode, setSavingMode] = useState(false);
+  useEffect(() => { setMode(sc.websiteMode === "own" ? "own" : "ai"); setOwnUrl(sc.websiteUrl ?? ""); }, [sc.id, sc.websiteMode, sc.websiteUrl]);
+  const urlTrim = ownUrl.trim();
+  const badUrl = mode === "own" && !isHttpUrl(urlTrim);
+  const savedOwn = sc.websiteMode === "own";
+  const saveMode = async () => {
+    setSavingMode(true);
+    await act("POST", "/clients", { id: sc.id, websiteMode: mode, websiteUrl: urlTrim }, mode === "own" ? "Saved. Their own website is now used everywhere." : "Saved. The AI website is used again.");
+    setSavingMode(false);
+  };
   const site = sc.site;
   const badDomain = !!domain && !/^[a-z0-9-]+(\.[a-z0-9-]+)+$/i.test(domain.replace(/^https?:\/\//, "").replace(/\/$/, ""));
   const services = p.services?.length ? p.services : [{ name: "", price: "", description: "" }];
@@ -496,8 +510,54 @@ function Website({ sc, act }: { sc: SClient; act: Act }) {
     if (r !== undefined) { setLogo(""); setRemoveLogo(false); setNewPhotos([]); setRemoved([]); }
   };
 
+  const chooser = (
+    <div className="box stack-sm">
+      <span className="strong">Website</span>
+      <div className="chips" role="radiogroup" aria-label="Website type">
+        <button type="button" role="radio" aria-checked={mode === "ai"} className={"chip" + (mode === "ai" ? " chip-on" : "")} onClick={() => setMode("ai")}>Build with AI</button>
+        <button type="button" role="radio" aria-checked={mode === "own"} className={"chip" + (mode === "own" ? " chip-on" : "")} onClick={() => setMode("own")}>Use their own website</button>
+      </div>
+      {mode === "own" && (
+        <div className="form-grid top">
+          <Field label="Their website address" hint={ownUrl && badUrl ? "That doesn't look like a web address. Use something like https://their-site.com." : "The loyalty page, reservations, menu and QR codes will link here."}>
+            <Input id="ws-own-url" value={ownUrl} onChange={setOwnUrl} placeholder="https://their-site.com" />
+          </Field>
+        </div>
+      )}
+      {(mode !== (sc.websiteMode === "own" ? "own" : "ai") || (mode === "own" && urlTrim !== (sc.websiteUrl ?? ""))) && (
+        <div className="row"><Button kind="primary" busy={savingMode} disabled={badUrl || (mode === "own" && !urlTrim)} onClick={() => void saveMode()}>Save</Button></div>
+      )}
+    </div>
+  );
+
+  if (savedOwn) {
+    const url = sc.websiteUrl ?? "";
+    return (
+      <div className="stack">
+        {chooser}
+        {url ? (
+          <div className="box stack-sm">
+            <div className="row wrap between">
+              <span className="row wrap"><Badge tone="accent">Own website</Badge><span className="mono small" style={{ wordBreak: "break-all" }}>{url}</span></span>
+              <span className="row wrap">
+                <a className="btn btn-primary btn-sm" href={url} target="_blank" rel="noreferrer" style={{ textDecoration: "none" }}>Open website</a>
+                <CopyButton text={url} label="Copy link" />
+              </span>
+            </div>
+            <SiteQrCard client={sc} />
+          </div>
+        ) : <Empty>Add their website address above and press Save.</Empty>}
+        <p className="small muted" style={{ margin: 0 }}>
+          The AI website isn't built for this business. Loyalty, reservations, menu, expenses and the autopilot work as usual and link to their website.
+          {site?.url ? " The AI website is kept: switch back anytime." : ""}
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div className="stack">
+      {chooser}
       <div className="box stack-sm">
         <div className="row wrap between">
           <span className="row wrap">

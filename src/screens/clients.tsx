@@ -88,7 +88,7 @@ export default function Clients() {
                 </span>
                 <span className="row wrap small muted biz-meta">
                   {s ? <>
-                    <span><span className={"dot " + (s.site?.status === "ready" ? "dot-good" : s.site?.status === "building" ? "dot-info" : "dot-bad")} />{s.site?.status === "ready" ? "Website live" : s.site?.status === "building" ? "Website building" : "No website"}</span>
+                    <span>{s.websiteMode === "own" ? <><span className="dot dot-good" />Own website</> : <><span className={"dot " + (s.site?.status === "ready" ? "dot-good" : s.site?.status === "building" ? "dot-info" : "dot-bad")} />{s.site?.status === "ready" ? "Website live" : s.site?.status === "building" ? "Website building" : "No website"}</>}</span>
                     <span>{readyPosts(c)} posts</span>
                     {s.autopilot && <span>autopilot {s.postsPerWeek}/wk</span>}
                   </> : <span>Not on the autopilot yet</span>}

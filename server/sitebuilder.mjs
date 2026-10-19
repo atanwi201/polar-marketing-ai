@@ -11,6 +11,7 @@ import { referenceBlock } from "./reference.mjs";
 import { aiKey, withClientAi } from "./openrouter.mjs";
 import { buildAiSite, prepareAssets } from "./aisite.mjs";
 import { pickDirection } from "./directions.mjs";
+import { ownWebsite } from "./ownsite.mjs";
 
 export const SITES_DIR = process.env.SITES_DIR ?? join(import.meta.dirname, "..", "sites");
 const KEY = aiKey;
@@ -60,6 +61,7 @@ export function siteBase(client) {
  * If the AI is unavailable the status becomes "waiting" and the build is retried with backoff.
  */
 export async function buildSite(client, { newDesign = false } = {}) {
+  if (ownWebsite(client)) return; // they use their own website: nothing to build (an existing AI site is kept)
   if (building.has(client.id)) return;
   building.add(client.id);
   client.siteSlug = siteSlug(client);
@@ -156,10 +158,10 @@ export async function downloadSite(client) {
 
 /** Retry every site whose wait is over. Called from the scheduler. */
 export function retrySites(at = Date.now()) {
-  const due = db.clients.filter((c) => c.site?.status === "waiting" && c.site.nextTryAt && Date.parse(c.site.nextTryAt) <= at);
+  const due = db.clients.filter((c) => !ownWebsite(c) && c.site?.status === "waiting" && c.site.nextTryAt && Date.parse(c.site.nextTryAt) <= at);
   for (const c of due) void buildSite(c);
   // A crash mid-build leaves "building" behind: resume it.
-  for (const c of db.clients) if (c.site?.status === "building" && !building.has(c.id) && Date.parse(c.site.startedAt ?? 0) < at - 15 * 60e3) void buildSite(c);
+  for (const c of db.clients) if (!ownWebsite(c) && c.site?.status === "building" && !building.has(c.id) && Date.parse(c.site.startedAt ?? 0) < at - 15 * 60e3) void buildSite(c);
   return due;
 }
 

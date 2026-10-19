@@ -164,6 +164,13 @@ form.cr-card{padding:var(--space-5) var(--space-4)}
         <p class="cr-hint hint" data-i="h_domain">Si ya tienes uno. Si no, no pasa nada.</p>
       </div>
 
+      <div class="field cr-field" data-f="websiteUrl">
+        <label class="cr-label" for="websiteUrl"><span data-i="l_web">Ya tengo una web</span> <span class="opt" data-i="optional">(opcional)</span></label>
+        <input class="cr-input" type="text" id="websiteUrl" name="websiteUrl" autocomplete="off" inputmode="url" maxlength="200" placeholder="www.minegocio.es">
+        <p class="cr-hint hint" data-i="h_web">Déjalo vacío y te creamos una con IA, o indica la tuya y la mantendrás.</p>
+        <p class="fielderr" data-i="bad_web">Introduce una web válida, por ejemplo www.minegocio.es.</p>
+      </div>
+
       <div class="field cr-field" data-f="langs">
         <span class="cr-label lbl" id="langLbl" data-i="l_langs">Idiomas de tus clientes</span>
         <div class="chips" role="group" aria-labelledby="langLbl" id="langs"></div>
@@ -208,11 +215,11 @@ const T = {
     lead:"Creamos y publicamos contenido para tu negocio, para que te centres en lo que importa en Tenerife.",
     s1:"La IA crea tu página web con lo que nos cuentas.", s2:"Tú nos dices qué quieres promocionar.", s3:"La IA escribe las publicaciones y crea una imagen nueva cada vez.",
     l_name:"Nombre del negocio", l_kind:"Tipo de negocio", l_town:"Localidad", l_townOther:"Escribe tu localidad",
-    l_phone:"WhatsApp o teléfono", l_email:"Correo electrónico", l_domain:"Tu dominio propio", h_domain:"Si ya tienes uno. Si no, no pasa nada.",
+    l_phone:"WhatsApp o teléfono", l_email:"Correo electrónico", l_web:"Ya tengo una web", h_web:"Déjalo vacío y te creamos una con IA, o indica la tuya y la mantendrás.", bad_web:"Introduce una web válida, por ejemplo www.minegocio.es.", l_domain:"Tu dominio propio", h_domain:"Si ya tienes uno. Si no, no pasa nada.",
     l_langs:"Idiomas de tus clientes", h_langs:"El primero que marques será el idioma principal.",
     l_offer:"¿Qué ofreces?", l_hours:"Horario", l_photo:"Una foto de tu negocio", optional:"(opcional)",
     choose:"Elegir foto", remove:"Quitar", h_photo:"Nos ayuda a que la web y las publicaciones se parezcan a ti.",
-    terms:"Acepto el <a href="/legal?l=es" target="_blank">aviso legal</a> y la <a href="/privacy?l=es" target="_blank">política de privacidad</a>, y el tratamiento de mis datos para prestar el servicio.",
+    terms:"Acepto el <a href='/legal?l=es' target='_blank'>aviso legal</a> y la <a href='/privacy?l=es' target='_blank'>política de privacidad</a>, y el tratamiento de mis datos para prestar el servicio.",
     mkt:"Quiero recibir novedades y consejos de {{BRAND}} por correo o WhatsApp. Puedo darme de baja cuando quiera.",
     go:"Crear mi web", sending:"Creando tu web…", next:"Siguiente", back:"Atrás", skip:"Puedes saltarte lo que no tengas a mano y completarlo después.",
     steps:["Tu negocio","Tu marca","Qué ofreces","Dónde y cuándo","Fotos y listo"], stepOf:"Paso {n} de 5", foot:"Sin tarjeta. Tu enlace personal te llega al terminar.",
@@ -227,11 +234,11 @@ const T = {
     lead:"We create and post content for your business, so you can focus on what matters in Tenerife.",
     s1:"The AI builds your website from what you tell us.", s2:"You tell us what you want to promote.", s3:"The AI writes the posts and creates a new image every time.",
     l_name:"Business name", l_kind:"Type of business", l_town:"Town", l_townOther:"Type your town",
-    l_phone:"WhatsApp or phone", l_email:"Email", l_domain:"Your own domain", h_domain:"If you already have one. If not, no problem.",
+    l_phone:"WhatsApp or phone", l_email:"Email", l_web:"I already have a website", h_web:"Leave it empty and we will build one with AI, or enter yours and keep it.", bad_web:"Enter a valid website, for example www.mybusiness.com.", l_domain:"Your own domain", h_domain:"If you already have one. If not, no problem.",
     l_langs:"Your customers' languages", h_langs:"The first one you tick is your main language.",
     l_offer:"What do you offer?", l_hours:"Opening hours", l_photo:"A photo of your business", optional:"(optional)",
     choose:"Choose photo", remove:"Remove", h_photo:"Helps the website and posts look like you.",
-    terms:"I accept the <a href="/legal?l=en" target="_blank">legal notice</a> and the <a href="/privacy?l=en" target="_blank">privacy policy</a>, and the processing of my data to provide the service.",
+    terms:"I accept the <a href='/legal?l=en' target='_blank'>legal notice</a> and the <a href='/privacy?l=en' target='_blank'>privacy policy</a>, and the processing of my data to provide the service.",
     mkt:"I would like to receive news and tips from {{BRAND}} by email or WhatsApp. I can unsubscribe at any time.",
     go:"Create my website", sending:"Creating your website…", next:"Next", back:"Back", skip:"Skip anything you don't have to hand and add it later.",
     steps:["Your business","Your brand","What you offer","Where and when","Photos and done"], stepOf:"Step {n} of 5", foot:"No card needed. Your personal link arrives when you finish.",
@@ -300,9 +307,10 @@ function showStep(n,quiet){
   if(!quiet){ errBox.classList.remove("on"); $("#f").scrollIntoView({block:"start",behavior:"smooth"}); }
 }
 const v=id=>$("#"+id).value.trim();
+const webOk=u=>!u||/^(https?:\/\/)?([a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z]{2,}(:\d+)?([\/?#]\S*)?$/i.test(u);
 function checkBasics(){
   const town=$("#town").value==="__other"?v("townOther"):$("#town").value;
-  const bad={ name:!v("name"), kind:!v("kind"), town:!town, phone:!v("phone"), email:!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v("email")), langs:!order.length };
+  const bad={ name:!v("name"), kind:!v("kind"), town:!town, phone:!v("phone"), email:!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v("email")), langs:!order.length, websiteUrl:!webOk(v("websiteUrl")) };
   if($("#town").value==="__other"){ $('[data-f=townOther]').classList.toggle("bad",!town); bad.town=false; }
   else $('[data-f=townOther]').classList.remove("bad");
   $$("[data-step='1'] [data-f]").forEach(f=>{ if(f.dataset.f!=="townOther") f.classList.toggle("bad",!!bad[f.dataset.f]); });
@@ -333,6 +341,7 @@ $("#f").addEventListener("submit",async e=>{
     offer:data.offer,hours:data.hours,profile:data.profile,photos:data.photos,acceptTerms:true,marketingConsent:$("#mkt").checked};
   if(data.logo) body.logo=data.logo;
   if(v("domain")) body.domain=v("domain");
+  if(v("websiteUrl")) body.websiteUrl=v("websiteUrl");
 
   const btn=$("#go"); btn.disabled=true; btn.classList.add("busy"); $("#goTxt").textContent=t.sending;
   try{

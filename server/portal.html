@@ -701,6 +701,8 @@ const T={
   es:{
     hello:"Hola,", loading:"Cargando…", settings:"Ajustes", appearance:"Apariencia", heroSub:"Escribe en el chat qué quieres promocionar y nos ponemos manos a la obra.",
     heroLbl:"Publicaciones listas", heroUnit:"este mes", vids:"{n} vídeos", vid1:"1 vídeo",
+    siteOwn:"Tu web propia", ownH:"Tu web", ownS:"Esta es la web que nos has indicado. Compártela con tus clientes.", ownBtnH:"Añade los botones a tu web", ownBtnP:"Pega estos enlaces donde quieras en tu web, o copia el código de abajo y pégalo justo antes de </body> en tu web. Nosotros no podemos editar tu web por ti.", ownMenu:"Enlace de tu carta", ownBook:"Enlace de reservas", ownSnip:"Código para pegar", copyCode:"Copiar código", copied2:"Copiado", ownOpen:"Abrir",
+    completeOwn:"Completa tu perfil", completeOwnS:"Cuanta más información nos des, mejores quedan tus publicaciones.", ready100Own:"Tu perfil tiene toda la información. Puedes cambiarla cuando quieras.", savedOwn:"Guardado. Lo usaremos en tus próximas publicaciones.", infoOwn:"Datos actualizados.",
     siteOn:"Web activa", siteBuilding:"Creando tu web", siteNone:"Sin web todavía", siteFailed:"Web pendiente", creatingNow:"{n} en preparación",
     a_create:"Crear", a_video:"Vídeo", a_web:"Mi web", a_share:"Compartir",
     comp:"¿Qué quieres promocionar?", ph:"Ej.: Oferta de verano: excursión en barco con bebida incluida, 25 € hasta el 30 de septiembre.",
@@ -751,6 +753,8 @@ const T={
   en:{
     hello:"Hello,", loading:"Loading…", settings:"Settings", appearance:"Appearance", heroSub:"Tell the chat what you want to promote and we get to work.",
     heroLbl:"Posts ready", heroUnit:"this month", vids:"{n} videos", vid1:"1 video",
+    siteOwn:"Own website", ownH:"Your website", ownS:"This is the website you gave us. Share it with your customers.", ownBtnH:"Add the buttons to your website", ownBtnP:"Paste these links wherever you like on your website, or copy the code below and paste it right before </body> on your site. We can't edit your website for you.", ownMenu:"Your menu link", ownBook:"Your booking link", ownSnip:"Code to paste", copyCode:"Copy code", copied2:"Copied", ownOpen:"Open",
+    completeOwn:"Complete your profile", completeOwnS:"The more you tell us, the better your posts look.", ready100Own:"Your profile has all the information. Change it whenever you like.", savedOwn:"Saved. We'll use it in your next posts.", infoOwn:"Details updated.",
     siteOn:"Website live", siteBuilding:"Building your website", siteNone:"No website yet", siteFailed:"Website pending", creatingNow:"{n} in progress",
     a_create:"Create", a_video:"Video", a_web:"My site", a_share:"Share",
     comp:"What do you want to market?", ph:"E.g. Summer offer: boat trip with a drink included, €25 until 30 September.",
@@ -900,7 +904,7 @@ function renderHero(){
   const posts=data.posts.filter(p=>p.status==="ready"||p.status==="published").length;
   const vids=(data.videos||[]).filter(v=>v.renders&&v.status!=="failed").length;
   const ic=(n,c)=>`<svg aria-hidden="true"${c?` class="${c}"`:""}><use href="#i-${n}"/></svg>`;
-  const site=!s?ic("warn","warn")+esc(t("siteNone")):s.status==="ready"?ic("check-circle","ok")+esc(t("siteOn")):s.status==="building"?'<span class="spin" aria-hidden="true"></span>'+esc(t("siteBuilding")):ic("warn","warn")+esc(t("siteFailed"));
+  const site=c.own?ic("globe")+esc(t("siteOwn")):!s?ic("warn","warn")+esc(t("siteNone")):s.status==="ready"?ic("check-circle","ok")+esc(t("siteOn")):s.status==="building"?'<span class="spin" aria-hidden="true"></span>'+esc(t("siteBuilding")):ic("warn","warn")+esc(t("siteFailed"));
   const h=`<div class="lbl">${esc(t("heroLbl"))}</div>
     <div class="big">${posts}<span>${esc(t("heroUnit"))}</span></div>
     <p class="sub">${esc(t("heroSub"))}</p>
@@ -927,16 +931,22 @@ function renderAccess(){
   $("#ctext").disabled=waiting; $("#cfile").disabled=waiting;
 }
 function renderSite(){
-  const s=data.client.site, el=$("#site"); let h;
+  const s=data.client.site, o=data.client.own, el=$("#site"); let h;
   const box=(tone,inner)=>`<div class="ico"${tone?` style="background:var(--${tone}-soft);color:var(--${tone})"`:""}>${inner}</div>`;
-  if(!s) h=`${box("",icon("globe"))}<div><h3>${esc(t("webH"))}</h3><p class="muted">${esc(t("nosite"))}</p></div>`;
+  if(o){
+    const ur=`<div class="urlbox"><span>${esc(o.url.replace(/^https?:\/\//,""))}</span><button type="button" class="btn" data-copy="${esc(o.url)}">${icon("copy")}${esc(t("copyLink"))}</button></div>`;
+    const lk=(k,u)=>u?`<div><div class="muted" style="font-size:13px;margin-bottom:4px">${esc(t(k))}</div><div class="urlbox"><span>${esc(u.replace(/^https?:\/\//,""))}</span><button type="button" class="btn" data-copy="${esc(u)}">${icon("copy")}${esc(t("copyLink"))}</button><a class="btn" href="${esc(u)}" target="_blank" rel="noopener">${icon("open")}${esc(t("ownOpen"))}</a></div></div>`:"";
+    const btns=(o.menuUrl||o.bookingUrl||o.snippet)?`<div style="display:flex;flex-direction:column;gap:10px;padding-top:12px;border-top:1px solid var(--line,rgba(127,127,127,.2))"><h4>${esc(t("ownBtnH"))}</h4><p class="muted">${esc(t("ownBtnP"))}</p>${lk("ownMenu",o.menuUrl)}${lk("ownBook",o.bookingUrl)}${o.snippet?`<div class="muted" style="font-size:13px">${esc(t("ownSnip"))}</div><textarea readonly rows="5" spellcheck="false" style="font:12px/1.4 ui-monospace,Menlo,monospace">${esc(o.snippet)}</textarea><div><button type="button" class="btn" data-copy="${esc(o.snippet)}">${icon("copy")}${esc(t("copyCode"))}</button></div>`:""}</div>`:"";
+    h=`${box("ok",icon("globe"))}<div><h3>${esc(t("ownH"))}</h3><p class="muted">${esc(t("ownS"))}</p></div>${ur}<a class="primary" href="${esc(o.url)}" target="_blank" rel="noopener" style="margin-top:0">${icon("open")}${esc(t("ownOpen"))}</a>${btns}`;
+  }
+  else if(!s) h=`${box("",icon("globe"))}<div><h3>${esc(t("webH"))}</h3><p class="muted">${esc(t("nosite"))}</p></div>`;
   else if(s.status==="building") h=`${box("",'<span class="spin" aria-hidden="true" style="width:22px;height:22px"></span>')}<div><h3>${esc(String(s.step||"").startsWith("translating")?t("translating"):t("designing"))}</h3><p class="muted">${esc(t("designingS"))}</p></div>`+(s.url?`<a class="primary" href="${esc(s.url)}" target="_blank" rel="noopener" style="margin-top:0;background:var(--fill);color:var(--ink)">${icon("open")}${esc(t("open"))}</a>`:"");
   else if(s.status==="ready"){
     const full=s.url?new URL(s.url,location.origin).href:"";
     h=`${box("ok",icon("globe"))}<div><h3>${esc(t("ready"))}</h3><p class="muted">${esc(t("readyS"))}</p></div>`+
       (full?`<div class="urlbox"><span>${esc(full.replace(/^https?:\/\//,""))}</span><button type="button" class="btn" data-copy="${esc(full)}">${icon("copy")}${esc(t("copyLink"))}</button></div><a class="primary" href="${esc(s.url)}" target="_blank" rel="noopener" style="margin-top:0">${icon("open")}${esc(t("open"))}</a>`:"");
   } else h=`${box("bad",icon("alert"))}<div><h3>${esc(t("failed"))}</h3><p class="muted">${esc(s.error||t("failedS"))}</p></div>`;
-  if(el.dataset.sig!==h){el.innerHTML=h;el.dataset.sig=h; if(s&&s.status==="ready") showQr(el);}
+  if(el.dataset.sig!==h){el.innerHTML=h;el.dataset.sig=h; if(o||(s&&s.status==="ready")) showQr(el);}
 }
 // QR code of the website: loaded once, shown under the link, with a PNG to print.
 let qrData=null;
@@ -1027,10 +1037,10 @@ function renderVideos(){
 }
 const PF_KEYS=["logo","photos","services","address","hours","story","social"];
 function renderProfile(){
-  const pr=data.profile||{missing:PF_KEYS}, miss=pr.missing||[];
+  const pr=data.profile||{missing:PF_KEYS}, miss=pr.missing||[], own=!!data.client.own;
   const pct=Math.round((PF_KEYS.length-miss.length)/PF_KEYS.length*100);
-  const h=`<h3 style="font:700 20px var(--display);letter-spacing:-.015em;margin:0 0 4px">${esc(t("complete"))}</h3>
-    <p class="muted" style="margin-bottom:12px">${esc(miss.length?t("completeS"):t("ready100"))}</p>
+  const h=`<h3 style="font:700 20px var(--display);letter-spacing:-.015em;margin:0 0 4px">${esc(t(own?"completeOwn":"complete"))}</h3>
+    <p class="muted" style="margin-bottom:12px">${esc(miss.length?t(own?"completeOwnS":"completeS"):t(own?"ready100Own":"ready100"))}</p>
     <div class="pct"><b>${pct}%</b><div class="prog"><i style="width:${pct}%"></i></div></div>
     <ul class="todo2">${PF_KEYS.map(k=>`<li class="${miss.includes(k)?"no":"ok"}"><i aria-hidden="true">${miss.includes(k)?"":icon("check")}</i>${esc(t("miss")[k])}</li>`).join("")}</ul>
     <button type="button" class="primary" id="pfOpen" style="margin-top:0">${esc(miss.length?t("edit"):t("editAll"))}</button>`;
@@ -1050,7 +1060,7 @@ document.addEventListener("keydown",e=>{ if(e.key==="Escape"&&!$("#pfSheet").hid
 $("#pfSave").addEventListener("click",async()=>{
   if(!pfc) return;
   const b=$("#pfSave"); b.disabled=true; b.textContent=t("saving"); $("#pfErr").hidden=true;
-  try{ await post("/profile",pfc.collect()); closeProfile(); toast(t("savedInfo"),true); await load(); }
+  try{ await post("/profile",pfc.collect()); closeProfile(); toast(t(data.client.own?"savedOwn":"savedInfo"),true); await load(); }
   catch(err){ $("#pfErr").textContent=err instanceof TypeError?t("net"):err.message; $("#pfErr").hidden=false; }
   b.disabled=false; b.textContent=t("save");
 });
@@ -1215,7 +1225,7 @@ function resultHtml(m){
     return `<div class="rcard"><div class="rvid"><video src="/media/${encodeURI(r.file)}" poster="/media/${encodeURI(r.cover)}" controls playsinline preload="none"></video></div>
       <div class="rbody"><div class="btns"><button class="btn blue" data-r="share-video" data-id="${esc(v.id)}">${icon("share")}${esc(t("share"))}</button><button class="btn" data-r="open-video" data-id="${esc(v.id)}">${esc(t("seeVideo"))}</button></div></div></div>`;
   }
-  if(m.updated&&m.updated.length) return `<div class="rnote">${icon("globe")}${esc(t("infoUpdated"))}</div>`;
+  if(m.updated&&m.updated.length) return `<div class="rnote">${icon("globe")}${esc(t(data.client.own?"infoOwn":"infoUpdated"))}</div>`;
   return "";
 }
 function msgHtml(m){

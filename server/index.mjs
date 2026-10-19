@@ -14,6 +14,7 @@ loadEnv(join(root, ".env"));
 const { complete, freeModels, rankModels, status, aiKey, providerNames, configureAi, keySources, openrouterKey, providerList, runWithProvider, listModels } = await import("./openrouter.mjs");
 const { db, save, id, token, now, MEDIA_DIR, DATA_DIR } = await import("./store.mjs");
 const { startPost, runPost, publish, startScheduler, redrawImage, describeImage } = await import("./studio.mjs");
+const { ownWebsite, ownSiteInfo, normalizeWebsiteUrl } = await import("./ownsite.mjs");
 const { buildSite, SITES_DIR, startSiteRetries, siteBase, siteSlug, installUploadedSite, downloadSite } = await import("./sitebuilder.mjs");
 const { qrPng, qrSvg } = await import("./qr.mjs");
 const { editSite, undoSite, versionCount } = await import("./siteedit.mjs");
@@ -215,7 +216,7 @@ async function deleteMedia(files) {
   for (const f of files.filter(Boolean)) await unlink(join(MEDIA_DIR, f)).catch(() => {});
 }
 const videoFiles = (v) => [...(v.scenes ?? []).map((s) => s.imageFile), ...Object.values(v.renders ?? {}).flatMap((r) => [r.file, r.cover])];
-const publicClient = (c) => ({ name: c.name, logoFile: c.logoFile ?? "", code: c.code, languages: c.languages, town: c.town, site: c.site ? { status: c.site.status === "waiting" ? "building" : c.site.status, step: c.site.step, url: c.site.url, kind: c.site.kind, builtAt: c.site.builtAt, error: c.site.status === "failed" ? "The website couldn't be built yet. We'll retry." : undefined } : null });
+const publicClient = (c) => ({ websiteMode: ownWebsite(c) ? "own" : "ai", own: ownSiteInfo(c, publicUrl() || `http://localhost:${PORT}`), name: c.name, logoFile: c.logoFile ?? "", code: c.code, languages: c.languages, town: c.town, site: c.site ? { status: c.site.status === "waiting" ? "building" : c.site.status, step: c.site.step, url: c.site.url, kind: c.site.kind, builtAt: c.site.builtAt, error: c.site.status === "failed" ? "The website couldn't be built yet. We'll retry." : undefined } : null });
 const str = (v, n = 200) => (typeof v === "string" ? v.trim().slice(0, n) : "");
 const portalView = (c) => ({
   client: publicClient(c),
@@ -411,6 +412,7 @@ async function route(req, res, url) {
       id: id(), token: token(), code: newCode(db.clients), createdAt: now(), source: "signup",
       name: str(b.name, 80), kind: str(b.kind, 60), town: str(b.town, 60), phone: str(b.phone, 30), email: str(b.email, 120),
       domain: /^[a-z0-9-]+(\.[a-z0-9-]+)+$/i.test(str(b.domain, 120).replace(/^https?:\/\//, "").replace(/\/.*$/, "")) ? str(b.domain, 120).replace(/^https?:\/\//, "").replace(/\/.*$/, "") : "",
+      websiteMode: "ai", websiteUrl: normalizeWebsiteUrl(b.websiteUrl), // "I already have a website" only pre-fills; ATD decides in the dashboard
       offer: str(b.offer, 2000), hours: str(b.hours, 300),
       languages: (Array.isArray(b.languages) ? b.languages : []).filter((l) => LANGS.includes(l)),
       platforms: ["instagram", "facebook"], tone: "", autopilot: true, postsPerWeek: 7, autoPublish: false, webhookUrl: "",
@@ -457,8 +459,9 @@ async function route(req, res, url) {
       return send(res, 200, await saveProfile(c, await readBody(req, 40e6)));
     }
     if ((seg[3] === "qr" || seg[3] === "qr.png") && req.method === "GET" && seg.length === 4) {
-      if (c.site?.status !== "ready") return send(res, 404, { error: "No website yet" });
-      const target = `${siteBase(c).replace(/\/$/, "")}/`;
+      const own = ownWebsite(c);
+      if (!own && c.site?.status !== "ready") return send(res, 404, { error: "No website yet" });
+      const target = own || `${siteBase(c).replace(/\/$/, "")}/`;
       if (seg[3] === "qr.png") {
         const png = await qrPng(target);
         res.writeHead(200, { "Content-Type": "image/png", "Content-Length": png.length, "Content-Disposition": `attachment; filename="${(c.siteSlug || "website").replace(/[^\w.-]/g, "")}-qr.png"` });
@@ -521,6 +524,13 @@ async function route(req, res, url) {
       if (!c) { c = { id: body.id || id(), token: token(), code: newCode(db.clients), createdAt: now() }; db.clients.push(c); }
       const isNew = !c.name;
       for (const f of CLIENT_FIELDS) if (f in body) c[f] = body[f];
+      if ("websiteMode" in body || "websiteUrl" in body) {
+        const url = "websiteUrl" in body ? normalizeWebsiteUrl(body.websiteUrl) : normalizeWebsiteUrl(c.websiteUrl);
+        const mode = (body.websiteMode ?? c.websiteMode) === "own" ? "own" : "ai";
+        if (mode === "own" && !url) return send(res, 400, { error: "Enter their website address, like https://their-site.com" });
+        if ("websiteUrl" in body && String(body.websiteUrl ?? "").trim() && !url) return send(res, 400, { error: "That website address doesn't look right." });
+        c.websiteMode = mode; c.websiteUrl = url;
+      }
       if ("exampleUrls" in body) c.exampleUrls = (Array.isArray(body.exampleUrls) ? body.exampleUrls : []).map((x) => { try { const u = new URL(/^https?:\/\//i.test(String(x).trim()) ? String(x).trim() : `https://${String(x).trim()}`); return /^https?:$/.test(u.protocol) && u.hostname.includes(".") ? u.href : ""; } catch { return ""; } }).filter(Boolean).slice(0, 3);
       if ("aiProvider" in body && !providerList().some((x) => x.id === c.aiProvider)) c.aiProvider = ""; // unknown id = automatic
       if (body.accounts) c.accounts = mergeAccounts(c.accounts, body.accounts);
@@ -541,13 +551,14 @@ async function route(req, res, url) {
       if (!c) return send(res, 404, { error: "Client not found" });
       c.siteSlug ||= siteSlug(c);
       const studio = `${(process.env.PUBLIC_URL ?? `http://localhost:${PORT}`).replace(/\/$/, "")}/sites/${c.siteSlug}/`;
-      const target = url.searchParams.get("where") === "studio" ? studio : `${siteBase(c).replace(/\/$/, "")}/`;
+      const own = ownWebsite(c);
+      const target = own || (url.searchParams.get("where") === "studio" ? studio : `${siteBase(c).replace(/\/$/, "")}/`);
       if (action === "qr.png") {
         const png = await qrPng(target);
         res.writeHead(200, { "Content-Type": "image/png", "Content-Length": png.length, "Content-Disposition": `attachment; filename="${(c.siteSlug || "website").replace(/[^\w.-]/g, "")}-qr.png"` });
         return res.end(png);
       }
-      return send(res, 200, { url: target, studioUrl: studio, hasDomain: /\./.test(c.domain ?? ""), svg: await qrSvg(target) });
+      return send(res, 200, { url: target, studioUrl: studio, hasDomain: /\./.test(c.domain ?? ""), own: Boolean(own), svg: await qrSvg(target) });
     }
     if (kind === "clients" && oid && action === "site.zip" && req.method === "GET") {
       const c = db.clients.find((x) => x.id === oid);

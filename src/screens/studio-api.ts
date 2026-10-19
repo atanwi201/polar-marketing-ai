@@ -24,7 +24,7 @@ export interface SClient {
   id: string; token: string; code?: string; name: string; kind: string; town: string; phone: string; email: string; domain: string;
   offer: string; hours: string; tone: string; languages: string[]; platforms: string[]; autopilot: boolean;
   postsPerWeek: number; autoPublish: boolean; webhookUrl: string; siteSlug?: string; site?: Site; createdAt: string;
-  source?: string; aiProvider?: string; exampleUrls?: string[];
+  source?: string; aiProvider?: string; exampleUrls?: string[]; websiteMode?: "ai" | "own"; websiteUrl?: string;
   accounts?: Accounts; connections?: Connections; videosPerWeek?: number; videoSeconds?: number; videoVoice?: boolean;
   approvalStatus?: "approved" | "pending" | "declined"; approval?: { status: string; at: string };
   usage?: { used: number; cap: number; custom: boolean; nextFreeAt: string | null }; postCap?: number;

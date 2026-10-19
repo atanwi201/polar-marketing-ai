@@ -3,6 +3,8 @@
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
 const tags = (item) => (item.hashtags ?? []).map((h) => "#" + h).join(" ");
 
+import { ownWebsite } from "./ownsite.mjs";
+
 export function sharePage({ item, kind, client, base, lang }) {
   const l = item.captions?.[lang] != null ? lang : Object.keys(item.captions ?? {})[0];
   const caption = item.captions?.[l] ?? "";
@@ -11,7 +13,7 @@ export function sharePage({ item, kind, client, base, lang }) {
   const render = kind === "video" ? item.renders?.[l] ?? Object.values(item.renders ?? {})[0] : null;
   const img = `${base}/media/${kind === "video" ? render?.cover : item.imageFile}`;
   const video = render ? `${base}/media/${render.file}` : "";
-  const site = client.site?.url ? (/^https?:/.test(client.site.url) ? client.site.url : base + client.site.url) : "";
+  const site = ownWebsite(client) || (client.site?.url ? (/^https?:/.test(client.site.url) ? client.site.url : base + client.site.url) : "");
   const wa = (client.phone ?? "").replace(/[^\d]/g, "");
   const media = video
     ? `<video src="${esc(video)}" poster="${esc(img)}" controls playsinline preload="metadata"></video>`

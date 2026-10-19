@@ -16,6 +16,7 @@ import { CONTEXT, runPost, describeImage, brandLine } from "./studio.mjs";
 import { startVideo } from "./video.mjs";
 import { composeOfferVideo, probeVideo, videoFrame, MAX_CLIP_SECONDS } from "./overlay.mjs";
 import { buildSite } from "./sitebuilder.mjs";
+import { ownWebsite } from "./ownsite.mjs";
 import { applyImages } from "./profile.mjs";
 import { blockReason } from "./limits.mjs";
 
@@ -125,7 +126,7 @@ function facts(client) {
   const posts = db.posts.filter((p) => p.clientId === client.id);
   const videos = db.videos.filter((v) => v.clientId === client.id);
   return [
-    `Website: ${client.site?.status === "ready" ? `live at ${client.site.url}` : client.site?.status ?? "not built yet"}.`,
+    `Website: ${ownWebsite(client) ? `their own website, ${ownWebsite(client)} (no AI site is built)` : client.site?.status === "ready" ? `live at ${client.site.url}` : client.site?.status ?? "not built yet"}.`,
     `Posts: ${posts.filter((p) => p.status === "ready" || p.status === "published").length} ready, ${posts.filter((p) => p.status === "generating").length} being made.`,
     `Videos: ${videos.filter((v) => v.renders).length} ready, ${videos.filter((v) => v.status === "generating").length} being made.`,
     `Autopilot: ${client.autopilot ? `${client.postsPerWeek} posts a week` : "off"}.`,
