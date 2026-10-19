@@ -184,11 +184,15 @@ textarea:focus{outline:none;box-shadow:0 0 0 2px var(--ink);background:var(--sur
 .nav{position:fixed;left:0;right:0;bottom:0;z-index:5;display:flex;justify-content:center;padding:8px 12px calc(8px + env(safe-area-inset-bottom));background:var(--nav);border-top:1px solid var(--line)}
 .nav div{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);width:100%;max-width:560px}
 .nav button[hidden]{display:none}
-.nav button{border:0;background:none;display:flex;flex-direction:column;align-items:center;gap:3px;padding:4px 0;font-size:11.5px;font-weight:600;color:var(--faint);min-width:0}
-.nav button svg{width:48px;height:30px;padding:3px 12px;border-radius:999px;display:block;transition:background .15s}
+.nav button{border:0;background:none;display:flex;flex-direction:column;align-items:center;gap:4px;padding:4px 0;font-size:11px;font-weight:600;color:var(--faint);min-width:0}
+.nav button svg{width:24px;height:24px;display:block}
+.nav .pill{display:grid;place-items:center;width:56px;height:32px;border-radius:999px;transition:background .15s}
 .nav button[aria-current=page]{color:var(--ink)}
-.nav button[aria-current=page] svg{background:var(--brand);color:var(--on-brand)}
+.nav button[aria-current=page] .pill{background:var(--brand);color:var(--on-brand)}
+.nav button:focus-visible{outline:0}
+.nav button:focus-visible .pill{outline:3px solid var(--ink);outline-offset:2px}
 .nav .dot{position:relative;display:block}
+.nav .pill .dot{display:grid;place-items:center}
 .nav .dot b{position:absolute;top:-4px;right:0;min-width:17px;height:17px;padding:0 4px;border-radius:999px;background:var(--brand);color:var(--on-brand);font-size:10.5px;line-height:17px;text-align:center}
 
 /* bottom sheet */
@@ -208,6 +212,15 @@ textarea:focus{outline:none;box-shadow:0 0 0 2px var(--ink);background:var(--sur
 .ic.x{background:#000;color:#fff}
 .ic.yt{background:#ff0033;color:#fff}
 :root[data-theme="dark"] .ic.x{background:#fff;color:#000}
+.msheet{padding-bottom:calc(14px + env(safe-area-inset-bottom))}
+.mrow{display:flex;align-items:center;gap:14px;width:100%;min-height:56px;border:0;background:none;padding:8px 4px;border-bottom:1px solid var(--line);font:600 16px var(--sans);color:var(--ink);text-align:left;text-decoration:none}
+.mrow:last-child{border-bottom:0}
+.mrow .mic{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;background:var(--fill);flex:none}
+.mrow .mic svg{width:22px;height:22px}
+.mrow>span:nth-child(2){flex:1;min-width:0}
+.mrow>svg{width:20px;height:20px;color:var(--faint);flex:none}
+.mrow b{min-width:20px;height:20px;padding:0 6px;border-radius:999px;background:var(--brand);color:var(--on-brand);font-size:12px;line-height:20px;text-align:center}
+.ctog{display:flex;margin:0 0 14px}.ctog .seg{display:flex;width:100%}.ctog .seg button{flex:1;min-height:40px}
 .sheet .close{margin-top:20px;width:100%;min-height:50px;border:0;border-radius:999px;background:var(--fill);font-weight:700}
 
 
@@ -393,7 +406,6 @@ input[type=color].inp{padding:4px;height:46px;cursor:pointer}
 .ltiles div{background:var(--fill);border-radius:var(--r-md);padding:10px 6px;text-align:center}
 .ltiles b{display:block;font:800 22px/1 var(--display)}
 .ltiles span{font-size:12px;color:var(--muted);font-weight:600}
-.nav button{font-size:11px}
 /* bookings */
 .st.bk-pending{background:var(--warn-soft);color:var(--warn)}
 .st.bk-confirmed{background:var(--ok-soft);color:var(--ok)}
@@ -579,12 +591,14 @@ input[type=color].inp{padding:4px;height:46px;cursor:pointer}
     <!-- Posts -->
     <section data-view="posts" hidden>
       <h1 class="page-h" id="postsH"></h1>
+      <div class="ctog"><div class="seg" role="group" data-ctog></div></div>
       <div id="feed" aria-live="polite"></div>
     </section>
 
     <!-- Videos -->
     <section data-view="videos" hidden>
       <h1 class="page-h" id="videosH"></h1>
+      <div class="ctog"><div class="seg" role="group" data-ctog></div></div>
       <div id="videos" aria-live="polite"></div>
     </section>
 
@@ -643,16 +657,20 @@ input[type=color].inp{padding:4px;height:46px;cursor:pointer}
 
 <nav class="nav" id="nav" hidden>
   <div>
-    <button type="button" data-view-go="home" aria-current="page"><svg aria-hidden="true"><use href="#i-chat"/></svg><span id="nHome"></span></button>
-    <button type="button" data-view-go="posts"><span class="dot"><svg aria-hidden="true"><use href="#i-grid"/></svg><b id="nPostsBadge" hidden></b></span><span id="nPosts"></span></button>
-    <button type="button" data-view-go="videos"><span class="dot"><svg aria-hidden="true"><use href="#i-video"/></svg><b id="nVideosBadge" hidden></b></span><span id="nVideos"></span></button>
-    <button type="button" data-view-go="web"><svg aria-hidden="true"><use href="#i-globe"/></svg><span id="nWeb"></span></button>
-    <button type="button" data-view-go="loyalty"><svg aria-hidden="true"><use href="#i-card"/></svg><span id="nLoy"></span></button>
-    <button type="button" data-view-go="bookings"><span class="dot"><svg aria-hidden="true"><use href="#i-cal"/></svg><b id="nBkBadge" hidden></b></span><span id="nBk"></span></button>
-    <button type="button" data-view-go="expenses" id="navX" hidden><svg aria-hidden="true"><use href="#i-receipt"/></svg><span id="nX"></span></button>
-    <button type="button" data-view-go="menu" id="navM" hidden><svg aria-hidden="true"><use href="#i-utensils"/></svg><span id="nM"></span></button>
+    <button type="button" data-view-go="home" aria-current="page"><span class="pill"><svg aria-hidden="true"><use href="#i-chat"/></svg></span><span id="nHome"></span></button>
+    <button type="button" data-view-go="posts" data-grp="posts videos"><span class="pill"><span class="dot"><svg aria-hidden="true"><use href="#i-grid"/></svg><b id="nPostsBadge" hidden></b></span></span><span id="nContent"></span></button>
+    <button type="button" data-view-go="web"><span class="pill"><svg aria-hidden="true"><use href="#i-globe"/></svg></span><span id="nWeb"></span></button>
+    <button type="button" data-view-go="loyalty"><span class="pill"><svg aria-hidden="true"><use href="#i-card"/></svg></span><span id="nLoy"></span></button>
+    <button type="button" id="navMore" data-grp="bookings menu expenses" aria-haspopup="dialog"><span class="pill"><span class="dot"><svg aria-hidden="true"><use href="#i-more"/></svg><b id="nBkBadge" hidden></b></span></span><span id="nMore"></span></button>
   </div>
 </nav>
+
+<div class="back" id="moreBack" hidden></div>
+<div class="sheet msheet" id="moreSheet" role="dialog" aria-modal="true" aria-labelledby="moreH" hidden>
+  <div class="grab"></div>
+  <h3 id="moreH" tabindex="-1"></h3>
+  <div id="moreList"></div>
+</div>
 
 <div class="pfsheet" id="pfSheet" role="dialog" aria-modal="true" aria-labelledby="pfTitle" hidden>
   <div class="pfhead"><button type="button" class="pfclose" id="pfClose"></button><b id="pfTitle"></b><span></span></div>
@@ -709,7 +727,7 @@ const T={
     photo:"Añadir foto", rm:"Quitar", mkVideo:"Crear también un vídeo para Reels y Shorts", go:"Crear publicación", sending:"Enviando…",
     note:"Cada publicación lleva textos e imagen nuevos creados por IA.",
     recent:"Recientes", seeAll:"Ver todo", emptyRecent:"Aún no hay nada. Escribe arriba qué quieres promocionar y la IA se pone a trabajar.",
-    nav_home:"Asistente", nav_posts:"Posts", nav_videos:"Vídeos", nav_web:"Web", navLbl:"Secciones", actLbl:"Acciones rápidas",
+    nav_home:"Asistente", nav_posts:"Posts", nav_videos:"Vídeos", nav_web:"Web", nav_content:"Contenido", nav_more:"Más", more_set:"Ajustes", more_help:"Ayuda y soporte", more_helpSub:"Ayuda de Polar Marketing", navLbl:"Secciones", actLbl:"Acciones rápidas",
     postsH:"Publicaciones", videosH:"Vídeos", webH:"Tu página web",
     empty:"Todavía no hay publicaciones. Ve a Inicio y escribe qué quieres promocionar.",
     emptyVideos:"Todavía no hay vídeos. Al crear una publicación, activa «Crear también un vídeo».",
@@ -761,7 +779,7 @@ const T={
     photo:"Add photo", rm:"Remove", mkVideo:"Also make a video for Reels and Shorts", go:"Create post", sending:"Sending…",
     note:"Every post gets new AI-written text and a new AI image.",
     recent:"Recent", seeAll:"See all", emptyRecent:"Nothing here yet. Write above what you want to market and the AI gets to work.",
-    nav_home:"Assistant", nav_posts:"Posts", nav_videos:"Videos", nav_web:"Website", navLbl:"Sections", actLbl:"Quick actions",
+    nav_home:"Assistant", nav_posts:"Posts", nav_videos:"Videos", nav_web:"Website", nav_content:"Content", nav_more:"More", more_set:"Settings", more_help:"Help & support", more_helpSub:"Help", navLbl:"Sections", actLbl:"Quick actions",
     postsH:"Posts", videosH:"Videos", webH:"Your website",
     empty:"No posts yet. Go to Home and write what you want to market.",
     emptyVideos:"No videos yet. When you create a post, switch on “Also make a video”.",
@@ -842,7 +860,8 @@ function staticText(){
   $("#ctext").placeholder=t("write"); $("#csend").setAttribute("aria-label",t("send")); $("#cfileL").setAttribute("aria-label",t("attach"));
   $("#cfileL").title=t("attach"); set("#attRm","rm");
   set("#postsH","postsH"); set("#videosH","videosH"); set("#webH","webH");
-  set("#nHome","nav_home"); set("#nPosts","nav_posts"); set("#nVideos","nav_videos"); set("#nWeb","nav_web");
+  set("#nHome","nav_home"); set("#nContent","nav_content"); set("#nWeb","nav_web"); set("#nMore","nav_more"); set("#moreH","nav_more"); set("#postsH","nav_content"); set("#videosH","nav_content");
+  try{ renderCtog(); renderMore(); }catch(_){ /* modules not initialised yet; redrawn on first render */ }
   set("#badT","badT"); set("#badP","badP"); set("#sheetClose","close");
   $("#nav").setAttribute("aria-label",t("navLbl"));
   set("#setH","settings"); set("#setThemeL","appearance"); $("#setBtn").setAttribute("aria-label",t("settings")); $("#setBtn").title=t("settings");
@@ -861,7 +880,8 @@ function showView(v,scrollTo){
   $$("[data-view]").forEach(s=>s.hidden=s.dataset.view!==v);
   $("#cf").hidden=v!=="home"||!data;
   document.body.classList.toggle("in-chat",v==="home");
-  $$(".nav [data-view-go]").forEach(b=>b.dataset.viewGo===v?b.setAttribute("aria-current","page"):b.removeAttribute("aria-current"));
+  $$(".nav button").forEach(b=>{ const on=(b.dataset.grp||b.dataset.viewGo||"").split(" ").includes(v); on?b.setAttribute("aria-current","page"):b.removeAttribute("aria-current"); });
+  renderCtog();
   if(location.hash!=="#/"+v) history.replaceState(null,"","#/"+v);
   if(scrollTo){ const el=document.querySelector(`[data-view="${v}"] [data-id="${CSS.escape(scrollTo)}"]`); if(el){ el.scrollIntoView({block:"start"}); window.scrollBy(0,-12); return; } }
   if(v==="loyalty"&&typeof loadLoyalty==="function") loadLoyalty();
@@ -870,6 +890,49 @@ function showView(v,scrollTo){
   if(v==="menu"&&typeof loadMenu==="function") loadMenu(MN.loaded&&Date.now()-MN.at>20000,MN.loaded);
   window.scrollTo(0,0);
 }
+// Content toggle (Posts | Videos) and the "More" sheet
+function renderCtog(){
+  $$("[data-ctog]").forEach(g=>{
+    g.setAttribute("aria-label",t("nav_content"));
+    g.innerHTML=[["posts","nav_posts"],["videos","nav_videos"]].map(([v,k])=>`<button type="button" data-view-go="${v}" aria-pressed="${view===v}">${esc(t(k))}</button>`).join("");
+  });
+}
+const SUPPORT_MAIL="atanwi85@gmail.com";
+let moreOpen=false, moreFocus=null;
+function moreItems(){
+  const it=[["bookings","cal",tl("nav_bk")]];
+  if(typeof MN!=="undefined"&&MN.enabled) it.push(["menu","utensils",tl("nav_m")]);
+  if(typeof XP!=="undefined"&&XP.enabled) it.push(["expenses","receipt",tl("nav_x")]);
+  return it;
+}
+function renderMore(){
+  const el=$("#moreList"); if(!el) return;
+  const pend=(typeof BK!=="undefined"&&BK.loaded)?bkCounts().pending:0;
+  el.innerHTML=moreItems().map(([v,ic,l])=>`<button type="button" class="mrow" data-more="${v}"><span class="mic">${icon(ic)}</span><span>${esc(l)}</span>${v==="bookings"&&pend?`<b>${pend}</b>`:""}${icon("chev-r")}</button>`).join("")+
+   `<button type="button" class="mrow" data-more="settings"><span class="mic">${icon("settings")}</span><span>${esc(t("more_set"))}</span>${icon("chev-r")}</button>`+
+   `<a class="mrow" href="mailto:${SUPPORT_MAIL}"><span class="mic">${icon("chat")}</span><span>${esc(t("more_help"))}</span>${icon("chev-r")}</a>`;
+}
+function openMore(){
+  renderMore(); moreOpen=true; moreFocus=document.activeElement;
+  const b=$("#moreBack"), sh=$("#moreSheet"); b.hidden=false; sh.hidden=false;
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{b.classList.add("on");sh.classList.add("on");}));
+  setTimeout(()=>$("#moreH").focus(),80);
+}
+function closeMore(restore=true){
+  if(!moreOpen) return; moreOpen=false;
+  const b=$("#moreBack"), sh=$("#moreSheet"); b.classList.remove("on"); sh.classList.remove("on");
+  setTimeout(()=>{ if(!moreOpen){b.hidden=true;sh.hidden=true;} },230);
+  if(restore&&moreFocus&&moreFocus.focus) moreFocus.focus();
+}
+$("#navMore").addEventListener("click",()=>moreOpen?closeMore():openMore());
+$("#moreBack").addEventListener("click",()=>closeMore());
+document.addEventListener("keydown",e=>{ if(e.key==="Escape"&&moreOpen) closeMore(); });
+$("#moreList").addEventListener("click",e=>{
+  const b=e.target.closest("[data-more]"); if(!b) return;
+  closeMore(false);
+  if(b.dataset.more==="settings"){ showView("home"); const p=$("#setPanel"); p.hidden=false; $("#setBtn").setAttribute("aria-expanded","true"); window.scrollTo(0,0); $("#setBtn").focus(); }
+  else showView(b.dataset.more);
+});
 document.addEventListener("click",e=>{
   const b=e.target.closest("[data-view-go]"); if(!b) return;
   showView(b.dataset.viewGo,b.dataset.item);
@@ -913,8 +976,7 @@ function renderHero(){
     <button type="button" class="pill" data-view-go="videos">${icon("video")}${esc(vids===1?t("vid1"):t("vids").replace("{n}",vids))}</button>
     <button type="button" class="pill" data-view-go="web">${site}</button>${quotaPill()}</div>`;
   const el=$("#hero"); if(el.dataset.sig!==h){el.innerHTML=h;el.dataset.sig=h;}
-  const np=data.posts.filter(p=>p.status==="generating").length, pb=$("#nPostsBadge"); pb.hidden=!np; pb.textContent=np;
-  const nv=(data.videos||[]).filter(v=>v.status==="generating").length, vb=$("#nVideosBadge"); vb.hidden=!nv; vb.textContent=nv;
+  const np=data.posts.filter(p=>p.status==="generating").length+(data.videos||[]).filter(v=>v.status==="generating").length, pb=$("#nPostsBadge"); pb.hidden=!np; pb.textContent=np;
 }
 
 // Approval and the weekly limit the studio set.
@@ -1904,7 +1966,7 @@ function bkCounts(){
   const n=bkNow(), it=BK.items;
   return {pending:it.filter(b=>b.status==="pending").length, upcoming:it.filter(b=>bkIsUp(b,n)).length, today:it.filter(b=>bkActive(b)&&(b.kind==="room"?b.checkIn<=n.date&&n.date<b.checkOut:b.date===n.date)).length};
 }
-function bkBadge(){ const e=$("#nBkBadge"); if(!e) return; const n=BK.loaded?bkCounts().pending:0; e.hidden=!n; e.textContent=n; }
+function bkBadge(){ const e=$("#nBkBadge"); if(!e) return; const n=BK.loaded?bkCounts().pending:0; e.hidden=!n; e.textContent=n; renderMore(); }
 function bkSorted(list,dir){ const k=b=>bkWhen(b)+(b.time||""); return [...list].sort((a,b)=>dir*k(a).localeCompare(k(b))); }
 function bkList(){
   const n=bkNow(), f=BK.filter;
@@ -2197,7 +2259,7 @@ async function loadExpenses(force,silent){
   XP.loading=false; xpNav(); renderExpenses();
   if(XP.loaded&&!XP.enabled&&view==="expenses") showView("home");
 }
-function xpNav(){ const b=$("#navX"); if(b) b.hidden=!XP.enabled; }
+function xpNav(){ renderMore(); }
 function renderExpenses(){
   const el=$("#xp"); if(!el) return; let h="";
   if(XP.enabled===false) h="";
@@ -2456,7 +2518,7 @@ async function loadMenu(force,silent){
   MN.loading=false; mnNav(); renderMenu();
   if(MN.loaded&&!MN.enabled&&view==="menu") showView("home");
 }
-function mnNav(){ const b=$("#navM"); if(b) b.hidden=!MN.enabled; }
+function mnNav(){ renderMore(); }
 function renderMenu(){
   const el=$("#mn"); if(!el) return; let h="";
   if(MN.enabled===false) h="";
