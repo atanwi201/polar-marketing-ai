@@ -10,6 +10,7 @@ Blameless: we record what happened and how the system let it happen, not who did
 - **Fix (2026-10-20):** read-only ACL, no new user, no sudoers rule, no restart. `acl` package installed; `setfacl -R -m g:isla:rX` and `-d` (default, so new files inherit) on `data/` and `sites/`, `g:isla:r` on `.env`. Owners and the 0700 modes are unchanged and nothing is writable. A new snapshot (`2026-10-20_180530`) was taken and `studio.json` parses; the live site still answered 200 on `/` and `/login`.
 - **Prevention:** A failed backup has to be noticed, not just logged. Put an age check on the newest snapshot in the weekly routine and alert when it is older than a day.
 - **Related, same cause (fixed 2026-10-20):** the deploy user could not read the journal. It is now in group `systemd-journal` (read-only), so `journalctl -u isla-autopilot` works from the deploy account.
+- **The ACL did not survive a restart (fixed 2026-10-20):** the deploy of release `20261020182038` restarted the service, and the boot-time `chmod 0700` in `store.mjs` reset the ACL mask (`mask::---`), which silently turned `group:isla:r-x` into an entry that grants nothing. Every restart undid the ACL, so the backup worked only until the next deploy. `store.mjs` now tightens the mode as before and then puts the mask back, so the operator's read-only ACL survives. Covered by `server/store.durability.test.mjs` (skipped where the `acl` tools are missing).
 - **Doubts / TO CONFIRM:** when the 0700 tightening started, and whether an older snapshot exists anywhere else.
 
 ## 2026-10-19 (two incidents)

@@ -5,6 +5,7 @@
 import { readFileSync, existsSync, mkdirSync, chmodSync, statSync, renameSync, openSync, writeSync, fsyncSync, closeSync, copyFileSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { randomBytes } from "node:crypto";
+import { execFileSync } from "node:child_process";
 
 export const DATA_DIR = process.env.DATA_DIR ?? join(import.meta.dirname, "..", "data");
 export const MEDIA_DIR = join(DATA_DIR, "media");
@@ -12,11 +13,31 @@ mkdirSync(MEDIA_DIR, { recursive: true, mode: 0o700 });
 const FILE = join(DATA_DIR, "studio.json");
 const BAK = FILE + ".bak";
 
+/** Does this path carry an ACL with named users or groups? That is an exception the operator set on purpose. */
+function hasNamedAcl(path) {
+  try {
+    const out = execFileSync("getfacl", ["-c", "-p", path], { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] });
+    return /^(user|group):[^:]+:/m.test(out);
+  } catch { return false; }
+}
+
 /** Tighten a path that is looser than `mode` (only when we own it; never fails the boot). */
 function tighten(path, mode) {
   try {
     const st = statSync(path);
-    if (st.uid === process.getuid?.() && (st.mode & 0o077)) chmodSync(path, mode);
+    if (st.uid === process.getuid?.() && (st.mode & 0o077)) {
+      // chmod resets the ACL mask, and a masked-off entry grants nothing: that silently disabled the
+      // read-only ACL the operator sets for the backup user, so every restart broke the backups.
+      // Tighten the mode as usual, then put the mask back so that ACL keeps working.
+      const bits = (st.mode & 0o070) >> 3;
+      const mask = `${bits & 4 ? "r" : "-"}${bits & 2 ? "w" : "-"}${bits & 1 ? "x" : "-"}`;
+      const named = hasNamedAcl(path);
+      chmodSync(path, mode);
+      if (named && mask !== "---") {
+        try { execFileSync("setfacl", ["-m", `m::${mask}`, path], { stdio: "ignore" }); }
+        catch { console.warn("[store] could not restore an ACL mask (is the acl package installed?)"); }
+      }
+    }
   } catch { /* missing or not ours */ }
 }
 tighten(DATA_DIR, 0o700);
