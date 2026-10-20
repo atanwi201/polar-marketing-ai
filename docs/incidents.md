@@ -2,6 +2,16 @@
 
 Blameless: we record what happened and how the system let it happen, not who did it. Newest first. No hosts, IPs or secrets in entries.
 
+## 2026-10-20 (near miss: backups stopped working)
+
+- **Impact:** No new snapshot since 2026-10-19 03:00. The 2026-10-20 03:00 run failed, so there was no fresh restore point for about a day and a half. No data was lost and nothing was overwritten; the last good snapshot is still on the operator's machine.
+- **Detection:** `npm run backup` failed with `rsync: [sender] opendir "/opt/isla-autopilot/data" failed: Permission denied (13)`, and the same error was appended to `backup.log`. It was only noticed when a deploy was about to run.
+- **Cause:** The deploy user can no longer read `data/`. The app tightens `DATA_DIR` to mode 0700 at boot when it owns the folder (`store.mjs`), and the deploy user is only in group `isla`, so 0700 gives it no access. The backup script runs `rsync` as the deploy user.
+- **Fix:** Not fixed yet. Options: a dedicated read-only backup user with group read access, a sudoers rule that lets the deploy user run `rsync` as `isla`, or an ACL on `data/`. This needs ATD's decision because it touches the server's access model.
+- **Prevention:** A failed backup has to be noticed, not just logged. Put an age check on the newest snapshot in the weekly routine and alert when it is older than a day.
+- **Related, same cause:** the deploy user is not in group `systemd-journal` and `sudo` asks for a password, so the post-deploy check "no repeating errors in the journal" cannot be run from the deploy account. `systemctl is-active` and `NRestarts` still work, and they are enough to catch a crash loop.
+- **Doubts / TO CONFIRM:** when the 0700 tightening started, and whether an older snapshot exists anywhere else.
+
 ## 2026-10-19 (two incidents)
 
 ### A. Crash loop after restart caused by systemd SystemCallFilter
