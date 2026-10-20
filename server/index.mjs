@@ -120,7 +120,27 @@ const ICONS = `<link rel="icon" href="/brand/logo/favicon.svg" type="image/svg+x
 <meta name="theme-color" content="#d7ff64">
 <meta property="og:image" content="/brand/logo/og-image.png">`;
 const page = (name) => () => readFileSync(join(import.meta.dirname, name), "utf8").replaceAll("{{BRAND}}", BRAND).replaceAll("{{ICONS}}", ICONS);
-const PORTAL_HTML = page("portal.html");
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+/** A token comes from the URL, so it is checked before it goes into any HTML. */
+const safeToken = (t) => (typeof t === "string" && /^[A-Za-z0-9_-]{1,64}$/.test(t) ? t : "");
+
+// The portal is a web app: it can be installed on the phone and opens straight into the business,
+// so the client never has to type a code again. The worker caches nothing on purpose: every request
+// still goes to the network, so nobody ever sees a stale page or a stale session.
+const PORTAL_SW = `self.addEventListener("install",()=>self.skipWaiting());
+self.addEventListener("activate",(e)=>e.waitUntil(self.clients.claim()));
+self.addEventListener("fetch",(e)=>{if(e.request.method==="GET")e.respondWith(fetch(e.request));});`;
+const portalHead = (token, name) => `<link rel="icon" href="/brand/logo/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/brand/logo/favicon.ico" sizes="48x48">
+<link rel="apple-touch-icon" href="/brand/logo/apple-touch-icon.png">
+${token ? `<link rel="manifest" href="/portal/${token}/manifest.webmanifest">` : ""}
+<meta name="theme-color" content="#d7ff64">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="${esc(name)}">`;
+const PORTAL_HTML = (token, name) => readFileSync(join(import.meta.dirname, "portal.html"), "utf8")
+  .replaceAll("{{BRAND}}", BRAND).replaceAll("{{HEAD}}", portalHead(token, name));
 const SIGNUP_HTML = page("signup.html");
 const LANDING_HTML = page("landing.html");
 const HOME_HTML = page("home.html");
@@ -474,10 +494,35 @@ async function route(req, res, url) {
   }
 
   // --- Client portal (public, by secret token) ---
+  // The portal as an app on the phone: the manifest starts the app at this business, the worker
+  // only makes it installable (it caches nothing).
+  if (seg[0] === "portal" && seg[1] === "sw.js" && seg.length === 2) {
+    res.writeHead(200, { "Content-Type": "text/javascript; charset=utf-8", "Cache-Control": "no-store", "Service-Worker-Allowed": "/portal/" });
+    return res.end(PORTAL_SW);
+  }
+  if (seg[0] === "portal" && seg[1] && seg[2] === "manifest.webmanifest" && seg.length === 3) {
+    const c = db.clients.find((x) => x.token === seg[1]);
+    const tok = safeToken(seg[1]);
+    if (!c || !tok) return send(res, 404, { error: "not found" });
+    const man = {
+      name: `${c.name || BRAND} · ${BRAND}`, short_name: c.name || BRAND,
+      start_url: `/portal/${tok}`, scope: "/portal/", display: "standalone", orientation: "portrait",
+      background_color: "#f3f4f3", theme_color: "#d7ff64",
+      icons: [
+        { src: "/brand/logo/icon-192.png", sizes: "192x192", type: "image/png", purpose: "any" },
+        { src: "/brand/logo/icon-512.png", sizes: "512x512", type: "image/png", purpose: "any" },
+        { src: "/brand/logo/icon-maskable-512.png", sizes: "512x512", type: "image/png", purpose: "maskable" },
+        { src: "/brand/logo/favicon.svg", sizes: "any", type: "image/svg+xml" },
+      ],
+    };
+    res.writeHead(200, { "Content-Type": "application/manifest+json", "Cache-Control": "no-store" });
+    return res.end(JSON.stringify(man));
+  }
   if (seg[0] === "portal" && seg[1]) {
     // Unknown tokens get the page too; it shows a "link not valid" message from the API's 404.
+    const c = db.clients.find((x) => x.token === seg[1]);
     res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
-    return res.end(PORTAL_HTML());
+    return res.end(PORTAL_HTML(safeToken(c?.token ?? seg[1]), c?.name ?? BRAND));
   }
   if (seg[0] === "api" && seg[1] === "portal" && seg[2]) {
     if (!portalHits.hit(clientIp(req))) return send(res, 429, { error: "Too many requests. Wait a minute." });

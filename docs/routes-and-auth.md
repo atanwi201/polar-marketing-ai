@@ -84,6 +84,8 @@ The token is the credential. Unknown token: 404 JSON on API, the portal HTML she
 | Method | Path | Handler | Auth | Rate limit |
 |---|---|---|---|---|
 | GET | `/portal/<token>` | `index.mjs` (`portal.html`) | token (page is served even for unknown tokens) | none in app |
+| GET | `/portal/<token>/manifest.webmanifest` | `index.mjs` | token; 404 for an unknown token | none in app |
+| GET | `/portal/sw.js` | `index.mjs` | none; the portal's service worker (makes the app installable, caches nothing) | none in app |
 | GET | `/api/portal/<token>` | `index.mjs` `portalView` | token | `portalHits` 300/min |
 | POST | `/api/portal/<token>/briefs` | `index.mjs` | token; blocked while pending/declined or over the weekly cap | `portalHits` + 10/day per business |
 | POST | `/api/portal/<token>/profile` | `index.mjs` | token; not blocked while pending (site only rebuilds once approved) | `portalHits` + 15/day per business; body up to 40 MB |

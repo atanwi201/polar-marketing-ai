@@ -22,6 +22,13 @@ writeFileSync(join(OUT, "polar-mark.png"), tile(256)); // compact header/app-bar
 writeFileSync(join(OUT, "apple-touch-icon.png"), tile(180));
 writeFileSync(join(OUT, "icon-192.png"), tile(192));
 writeFileSync(join(OUT, "icon-512.png"), tile(512));
+// Maskable icon for the app on the phone: the mark is smaller so Android's round or squircle mask
+// never clips it (the safe zone is the middle 80%). Same logo, only scaled.
+{ const px = 512, c = createCanvas(px, px), g = c.getContext("2d");
+  g.fillStyle = "#fff"; g.fillRect(0, 0, px, px); g.imageSmoothingQuality = "high";
+  const s = Math.round(px * 0.55);
+  g.drawImage(src, Math.round((px - s) / 2), Math.round((px - s) / 2), s, s);
+  writeFileSync(join(OUT, "icon-maskable-512.png"), c.toBuffer("image/png")); }
 // SVG favicon: the supplied PNG embedded unchanged (resized), so browsers that prefer SVG show the real logo.
 writeFileSync(join(OUT, "favicon.svg"), `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64"><image href="data:image/png;base64,${tile(128).toString("base64")}" width="64" height="64"/></svg>\n`);
 // Social preview: logo centred on white, 1200x630.
