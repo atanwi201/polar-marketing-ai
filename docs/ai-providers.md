@@ -8,8 +8,8 @@ Every text call (posts, site pages, video scripts, assistant, menu import, recei
 
 ### Provider chain
 
-- Providers: `groq`, `google` (Gemini via its OpenAI-compatible endpoint), `mistral`, `siliconflow`, `deepseek`, `alibaba` (DashScope/Qwen), `puter`, `openai`, `openrouter`. All except `puter` and `openrouter` share one OpenAI-compatible client (`viaCompat`, table `COMPAT`).
-- Default order (`DEFAULT_ORDER`): `groq,google,mistral,siliconflow,deepseek,alibaba,puter,openai,openrouter`.
+- Providers: `groq`, `google` (Gemini via its OpenAI-compatible endpoint), `mistral`, `siliconflow`, `deepseek`, `alibaba` (DashScope/Qwen), `tokenharbor`, `puter`, `openai`, `openrouter`. All except `puter` and `openrouter` share one OpenAI-compatible client (`viaCompat`, table `COMPAT`).
+- Default order (`DEFAULT_ORDER`): `groq,google,mistral,siliconflow,deepseek,alibaba,puter,tokenharbor,openai,openrouter`.
 - Order override: dashboard setting `order` (comma list) beats env `AI_PROVIDERS`. The chosen names go first; every other known provider is appended in default order, so a new provider is never silently left out.
 - A provider is only tried if it has a key. `complete()` walks the list; on any error from one provider (rate limit, bad key, timeout, empty or invalid reply) it logs a warning and moves to the next. If all fail, the error lists what each one said (`All AI providers failed. groq: ... | ...`). Only an abort (`signal`) stops the walk early.
 - **Paid providers are never used by Auto.** `openai` is marked `paid: true` and is filtered out of the automatic chain; it runs only when the owner pins it (dashboard `x-ai-provider` header for that request, or `client.aiProvider` for one business).
@@ -26,6 +26,7 @@ Every text call (posts, site pages, video scripts, assistant, menu import, recei
 | siliconflow | `SILICONFLOW_API_KEY` | `SILICONFLOW_MODELS`, `SILICONFLOW_BASE_URL` | |
 | deepseek | `DEEPSEEK_API_KEY` | `DEEPSEEK_MODELS`, `DEEPSEEK_BASE_URL` | output capped per model (`maxOut`) |
 | alibaba | `DASHSCOPE_API_KEY` | `ALIBABA_MODELS`, `ALIBABA_BASE_URL` | |
+| tokenharbor | `TOKENHARBOR_API_KEY` | `TOKENHARBOR_MODELS`, `TOKENHARBOR_BASE_URL` | OpenAI-compatible gateway; default model `deepseek-v4.1-flash:free`; text only (`vision: []`) |
 | puter | `PUTER_AUTH_TOKEN` | `PUTER_MODELS` | see section 1.4 |
 | openai (paid) | `OPENAI_API_KEY` | `OPENAI_MODELS`, `OPENAI_BASE_URL` | never in Auto |
 | openrouter | `OPENROUTER_API_KEY` | `OPENROUTER_BASE_URL`, `OPENROUTER_TIMEOUT_MS` | free models only, see 1.2 |
@@ -34,7 +35,7 @@ Model lists per tier are in `COMPAT[...].models`. A model list can be overridden
 
 ### Keys saved in the dashboard win over `.env`
 
-`compatKey(name) = saved(name) || envKey(name)`, and `openrouterKey() = saved || env`. Saved keys live in `db.settings.ai` (`groqKey`, `geminiKey`, `mistralKey`, `siliconflowKey`, `deepseekKey`, `alibabaKey`, `puterKey`, `openaiKey`, `openrouterKey`). `configureAi(() => db.settings.ai)` in `index.mjs` wires this, and keys are re-read on every call, so saving a key takes effect without a restart. `keySources()` tells the dashboard whether each key comes from `saved`, `env` or nothing. API responses only return a masked key (`••••` plus the last 4 characters); posting a value that starts with `••••` leaves the stored key unchanged.
+`compatKey(name) = saved(name) || envKey(name)`, and `openrouterKey() = saved || env`. Saved keys live in `db.settings.ai` (`groqKey`, `geminiKey`, `mistralKey`, `siliconflowKey`, `deepseekKey`, `alibabaKey`, `puterKey`, `tokenharborKey`, `openaiKey`, `openrouterKey`). `configureAi(() => db.settings.ai)` in `index.mjs` wires this, and keys are re-read on every call, so saving a key takes effect without a restart. `keySources()` tells the dashboard whether each key comes from `saved`, `env` or nothing. API responses only return a masked key (`••••` plus the last 4 characters); posting a value that starts with `••••` leaves the stored key unchanged.
 
 ### 1.2 OpenRouter: free models only
 

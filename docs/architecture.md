@@ -11,7 +11,7 @@ Polar Marketing is one Node process (`server/index.mjs`, plain ES modules, no fr
 | Public pages | Landing `/` (`home.html`), sign-in `/login` (`landing.html`), sign-up `/signup` (`signup.html`), client portal `/portal/<token>` (`portal.html`), legal pages. Vanilla HTML with inline scripts. | `server/*.html`, `legal.mjs` |
 | Feature pages | Server-rendered HTML strings: loyalty join/card/staff scanner, booking form/manage page, public menu, declined screen, share page. | `server/*-pages.mjs`, `declined.mjs`, `share.mjs` |
 | Store | In-memory object `db` persisted to `data/studio.json` with atomic writes. | `server/store.mjs` |
-| AI layer | Text providers with fallback (Groq, Google, Mistral, SiliconFlow, DeepSeek, Alibaba, Puter, OpenAI, OpenRouter), image engines (Pollinations free, OpenRouter, Google, Puter), stock photos. | `server/openrouter.mjs`, `images.mjs`, `puter.mjs`, `stock.mjs` |
+| AI layer | Text providers with fallback (Groq, Google, Mistral, SiliconFlow, DeepSeek, Alibaba, Puter, TokenHarbor, OpenAI, OpenRouter), image engines (Pollinations free, OpenRouter, Google, Puter), stock photos. | `server/openrouter.mjs`, `images.mjs`, `puter.mjs`, `stock.mjs` |
 | Media pipeline | Canvas text overlays and ffmpeg video rendering. | `video.mjs`, `overlay.mjs`, `draw.mjs` (`@napi-rs/canvas`, `ffmpeg`) |
 | Site generator | Prompt, sanitize, assemble, swap into `sites/<slug>/`. | `aisite.mjs`, `sitebuilder.mjs`, `webpage.mjs`, `siteimages.mjs`, `siteedit.mjs`, `sitezip.mjs` |
 | Integrations | Facebook/Instagram/X/YouTube publishing, Apple Wallet (PassKit + APNs), Google Wallet, Resend booking email. | `social.mjs`, `pass.mjs`, `wallet.mjs`, `gwallet.mjs`, `booking-mail.mjs` |

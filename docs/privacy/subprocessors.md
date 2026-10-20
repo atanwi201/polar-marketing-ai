@@ -12,6 +12,7 @@ Status: draft pre-filled from the code. Items marked **[PENDING ATD]** need the 
 | Mistral | AI text/vision | Business content, receipt photos | EU | EEA |
 | SiliconFlow | AI text/image | Non-personal content only | China/other | No adequacy; SCC + transfer assessment **[PENDING ATD]**; do not send personal data |
 | Puter | AI text/image | Business content | US | SCC **[PENDING ATD]** |
+| TokenHarbor | AI text | Business content | **[PENDING]** | SCC **[PENDING ATD: verify certification, sign DPA]** |
 | Pollinations | Image generation | Image prompt in URL (public feed risk) | **[PENDING]** | Non-personal prompts only |
 | Meta, X, YouTube/Google | Publishing to the business's own accounts | Posts, media | US | DPF/SCC |
 | Google Wallet, Apple Wallet | Loyalty card on phone (user-initiated) | Member name, card code | US | User-initiated |

@@ -1,4 +1,5 @@
-// Text AI with provider fallback: Groq, Mistral and OpenRouter (any with a key set, tried in AI_PROVIDERS order).
+// Text AI with provider fallback: any configured provider is tried in turn (see COMPAT and DEFAULT_ORDER;
+// set AI_PROVIDERS or the dashboard order to change it). Free-first, moving on when one is rate-limited.
 // The OpenRouter part only ever uses free models (pricing 0/0, usually ids ending in ":free").
 // The free list changes often, so it is fetched live and cached; a failing model is skipped for a while.
 
@@ -241,6 +242,12 @@ const COMPAT = {
     models: { quick: ["qwen-turbo", "qwen-plus"], default: ["qwen-plus", "qwen-max"], complex: ["qwen-max", "qwen-plus"] },
     vision: ["qwen-vl-max"], modelsEnv: "ALIBABA_MODELS",
   },
+  tokenharbor: {
+    label: "TokenHarbor", env: "TOKENHARBOR_API_KEY", saved: "tokenharborKey", hint: "tokenharbor.ai (OpenAI-compatible gateway, free models)",
+    api: () => process.env.TOKENHARBOR_BASE_URL ?? "https://tokenharbor.ai/v1",
+    models: { quick: ["deepseek-v4.1-flash:free"], default: ["deepseek-v4.1-flash:free"], complex: ["deepseek-v4.1-flash:free"] },
+    vision: [], modelsEnv: "TOKENHARBOR_MODELS",
+  },
   puter: {
     label: "Puter", puter: true, env: "PUTER_AUTH_TOKEN", saved: "puterKey", hint: "Auth token from your Puter account (puter.com, Settings; or run getAuthToken from @heyputer/puter.js). Models are paid from your Puter account's free allowance.",
     api: () => "", models: { quick: [], default: [], complex: [] }, vision: [], modelsEnv: "PUTER_MODELS",
@@ -252,7 +259,7 @@ const COMPAT = {
     vision: ["gpt-4.1-mini"], modelsEnv: "OPENAI_MODELS",
   },
 };
-const DEFAULT_ORDER = "groq,google,mistral,siliconflow,deepseek,alibaba,puter,openai,openrouter";
+const DEFAULT_ORDER = "groq,google,mistral,siliconflow,deepseek,alibaba,puter,tokenharbor,openai,openrouter";
 /** Chosen order first, then every other known provider in the default order (new ones are never silently left out). */
 const ORDER = () => {
   const given = (settings()?.order || process.env.AI_PROVIDERS || "").split(",").map((x) => x.trim().toLowerCase()).filter(Boolean);
