@@ -18,6 +18,10 @@
   --ok:var(--good); --ok-soft:var(--good-soft); --shadow:var(--shadow-card); --nav:var(--surface);
   --r-xl:var(--radius-xl); --r-lg:var(--radius-lg); --r-md:var(--radius-md);
   --sans:var(--font-sans); --display:var(--font-display);
+  /* Height of the bottom bar, so the composer and the content clear it before JS measures it.
+     JS overwrites this with the exact height; the formula keeps it right when the phone's
+     safe-area inset changes. */
+  --navh:calc(85px + env(safe-area-inset-bottom));
 }
 *{box-sizing:border-box}
 html{-webkit-text-size-adjust:100%}
@@ -188,6 +192,7 @@ textarea:focus{outline:none;box-shadow:0 0 0 2px var(--ink);background:var(--sur
    12px tracked labels, a soft press on the active pill. The tap area is taller than the bar (::before),
    so it keeps the 44px minimum without making the bar grow. */
 @media (max-width:768px){
+  :root{--navh:calc(60px + env(safe-area-inset-bottom))}
   .nav{padding:6px 10px calc(6px + env(safe-area-inset-bottom))}
   .nav button{position:relative;gap:3px;padding:0;font-size:12px;line-height:1.2;letter-spacing:.01em;font-weight:600;white-space:nowrap}
   .nav button::before{content:"";position:absolute;inset:-4px 0}
@@ -914,9 +919,15 @@ $$(".seg button[data-lang]").forEach(b=>b.addEventListener("click",()=>{
 
 // keep fixed bars' measured heights in CSS so content always clears them
 (function(){
-  const set=(el,v)=>{ if(!el) return; const f=()=>{ const h=el.offsetHeight; if(h) document.documentElement.style.setProperty(v,h+"px"); }; f(); if(window.ResizeObserver) new ResizeObserver(f).observe(el); else addEventListener("resize",f); };
+  const set=(el,v)=>{ if(!el) return; const f=()=>{ const h=el.offsetHeight; if(h) document.documentElement.style.setProperty(v,h+"px"); }; f();
+    // border-box, not the default content-box: the height also changes with the safe-area inset
+    // (the home indicator on a phone), and the content box never moves when only the padding does.
+    if(window.ResizeObserver) new ResizeObserver(f).observe(el,{box:"border-box"}); else addEventListener("resize",f); };
   const go=()=>{ set(document.getElementById("nav"),"--navh"); set(document.getElementById("cf"),"--cmph"); };
   document.readyState==="loading"?document.addEventListener("DOMContentLoaded",go):go();
+  // iOS moves the safe-area inset (and the Safari toolbar) without a window resize: re-measure.
+  if(window.visualViewport) visualViewport.addEventListener("resize",go);
+  addEventListener("orientationchange",go);
 })();
 // ---------- views ----------
 function showView(v,scrollTo){
