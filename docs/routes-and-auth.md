@@ -97,7 +97,7 @@ The token is the credential. Unknown token: 404 JSON on API, the portal HTML she
 | GET/POST/PATCH/DELETE | `/api/portal/<token>/loyalty/...` (programmes, upload, design, customers, adjust, qr, staff-token rotation) | `loyalty-routes.mjs` `manage()` | token; every id is checked against the business | `manage` 600/min, `design` 6/10 min per IP+business |
 | GET/PUT/PATCH/POST | `/api/portal/<token>/bookings/...` (config, bookings, qr) | `bookings-routes.mjs` `manage()` | token; booking must belong to the business | `manage` 600/min |
 | GET/PUT/PATCH/POST | `/api/portal/<token>/menu/...` (config, photo, import, translate) | `menu-routes.mjs` `manage()` | token; 403 `disabled` until the owner enables it | `manage` 600/min, `photo` 120/h, `ai` 30/h |
-| GET/PUT/PATCH/POST/DELETE | `/api/portal/<token>/expenses/...` (config, scan, export, items) | `expenses-routes.mjs` `manage()` | token; 403 `disabled` until the owner enables it; expense must belong to the business | `manage` 600/min, `scan` 30/h |
+| GET/PUT/PATCH/POST/DELETE | `/api/portal/<token>/expenses/...` (config, scan, export, items, photo, ask) | `expenses-routes.mjs` `manage()` | token; 403 `disabled` until the owner enables it; expense must belong to the business | `manage` 600/min, `scan` 30/h, `ask` 20/h |
 
 Client session (convenience only, not an API credential): after a correct code, `POST /api/client-login` sets `isla_client` (`<clientId>.<random>`, 90-day sliding, HttpOnly, SameSite=Lax) and `/login` uses it to redirect to `/portal/<token>`. API calls still need the token in the path.
 
@@ -124,7 +124,7 @@ All `/api/studio/*` routes start with `if (!auth.isAdmin(req)) return 401` (in `
 | any | `/api/studio/loyalty/...` | `loyalty-routes.mjs` `manage()` | admin; may pass `clientId` | `manage` 600/min, `design` 6/10 min |
 | any | `/api/studio/bookings/...` | `bookings-routes.mjs` `manage()` | admin; `?clientId=` | `manage` 600/min |
 | any | `/api/studio/menu/...` | `menu-routes.mjs` `manage()` | admin; `?clientId=`, `overview` | `manage` 600/min, `photo`, `ai` |
-| any | `/api/studio/expenses/...` | `expenses-routes.mjs` `manage()` | admin; `?clientId=` | `manage` 600/min, `scan` |
+| any | `/api/studio/expenses/...` | `expenses-routes.mjs` `manage()` | admin; `?clientId=` | `manage` 600/min, `scan`, `ask` |
 
 ## 4. `server/auth.mjs`
 

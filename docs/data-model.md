@@ -13,6 +13,7 @@ Paths are relative to the install directory. `DATA_DIR` defaults to `data/` (ove
 | `data/studio.json.corrupt-<ts>` | A main file that failed to parse at boot and was set aside. | `store.mjs` |
 | `data/media/` | All uploaded and generated media, flat (section 7). Dir mode 0700. | `studio`, `video`, `assistant`, `profile`, `loyalty-design`, `index.mjs saveUpload` |
 | `data/media/menu/` | Menu item photos, `<clientId>_<id>.jpg`. | `menu.mjs savePhoto` |
+| `data/receipts/` | Receipt photos of the expenses, `exp-<expenseId>.jpg`. Not public: `data/media` is served to anyone who knows the name, and a receipt is the business's money, so these are only readable through the expenses API (the owner, or the business that owns the expense). | `expenses.mjs saveReceipt` |
 | `data/site-src/<slug>/` | Page sources for the website chat: `<lang>.html`, `assets.json`, `versions/<ts>/<lang>.html`. | `aisite.mjs`, `siteedit.mjs` |
 | `data/erasure-audit.log` | One JSON line per erased client, no personal data (mode 0600). | `retention.mjs` |
 | `sites/<slug>/` | Published static site, `<lang>/index.html`, `images/`, `sitemap.xml`, `robots.txt`, `site.json`. | `sitebuilder.mjs` |
@@ -100,8 +101,8 @@ Every card change calls `notify()`, which `index.mjs` wires to Apple and Google 
 ### 2.6 `expenses` (`expenses.mjs`)
 
 - `configs[]`: `clientId`, `enabled` (only the owner can switch it), `currency`, `locations[{id,name}]`.
-- `items[]`: `id`, `clientId`, `date`, `locationId`, `store`, `category`, `totalCents`, `taxCents`, `items[]`, `notes`, `source` (`manual/scan`), timestamps.
-- Receipt images sent for scanning are not written to disk by `expenses*.mjs`; only the parsed fields are stored.
+- `items[]`: `id`, `clientId`, `date`, `locationId`, `store`, `category`, `totalCents`, `taxCents`, `items[]`, `notes`, `source` (`manual/scan`), `photoFile` (the receipt photo, see `data/receipts/`), timestamps.
+- The receipt photo of a scanned ticket is kept with the expense (in `data/receipts/`), so the business can show the original ticket again and the owner can check it. It is only reachable through the expenses API, never through the public media folder.
 
 ### 2.7 `menu` (`menu.mjs`)
 

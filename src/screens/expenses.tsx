@@ -2,7 +2,7 @@
 // Server side: server/expenses-routes.mjs (owner scope /api/studio/expenses).
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Card, Button, Badge, Field, Input, TextArea, Select, Empty, Stat, Stats, ConfirmButton, toast } from "../core/ui";
-import { ecall, eerr, fmtMoney, downloadExpenses, type EConfig, type ELocation, type Expense, type ExpenseInput, type ExpensesData, type Currency } from "./expenses-api";
+import { ecall, eerr, fmtMoney, downloadExpenses, receiptBlob, askExpenses, type EConfig, type ELocation, type Expense, type ExpenseInput, type ExpensesData, type Currency, type EAsk } from "./expenses-api";
 
 const CURRENCIES: Currency[] = ["EUR", "USD", "GBP"];
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
@@ -135,6 +135,8 @@ function Report({ clientId, clientName, data, month, setMonth, loc, setLoc, onRe
           <Stat label={month ? fmtMonth(month) : "All time"} value={fmtMoney(summary.totalCents, cur)} sub={`${summary.count} expense${summary.count === 1 ? "" : "s"}`} />
         </Stats>
 
+        <AskBox clientId={clientId} currency={cur} />
+
         {summary.count > 0 && <div className="grid-2">
           <div className="stack-sm">
             <span className="field-label">By category</span>
@@ -167,6 +169,7 @@ function Report({ clientId, clientName, data, month, setMonth, loc, setLoc, onRe
                 </div>
                 {x.items.length > 0 && <p className="small muted">{x.items.map((i) => `${i.qty > 1 ? i.qty + " × " : ""}${i.name}`).join(", ")}</p>}
                 {x.notes && <p className="small">{x.notes}</p>}
+                {x.hasPhoto && <ReceiptThumb clientId={clientId} id={x.id} />}
                 <div className="row wrap" style={{ marginTop: 8 }}>
                   <Button small kind="ghost" onClick={() => setEditing(x)}>Edit</Button>
                   <ConfirmButton label="Delete" confirm="Delete expense" onConfirm={() => void remove(x)} />
@@ -177,6 +180,69 @@ function Report({ clientId, clientName, data, month, setMonth, loc, setLoc, onRe
         )}
       </div>
     </Card>
+  );
+}
+
+// ---------- the receipt photo ----------
+
+function ReceiptThumb({ clientId, id }: { clientId: string; id: string }) {
+  const [url, setUrl] = useState("");
+  useEffect(() => {
+    let alive = true, made = "";
+    void receiptBlob(clientId, id).then((u) => {
+      made = u;
+      if (alive) setUrl(u);
+      else if (u) URL.revokeObjectURL(u);
+    });
+    return () => { alive = false; if (made) URL.revokeObjectURL(made); };
+  }, [clientId, id]);
+  if (!url) return null;
+  return (
+    <a href={url} target="_blank" rel="noreferrer" title="See the receipt" style={{ display: "inline-block", marginTop: 8 }}>
+      <img src={url} alt="Receipt" width={64} height={64} style={{ display: "block", borderRadius: 10, objectFit: "cover", background: "var(--surface-2, #eee)" }} />
+    </a>
+  );
+}
+
+// ---------- asking about the expenses ----------
+
+function AskBox({ clientId, currency }: { clientId: string; currency: string }) {
+  const [q, setQ] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [ans, setAns] = useState<EAsk | null>(null);
+  const [err, setErr] = useState("");
+  const [history, setHistory] = useState<{ q: string; a: string }[]>([]);
+  const ask = async () => {
+    const question = q.trim();
+    if (!question || busy) return;
+    setBusy(true); setErr("");
+    const r = await askExpenses(clientId, question, history);
+    setBusy(false);
+    if (r.kind !== "ok") { const m = eerr(r); setErr(m); return; }
+    setAns(r.data);
+    setHistory((h) => [...h, { q: question, a: r.data.answer }].slice(-4));
+    setQ("");
+  };
+  return (
+    <div className="loy-box stack-sm">
+      <span className="field-label">Ask about these expenses</span>
+      <div className="row wrap">
+        <Input id="ex-ask" value={q} placeholder="How much did they spend on meat last month?" onChange={setQ} />
+        <Button small kind="primary" busy={busy} disabled={!q.trim()} onClick={() => void ask()}>Ask</Button>
+      </div>
+      {err && <p className="small" role="alert" style={{ color: "var(--bad, #c0392b)" }}>{err}</p>}
+      {ans && <>
+        <p className="small">{ans.answer}</p>
+        {ans.matches.length > 0 && <div className="stack-sm">
+          {ans.matches.slice(0, 8).map((m) => (
+            <div className="row between" key={m.id}>
+              <span className="small">{m.store || fmtDay(m.date)}</span>
+              <span className="strong small">{fmtMoney(m.totalCents, currency)}</span>
+            </div>
+          ))}
+        </div>}
+      </>}
+    </div>
   );
 }
 

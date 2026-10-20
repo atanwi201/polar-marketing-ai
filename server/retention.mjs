@@ -51,7 +51,7 @@ export async function eraseClient(clientId, { sitesDir = process.env.SITES_DIR, 
   counts.bookings = b.items.filter(mine).length;
   counts.expenses = e.items.filter(mine).length;
   bookings.removeClientData(clientId);
-  expenses.removeClientData(clientId);
+  await expenses.removeClientData(clientId);
   await menuData.removeClientData(clientId);
   Object.assign(counts, { loyalty: await loyalty.removeClientData(clientId) });
 

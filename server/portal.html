@@ -473,6 +473,24 @@ input[type=color].inp{padding:4px;height:46px;cursor:pointer}
 .xcat{display:inline-block;background:var(--accent-soft);color:var(--accent-text);border-radius:999px;padding:2px 10px;font-size:12.5px;font-weight:600;margin-top:8px}
 .xexp{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:4px 0 14px}
 .xexp .btn{min-height:46px}
+/* asking about the expenses */
+.xask .lh{margin:0 0 4px}
+.xask p.xaskhint{margin:0 0 10px;font-size:13.5px;color:var(--muted)}
+.xaskform{display:flex;gap:8px;align-items:stretch}
+.xaskform .inp{flex:1;min-width:0}
+.xaskform .btn{flex:none;min-height:52px}
+.xaskout{margin-top:12px}
+.xaskout .ans{font-size:15.5px;line-height:1.45;overflow-wrap:anywhere}
+.xasking{display:flex;align-items:center;gap:10px;font-size:14px;color:var(--muted)}
+.xasklist{margin:10px 0 0;display:grid;gap:6px}
+.xaskrow{display:flex;justify-content:space-between;gap:10px;align-items:center;width:100%;text-align:left;border:0;background:var(--fill);border-radius:12px;padding:9px 12px;color:var(--ink);font-size:14px;min-height:44px}
+.xaskrow>span{display:flex;align-items:center;gap:7px;min-width:0;overflow-wrap:anywhere}
+.xaskrow b{flex:none;font-weight:700}
+.xaskrow svg{width:16px;height:16px;flex:none;color:var(--muted)}
+.xrcpt{width:30px;height:30px;border-radius:7px;object-fit:cover;flex:none;background:var(--fill-2);border:0}
+.xreceipt{display:block;width:100%;max-height:320px;object-fit:contain;background:var(--fill);border-radius:14px;margin:0 0 14px}
+.xcard .xm{display:flex;align-items:center;gap:8px;justify-content:space-between}
+.xcard .xm>span{min-width:0;overflow-wrap:anywhere}
 .xit{display:grid;grid-template-columns:minmax(0,1fr) 56px 84px 44px;gap:6px;align-items:center;margin:0 0 8px}
 .xit .inp{min-width:0;padding:0 10px}
 .xit.xh{font-size:12px;font-weight:600;color:var(--muted);margin:0 0 4px}
@@ -2266,7 +2284,9 @@ Object.assign(T.es,{
   x_f_tax:"Impuestos (IVA)", x_f_total:"Total", x_f_notes:"Notas (opcional)", x_choose:"Elige…", x_need:"Obligatorio", x_hint_loc:"El ticket indica: {v}",
   x_e_date:"Elige la fecha del gasto.", x_e_loc:"Elige a qué local pertenece.", x_e_total:"Escribe el importe total.",
   x_save:"Guardar gasto", x_saved:"Gasto guardado", x_del:"Eliminar este gasto", x_del_c:"¿Eliminar este gasto? No se puede deshacer.", x_deleted:"Gasto eliminado", x_edit:"Editar",
-  x_cat_food:"Comida y bebida", x_cat_supplies:"Suministros", x_cat_utilities:"Luz, agua y gas", x_cat_rent:"Alquiler", x_cat_transport:"Transporte", x_cat_marketing:"Marketing", x_cat_equipment:"Equipamiento", x_cat_services:"Servicios", x_cat_other:"Otros"
+  x_cat_food:"Comida y bebida", x_cat_supplies:"Suministros", x_cat_utilities:"Luz, agua y gas", x_cat_rent:"Alquiler", x_cat_transport:"Transporte", x_cat_marketing:"Marketing", x_cat_equipment:"Equipamiento", x_cat_services:"Servicios", x_cat_other:"Otros",
+  x_ask_h:"Pregunta por tus gastos", x_ask_p:"Pregunta con tus palabras: cuánto gastaste, en qué y en qué mes.", x_ask_ph:"¿Cuánto gasté en carne el mes pasado?",
+  x_ask_go:"Preguntar", x_asking:"Preguntando…", x_asking_p:"Estoy mirando tus gastos…", x_receipt:"Ver el ticket",
 });
 Object.assign(T.en,{
   nav_x:"Expenses", x_h:"Expenses", x_loading:"Loading your expenses…", x_err:"We could not load your expenses.",
@@ -2283,11 +2303,13 @@ Object.assign(T.en,{
   x_f_tax:"Tax (VAT)", x_f_total:"Total", x_f_notes:"Notes (optional)", x_choose:"Choose…", x_need:"Required", x_hint_loc:"The receipt says: {v}",
   x_e_date:"Choose the date of the expense.", x_e_loc:"Choose which location it belongs to.", x_e_total:"Enter the total amount.",
   x_save:"Save expense", x_saved:"Expense saved", x_del:"Delete this expense", x_del_c:"Delete this expense? This cannot be undone.", x_deleted:"Expense deleted", x_edit:"Edit",
-  x_cat_food:"Food and drink", x_cat_supplies:"Supplies", x_cat_utilities:"Utilities", x_cat_rent:"Rent", x_cat_transport:"Transport", x_cat_marketing:"Marketing", x_cat_equipment:"Equipment", x_cat_services:"Services", x_cat_other:"Other"
+  x_cat_food:"Food and drink", x_cat_supplies:"Supplies", x_cat_utilities:"Utilities", x_cat_rent:"Rent", x_cat_transport:"Transport", x_cat_marketing:"Marketing", x_cat_equipment:"Equipment", x_cat_services:"Services", x_cat_other:"Other",
+  x_ask_h:"Ask about your expenses", x_ask_p:"Ask in your own words: how much you spent, on what and in which month.", x_ask_ph:"How much did I spend on meat last month?",
+  x_ask_go:"Ask", x_asking:"Asking…", x_asking_p:"Looking through your expenses…", x_receipt:"See the receipt",
 });
 const xpLocalMonth=()=>{ const d=new Date(); return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0"); };
 const xpLocalDay=()=>xpLocalMonth()+"-"+String(new Date().getDate()).padStart(2,"0");
-const XP={loaded:false,loading:false,err:"",enabled:null,config:null,items:[],summary:null,months:[],month:xpLocalMonth(),loc:"",sheet:null,at:0,scanning:false,scanErr:"",seq:0};
+const XP={loaded:false,loading:false,err:"",enabled:null,config:null,items:[],summary:null,months:[],month:xpLocalMonth(),loc:"",sheet:null,at:0,scanning:false,scanErr:"",seq:0,ask:{busy:false,err:"",answer:null,q:"",history:[]}};
 async function xapi(method,path,body){
   const r=await fetch(API+"/expenses"+path,{method,headers:{"x-lang":lang,...(body?{"content-type":"application/json"}:{})},body:body?JSON.stringify(body):undefined});
   let d={}; try{d=await r.json();}catch(_){}
@@ -2300,8 +2322,31 @@ const xpMonthName=m=>{ const [y,mo]=String(m).split("-").map(Number); const x=ne
 const xpShift=(m,n)=>{ const [y,mo]=m.split("-").map(Number); const d=new Date(y,mo-1+n,1); return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0"); };
 const xpCat=c=>tl("x_cat_"+c)===("x_cat_"+c)?c:tl("x_cat_"+c);
 const xpLocName=id=>{ const l=((XP.config&&XP.config.locations)||[]).find(x=>x.id===id); return l?l.name:""; };
-const xpAmt=s=>{ if(s==null||s==="") return null; if(typeof s==="number") return s; let v=String(s).replace(/[^\d.,-]/g,""); const c=v.lastIndexOf(","), d=v.lastIndexOf("."); v=c>d?v.replace(/\./g,"").replace(",","."):v.replace(/,/g,""); const n=Number(v); return isFinite(n)?n:null; };
+function xpAmt(s){ if(s==null||s==="") return null; if(typeof s==="number") return s; let v=String(s).replace(/[^\d.,-]/g,""); const c=v.lastIndexOf(","), d=v.lastIndexOf("."); v=c>d?v.replace(/\./g,"").replace(",","."):v.replace(/,/g,""); const n=Number(v); return isFinite(n)?n:null; }
 const xpMoneyStr=c=>c==null?"":(c/100).toFixed(2);
+// The receipt photo of an expense, served by the expenses API (never a public file name).
+const xpPhoto=id=>API+"/expenses/photo/"+encodeURIComponent(id);
+// Ask about the expenses. The model reads the question; the server does the maths.
+function xpAskHtml(){
+  if(XP.ask.busy) return `<div class="xasking"><span class="spin" aria-hidden="true"></span><span>${esc(tl("x_asking_p"))}</span></div>`;
+  if(XP.ask.err) return `<div class="err" role="alert" style="margin-top:0">${esc(XP.ask.err)}</div>`;
+  const A=XP.ask.answer; if(!A) return "";
+  let h=`<div class="ans">${esc(A.answer)}</div>`;
+  const ms=(A.matches||[]).slice(0,8);
+  if(ms.length) h+=`<div class="xasklist">${ms.map(x=>`<button type="button" class="xaskrow" data-xa="edit" data-id="${esc(x.id)}"><span>${esc(x.store||xpDate(x.date))}${x.hasPhoto?icon("receipt"):""}</span><b>${esc(xpMoney(x.totalCents))}</b></button>`).join("")}</div>`;
+  return h;
+}
+async function xpAsk(question){
+  const q=String(question||"").trim().slice(0,500);
+  if(!q||XP.ask.busy) return;
+  XP.ask.busy=true; XP.ask.err=""; XP.ask.q=q; renderExpenses();
+  try{
+    const d=await xapi("POST","/ask",{question:q,history:XP.ask.history});
+    XP.ask.answer=d; XP.ask.q="";
+    XP.ask.history=[...XP.ask.history,{q,a:d&&d.answer?String(d.answer).slice(0,300):""}].slice(-4);
+  }catch(e){ XP.ask.err=errMsg(e); }
+  XP.ask.busy=false; renderExpenses();
+}
 
 async function loadExpenses(force,silent){
   if(XP.loading&&!force) return; if(XP.loaded&&!force) return renderExpenses();
@@ -2324,6 +2369,9 @@ function renderExpenses(){
   else if(!XP.loaded) h=`<div class="card empty"><span class="spin" aria-hidden="true"></span><div style="margin-top:8px">${esc(tl("x_loading"))}</div></div>`;
   else {
     const c=XP.config, S=XP.summary||{totalCents:0,count:0,byCategory:[],byLocation:[]}, multi=c.locations.length>1;
+    h+=`<div class="card xask"><h3 class="lh">${esc(tl("x_ask_h"))}</h3><p class="xaskhint">${esc(tl("x_ask_p"))}</p>
+      <form class="xaskform" data-xaskf><input class="inp" data-xq value="${esc(XP.ask.q)}" maxlength="500" placeholder="${esc(tl("x_ask_ph"))}" aria-label="${esc(tl("x_ask_h"))}"><button class="btn blue" type="submit">${esc(XP.ask.busy?tl("x_asking"):tl("x_ask_go"))}</button></form>
+      <div class="xaskout">${xpAskHtml()}</div></div>`;
     if(XP.scanning) h+=`<div class="card xscanning"><span class="spin" aria-hidden="true"></span><h3>${esc(tl("x_scanning"))}</h3><p class="muted">${esc(tl("x_scanning_p"))}</p></div>`;
     else {
       if(XP.scanErr) h+=`<div class="card"><div class="err" role="alert" style="margin-top:0"><b>${esc(tl("x_scan_fail"))}</b><br>${esc(XP.scanErr)}</div><div class="btns"><button type="button" class="btn blue" data-xa="hand">${icon("plus")}${esc(tl("x_hand"))}</button><button type="button" class="btn" data-xa="scan">${icon("camera")}${esc(tl("x_scan_again"))}</button></div></div>`;
@@ -2341,7 +2389,7 @@ function renderExpenses(){
     if(!XP.items.length) h+=`<div class="card empty"><b style="display:block;color:var(--ink);margin-bottom:4px">${esc(tl("x_none"))}</b>${esc(tl("x_none_p"))}</div>`;
     else h+=[...XP.items].sort((a,b)=>String(b.date).localeCompare(String(a.date))||String(b.createdAt||"").localeCompare(String(a.createdAt||""))).map(x=>{
       const meta=[xpDate(x.date),multi?xpLocName(x.locationId):"",(x.items&&x.items.length)?(x.items.length===1?"1 "+tl("x_f_items").toLowerCase().replace(/s$/,""):x.items.length+" "+tl("x_f_items").toLowerCase()):""].filter(Boolean).join(" · ");
-      return `<button type="button" class="card xcard" data-xa="edit" data-id="${esc(x.id)}" aria-label="${esc(tl("x_edit")+": "+(x.store||xpCat(x.category))+", "+xpMoney(x.totalCents))}"><div class="xtop"><div class="xs">${esc(x.store||xpCat(x.category))}</div><div class="xa">${esc(xpMoney(x.totalCents))}</div></div><div class="xm">${esc(meta)}</div><span class="xcat">${esc(xpCat(x.category))}</span></button>`; }).join("");
+      return `<button type="button" class="card xcard" data-xa="edit" data-id="${esc(x.id)}" aria-label="${esc(tl("x_edit")+": "+(x.store||xpCat(x.category))+", "+xpMoney(x.totalCents))}"><div class="xtop"><div class="xs">${esc(x.store||xpCat(x.category))}</div><div class="xa">${esc(xpMoney(x.totalCents))}</div></div><div class="xm"><span>${esc(meta)}</span>${x.hasPhoto?`<img class="xrcpt" src="${esc(xpPhoto(x.id))}" alt="${esc(tl("x_receipt"))}" loading="lazy">`:""}</div><span class="xcat">${esc(xpCat(x.category))}</span></button>`; }).join("");
     const q="month="+encodeURIComponent(XP.month)+(XP.loc?"&locationId="+encodeURIComponent(XP.loc):"")+"&lang="+lang;
     h+=`<div class="card"><h3 class="lh">${esc(tl("x_export"))} · ${esc(xpMonthName(XP.month))}</h3><div class="xexp">
       <a class="btn" download href="${esc(API)}/expenses/export?format=ods&${q}">${icon("down")}${esc(tl("x_ods"))}</a><a class="btn" download href="${esc(API)}/expenses/export?format=csv&${q}">${icon("down")}${esc(tl("x_csv"))}</a></div>
@@ -2361,7 +2409,9 @@ async function xpScan(file){
     const blob=await downscaleBlob(file,1600,0.8);
     const image=await new Promise((res,rej)=>{ const fr=new FileReader(); fr.onload=()=>res(fr.result); fr.onerror=()=>rej(new Error("img")); fr.readAsDataURL(blob); });
     const d=await xapi("POST","/scan",{image});
-    XP.scanning=false; renderExpenses(); openXSheet({kind:"exp",scan:true,draft:xpFromDraft(d.draft||{})});
+    XP.scanning=false; renderExpenses();
+    const draft=xpFromDraft(d.draft||{}); draft.photo=image;   // the photo is kept with the expense
+    openXSheet({kind:"exp",scan:true,draft});
   }catch(e){ XP.scanning=false; XP.scanErr=e&&e.message==="img"?tl("x_img_err"):errMsg(e); renderExpenses(); }
 }
 function xpFromDraft(d){
@@ -2376,7 +2426,7 @@ function xpBlank(){
 }
 function xpFromExpense(x){
   return {id:x.id,store:x.store||"",date:x.date,locationId:x.locationId,category:x.category||"other",items:(x.items||[]).map(i=>({name:i.name,qty:i.qty,price:xpMoneyStr(i.priceCents)})),
-    tax:xpMoneyStr(x.taxCents),total:xpMoneyStr(x.totalCents),notes:x.notes||"",source:x.source||"manual",hint:""};
+    tax:xpMoneyStr(x.taxCents),total:xpMoneyStr(x.totalCents),notes:x.notes||"",source:x.source||"manual",hint:"",hasPhoto:!!x.hasPhoto};
 }
 
 // ----- sheet -----
@@ -2406,6 +2456,7 @@ const xpIn=(path,v,att,cls)=>`<input class="inp${cls?" "+cls:""}" data-xf="${pat
 function xpExpHtml(S){
   const D=S.draft, c=XP.config, needD=!D.date, needL=!D.locationId;
   let h=S.scan?`<p class="rnote" style="margin:0 0 14px;font-weight:500">${icon("check")}${esc(tl("x_review_p"))}</p>`:"";
+  if(D.hasPhoto&&D.id) h+=`<img class="xreceipt" src="${esc(xpPhoto(D.id))}" alt="${esc(tl("x_receipt"))}">`;
   h+=fld(tl("x_f_store"),xpIn("store",D.store,'maxlength="120" autocomplete="off"'));
   h+=`<div class="frow">${fld(tl("x_f_date"),xpIn("date",D.date,'type="date" required aria-required="true"',needD?"need":""),needD?tl("x_need"):"")}
     ${fld(tl("x_f_cat"),`<select class="inp" data-xf="category">${(c.categories||[]).map(k=>`<option value="${esc(k)}"${k===D.category?" selected":""}>${esc(xpCat(k))}</option>`).join("")}</select>`)}</div>`;
@@ -2434,7 +2485,7 @@ async function xpSave(){
   if(xpAmt(total)==null&&items.length){ const sum=items.reduce((a,i)=>a+(xpAmt(i.price)||0)*i.qty,0); if(sum>0) total=sum.toFixed(2); }
   if(!D.date) S.err=tl("x_e_date"); else if(!D.locationId) S.err=tl("x_e_loc"); else if(xpAmt(total)==null) S.err=tl("x_e_total"); else S.err="";
   if(S.err) return drawXSheet();
-  const body={date:D.date,store:D.store,locationId:D.locationId,category:D.category,items,total,tax:D.tax,notes:D.notes,source:D.source};
+  const body={date:D.date,store:D.store,locationId:D.locationId,category:D.category,items,total,tax:D.tax,notes:D.notes,source:D.source,photo:D.photo||""};
   S.saving=true; drawXSheet();
   try{
     if(D.id) await xapi("PATCH","/items/"+encodeURIComponent(D.id),body); else await xapi("POST","/items",body);
@@ -2472,6 +2523,9 @@ $("#xsGo").addEventListener("click",()=>{ const S=XP.sheet; if(!S||S.saving) ret
 for(const id of ["#xCam","#xUp"]) $(id).addEventListener("change",e=>{ const f=e.target.files&&e.target.files[0]; e.target.value=""; if(f) xpScan(f); });
 document.addEventListener("change",e=>{
   if(e.target.dataset&&e.target.dataset.xa==="month"){ XP.month=e.target.value; XP.loc=""; loadExpenses(true,true); }
+});
+document.addEventListener("submit",e=>{
+  if(e.target.dataset&&"xaskf" in e.target.dataset){ e.preventDefault(); const i=e.target.querySelector("[data-xq]"); xpAsk(i?i.value:""); }
 });
 document.addEventListener("click",e=>{
   const b=e.target.closest("[data-xa]"); if(!b||b.tagName==="SELECT") return;

@@ -5,7 +5,7 @@ import { limiter } from "./auth.mjs";
 import * as X from "./expenses.mjs";
 import { toCsv, toOds } from "./expenses-export.mjs";
 
-export const limits = { manage: limiter(600, 60e3), scan: limiter(30, 3600e3) };
+export const limits = { manage: limiter(600, 60e3), scan: limiter(30, 3600e3), ask: limiter(20, 3600e3) };
 const hit = (lim, ip) => { if (lim.blocked(ip)) return false; lim.fail(ip); return true; };
 const str = (v, n = 200) => (typeof v === "string" ? v.trim().slice(0, n) : "");
 const ES = {
@@ -17,6 +17,7 @@ const ES = {
   "Expenses are not turned on for this business.": "Los gastos no están activados para este negocio.", "Expense not found": "Gasto no encontrado", "Choose a business first.": "Elige un negocio primero.",
   "Sign in first": "Inicia sesión primero.", "Too many tries. Please wait a few minutes.": "Demasiados intentos. Espera unos minutos.", "Something went wrong. Please try again.": "Algo ha ido mal. Inténtalo de nuevo.",
   "Choose a valid month.": "Elige un mes válido.", "Request too large": "La foto es demasiado grande.",
+  "Write your question.": "Escribe tu pregunta.", "No receipt photo": "Este gasto no tiene foto del ticket",
 };
 const fail = (e, ctx, res, req) => {
   const msg = e.status ? e.message : "Something went wrong. Please try again.";
@@ -93,15 +94,48 @@ async function manage(req, res, url, rest, scopeClient, ctx) {
     return res.end(toOds(items, cfg, lang, month)), true;
   }
   if (rest[0] === "items" && rest.length === 1 && m === "POST") {
-    const x = X.addExpense(cfg, await ctx.readBody(req, 50e3));
+    const b = await ctx.readBody(req, 12e6);
+    const x = X.addExpense(cfg, b);
+    if (typeof b.photo === "string" && b.photo) x.photoFile = await X.saveReceipt(b.photo, x.id);  // the receipt is kept with the expense
     await save();
     return out(201, X.expenseView(x));
   }
   if (rest[0] === "items" && rest.length === 2) {
     const x = X.findExpense(rest[1]);
     if (!x || x.clientId !== c.id) return out(404, { error: "Expense not found" });
-    if (m === "PATCH" || m === "PUT") { X.editExpense(cfg, x, await ctx.readBody(req, 50e3)); await save(); return out(200, X.expenseView(x)); }
-    if (m === "DELETE") { X.removeExpense(x); await save(); return out(200, { ok: true }); }
+    if (m === "PATCH" || m === "PUT") {
+      const b = await ctx.readBody(req, 12e6);
+      X.editExpense(cfg, x, b);
+      if (typeof b.photo === "string" && b.photo) {
+        const old = X.receiptFile(x);
+        x.photoFile = await X.saveReceipt(b.photo, x.id);
+        if (old && old !== x.photoFile) await X.removeReceipt(old);
+      }
+      await save();
+      return out(200, X.expenseView(x));
+    }
+    if (m === "DELETE") { await X.removeReceipt(X.receiptFile(x)); X.removeExpense(x); await save(); return out(200, { ok: true }); }
+  }
+  // The receipt photo of one expense. Only the owner or the business that owns it.
+  if (rest[0] === "photo" && rest.length === 2 && m === "GET") {
+    const x = X.findExpense(rest[1]);
+    if (!x || x.clientId !== c.id) return out(404, { error: "Expense not found" });
+    const buf = await X.readReceipt(X.receiptFile(x));
+    if (!buf) return out(404, { error: "No receipt photo" });
+    const type = x.photoFile.endsWith(".png") ? "image/png" : x.photoFile.endsWith(".webp") ? "image/webp" : "image/jpeg";
+    res.writeHead(200, { "Content-Type": type, "Content-Length": buf.length, "Cache-Control": "private, max-age=3600" });
+    return res.end(buf), true;
+  }
+  // Ask a question about the expenses. The model reads the question; the numbers are computed here.
+  if (rest[0] === "ask" && rest.length === 1 && m === "POST") {
+    if (!hit(limits.ask, ip)) return out(429, { error: "Too many tries. Please wait a few minutes." });
+    const b = await ctx.readBody(req, 50e3);
+    const question = typeof b.question === "string" ? b.question.trim().slice(0, 500) : "";
+    if (!question) return out(400, { error: "Write your question." });
+    const lang = req.headers["x-lang"] === "en" ? "en" : "es";
+    const history = Array.isArray(b.history) ? b.history.slice(-4).map((h) => ({ q: String(h?.q ?? "").slice(0, 200), a: String(h?.a ?? "").slice(0, 300) })) : [];
+    const out2 = await X.askExpenses(c, cfg, question, history, lang);
+    return out(200, out2);
   }
   return false;
 }

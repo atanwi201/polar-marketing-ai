@@ -88,3 +88,63 @@ test("ODS is a valid OpenDocument zip: mimetype first and stored, sheet has the 
   assert.match(content, /office:value="62\.50"/);
   assert.ok(files["META-INF/manifest.xml"]);
 });
+
+// ---- asking about the expenses ----
+
+test("the answer is computed from the stored expenses, not guessed", () => {
+  const a = X.answerExpenses(db.clients[0], cfg, { months: ["2026-10"], category: "", location: "", store: "", keywords: [], from: "", to: "" }, "es");
+  assert.equal(a.totalCents, 6250);          // 12,50 + 20 + 30
+  assert.equal(a.count, 3);
+  assert.equal(a.matches.length, 3);
+  assert.match(a.answer, /62[,.]50/);        // the amount is in the text
+  assert.match(a.answer, /octubre/i);        // and the month it is about
+});
+test("a question about a product sums only the matching lines", () => {
+  const a = X.answerExpenses(db.clients[0], cfg, { months: [], category: "", location: "", store: "", keywords: ["milk"], from: "", to: "" }, "en");
+  assert.equal(a.count, 1);
+  assert.equal(a.totalCents, 125);            // the one milk line
+  assert.equal(a.byProduct, true);
+  assert.match(a.answer, /milk/i);
+  const none = X.answerExpenses(db.clients[0], cfg, { months: [], category: "", location: "", store: "", keywords: ["caviar"], from: "", to: "" }, "en");
+  assert.equal(none.totalCents, 0);
+  assert.equal(none.matches.length, 0);
+  assert.match(none.answer, /did not find caviar/i);
+});
+test("the filter narrows by category, location and shop", () => {
+  const byCat = X.answerExpenses(db.clients[0], cfg, { months: [], category: "rent", location: "", store: "", keywords: [], from: "", to: "" }, "en");
+  assert.equal(byCat.count, 1);
+  assert.equal(byCat.totalCents, 9900);
+  const byShop = X.answerExpenses(db.clients[0], cfg, { months: [], category: "", location: "", store: "spar", keywords: [], from: "", to: "" }, "en");
+  assert.equal(byShop.count, 1);
+  const byLoc = X.answerExpenses(db.clients[0], cfg, { months: [], category: "", location: "centro", store: "", keywords: [], from: "", to: "" }, "en");
+  assert.equal(byLoc.totalCents, 2000);
+});
+test("a typed price is a unit price and a scanned one is the line price; the sum is right either way", () => {
+  const typed = { totalCents: 250, items: [{ name: "Milk", qty: 2, priceCents: 125 }] };
+  assert.equal(X.lineValue(typed, typed.items[0]), 250);        // 2 x 1,25
+  const scanned = { totalCents: 250, items: [{ name: "Milk", qty: 2, priceCents: 250 }] };
+  assert.equal(X.lineValue(scanned, scanned.items[0]), 250);    // the line already is 2,50
+});
+test("without a model the question is still read: month, category and product", () => {
+  const months = ["2026-09", "2026-10"];
+  const f = X.fallbackFilter("¿Cuánto gasté en leche en octubre?", months, ["Spar"], ["Playa"], ["Leche entera", "Pan de molde"]);
+  assert.deepEqual(f.months, ["2026-10"]);       // "octubre" is read, in Spanish
+  assert.ok(f.keywords.includes("leche"));      // and only the words that are real products
+  assert.ok(!f.keywords.includes("cuanto"));
+  const g = X.fallbackFilter("how much did I spend on rent in september", months, [], [], []);
+  assert.deepEqual(g.months, ["2026-09"]);
+  assert.equal(g.category, "rent");
+  const h = X.fallbackFilter("¿cuánto gasté en alquiler?", months, [], [], []);
+  assert.equal(h.category, "rent");              // Spanish category words work too
+});
+test("the receipt photo is kept with the expense, outside the public media folder", async () => {
+  const png = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==";
+  const file = await X.saveReceipt(png, "abc123");
+  assert.match(file, /^exp-abc123\.(jpg|png)$/);
+  const buf = await X.readReceipt(file);
+  assert.ok(buf && buf.length > 0);
+  assert.equal(await X.readReceipt("../../etc/passwd"), null);
+  assert.equal(await X.readReceipt("not-a-receipt.jpg"), null);
+  // it must not be reachable through the public media folder
+  assert.ok(!X.RECEIPT_DIR.endsWith("media"));
+});

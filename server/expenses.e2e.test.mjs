@@ -13,7 +13,12 @@ const mock = http.createServer((req, res) => {
     res.writeHead(200, { "Content-Type": "application/json" });
     if (req.url.endsWith("/models")) return res.end(JSON.stringify({ data: [{ id: "google/gemini-2.0-flash-exp:free", pricing: { prompt: "0", completion: "0" }, architecture: { input_modalities: ["text", "image"], output_modalities: ["text"] }, context_length: 100000 }] }));
     lastChat = JSON.parse(s);
-    res.end(JSON.stringify({ model: "google/gemini-2.0-flash-exp:free", choices: [{ message: { content: 'Here:\n```json\n{"store":"Spar","location":"Centro","date":"2026-10-03","items":[{"name":"Pan","qty":1,"price":1.2}],"total":1.2,"tax":0.08,"currency":"EUR","category":"food"}\n```' } }] }));
+    // the receipt reader and the question reader ask for different shapes
+    const ask = /Answer with JSON only/.test(lastChat.messages.at(-1).content);
+    const content = ask
+      ? '{"months":["2026-10"],"category":"","branch":"","shop":"","products":[],"from":"","to":""}'
+      : 'Here:\n```json\n{"store":"Spar","location":"Centro","date":"2026-10-03","items":[{"name":"Pan","qty":1,"price":1.2}],"total":1.2,"tax":0.08,"currency":"EUR","category":"food"}\n```';
+    res.end(JSON.stringify({ model: "google/gemini-2.0-flash-exp:free", choices: [{ message: { content } }] }));
   });
 });
 await new Promise((r) => mock.listen(0, "127.0.0.1", r));
@@ -109,4 +114,35 @@ test("export: .ods and .csv downloads for client and owner", async () => {
   assert.match(csv.headers.get("content-type"), /text\/csv/);
   assert.match(csv.body.toString(), /Date,Store,Location/);
   assert.equal((await call("GET", `${O}/export?clientId=c1`)).status, 401);
+});
+test("the expenses are written to the file, not only kept in memory", async () => {
+  const { readFileSync } = await import("node:fs");
+  const r = await call("POST", `${P}/items`, { date: "2026-10-08", total: "7,50", locationId: st.locs[0].id, category: "food" });
+  assert.equal(r.status, 201);
+  const file = JSON.parse(readFileSync(join(process.env.DATA_DIR, "studio.json"), "utf8"));
+  assert.ok(file.expenses.items.some((x) => x.totalCents === 750), "the expense must be in studio.json");
+});
+test("the receipt photo is kept with the expense; only the owner or that business can read it", async () => {
+  const r = await call("POST", `${P}/items`, { date: "2026-10-09", total: 3, locationId: st.locs[0].id, photo: PNG });
+  assert.equal(r.status, 201);
+  assert.equal(r.body.hasPhoto, true);
+  const photo = await call("GET", `${P}/photo/${r.body.id}`);
+  assert.equal(photo.status, 200);
+  assert.match(photo.headers.get("content-type"), /^image\//);
+  assert.ok(photo.body.length > 0);
+  assert.equal((await call("GET", `/api/portal/portal-two/expenses/photo/${r.body.id}`)).status, 404);  // another business
+  assert.equal((await call("GET", `${O}/photo/${r.body.id}`)).status, 401);                            // not the owner
+  const own = await call("GET", `${O}/photo/${r.body.id}?clientId=c1`, undefined, ADMIN);
+  assert.equal(own.status, 200);
+});
+test("ask: the model reads the question, the server does the maths", async () => {
+  const r = await call("POST", `${P}/ask`, { question: "how much did I spend in october?" });
+  assert.equal(r.status, 200);
+  assert.ok(r.body.totalCents > 0);
+  assert.equal(r.body.filter.months[0], "2026-10");        // the model picked the month
+  assert.match(r.body.answer, /octubre|october/i);
+  assert.ok(r.body.matches.length > 0);
+  const en = await call("POST", `${P}/ask`, { question: "how much did I spend in october?" }, { "x-lang": "en" });
+  assert.match(en.body.answer, /october/i);
+  assert.equal((await call("POST", `${P}/ask`, { question: "  " })).status, 400);
 });
