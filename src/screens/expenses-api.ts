@@ -7,7 +7,8 @@ export interface EConfig { enabled: boolean; currency: Currency; locations: ELoc
 export interface EItem { name: string; qty: number; priceCents: number }
 export interface Expense {
   id: string; locationId: string; date: string; store: string; category: string; items: EItem[];
-  totalCents: number; taxCents: number | null; notes: string; source: string; hasPhoto?: boolean;
+  totalCents: number; taxCents: number | null; taxRate?: number; taxIncluded?: boolean;
+  notes: string; source: string; hasPhoto?: boolean;
   createdAt?: string; updatedAt?: string;
 }
 export interface ESummary {
@@ -16,8 +17,8 @@ export interface ESummary {
   byLocation: { locationId: string; name: string; totalCents: number }[];
 }
 export interface ExpensesData { config: EConfig; expenses: Expense[]; summary: ESummary; months: string[]; month?: string; locationId?: string }
-/** Body for POST/PATCH /items (amounts in major units). */
-export interface ExpenseInput { date: string; store: string; locationId: string; category: string; items?: { name: string; qty: number; price: number }[]; total: number | string; tax?: number | string | null; notes: string }
+/** Body for POST/PATCH /items (amounts in major units). The total is calculated by the server. */
+export interface ExpenseInput { date: string; store: string; locationId: string; category: string; items?: { name: string; qty: number; price: number }[]; total: number | string | null; tax?: number | string | null; taxRate?: number; notes: string }
 
 /** The answer to a question about the expenses. The model reads the question; the server does the maths. */
 export interface EAsk {

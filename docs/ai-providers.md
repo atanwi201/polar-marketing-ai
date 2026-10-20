@@ -112,13 +112,24 @@ There is deliberately **no template fallback for posts or websites**:
 - All renders share one queue (`enqueueRender`), so only one ffmpeg job runs at a time. `startVideoScheduler` resumes videos left in `generating`; `videoTick` (every 60 s) creates autopilot videos when the business is approved and under its weekly cap.
 - ffmpeg arguments are hardened (`hardenInputs`, protocol whitelist) before use.
 
-## 7. How tests fake providers
+## 7. Voice (`voice.mjs`)
+
+Speaking and listening, for the business dictating the items of an expense. Nothing here is required:
+without a key the browser can still do the listening itself (`SpeechRecognition`), and Puter can be used
+for the voice.
+
+- **Speech to text:** NagaAI first (`POST /v1/audio/transcriptions`, multipart, model `gpt-4o-transcribe`), then Puter (`puterTranscribe`, on the owner's own allowance). The recording only travels to those two.
+- **Text to speech:** NagaAI first (`POST /v1/audio/speech`, model `gpt-4o-mini-tts`), then Puter (`puterSpeech`).
+- **Keys:** `NAGAAI_API_KEY` (optional), `NAGAAI_BASE_URL` (default `https://api.naga.ac/v1`), `NAGAAI_TRANSCRIBE_MODEL`, `NAGAAI_TTS_MODEL`, `NAGAAI_TTS_VOICE`.
+- **What is said is never a fact:** the transcript is read by the model into items, and every amount is computed by the server from the stored expenses. A failed transcription returns no items and says so.
+
+## 8. How tests fake providers
 
 - **Unit level**: `complete()` and image functions take an injectable `fetchImpl`. `openrouter.test.mjs` uses a `mockFetch` that serves a canned `/models` list and queued chat responses (429, 401, SSE streams, JSON replies) and calls `resetCooling()` between cases; `runWithProvider` is used to test pinning and "no API key" errors. `images.test.mjs` passes `fetchImpl` to simulate Pollinations, Google and OpenRouter image APIs, `forceFree`, and fallback. `puter.test.mjs` tests `toBuffer` only (no real Puter calls). Stock and reference code take `fetchImpl`/`lookupImpl` too.
 - **End-to-end**: `e2e.test.mjs` starts a local mock HTTP server and spawns the real `index.mjs` with a clean environment (`test-harness.mjs` -> `blankedEnv()` sets every provider key variable to an empty string, because `loadEnv` never overrides variables that are already set, so a developer's `.env` cannot leak in). The test then sets `OPENROUTER_API_KEY` to a dummy, `OPENROUTER_BASE_URL`, `POLLINATIONS_BASE_URL`, `OPENVERSE_URL`, `AI_PROVIDERS=openrouter`, plus social API URLs, all pointing at the mock, with temp `DATA_DIR` and `SITES_DIR`. Setting a custom `POLLINATIONS_BASE_URL` also removes the 46 s image gap, which keeps tests fast.
 - Rule for new tests: never call a real provider; inject `fetchImpl` for in-process tests or add a path to the mock server for spawned ones, and blank all provider env vars.
 
-## 8. Open points
+## 9. Open points
 
 - `openrouter.mjs`'s top comment still says "Groq, Mistral and OpenRouter"; the real chain has more providers (see `DEFAULT_ORDER`). The startup log in `index.mjs` and the 503 error text of `/api/ai` also name only Groq/Mistral/OpenRouter keys.
 - The OpenRouter **image** engine reads only the env key, not a key saved in the dashboard, unlike text.

@@ -6,17 +6,24 @@ import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-// Mock OpenRouter (the vision chain): model list + chat completions returning receipt JSON.
+// Mock OpenRouter (the vision chain) and NagaAI (the voice): model list, chat completions and audio.
 let lastChat;
 const mock = http.createServer((req, res) => {
   let s = ""; req.on("data", (c) => (s += c)); req.on("end", () => {
+    // the voice: NagaAI transcribes the recording and speaks the confirmation
+    if (req.url.includes("/audio/transcriptions")) { res.writeHead(200, { "Content-Type": "application/json" }); return res.end(JSON.stringify({ text: "dos kilos de tomates a dos euros treinta y dos" })); }
+    if (req.url.includes("/audio/speech")) { res.writeHead(200, { "Content-Type": "audio/mpeg" }); return res.end(Buffer.from("ID3fake-mp3")); }
     res.writeHead(200, { "Content-Type": "application/json" });
     if (req.url.endsWith("/models")) return res.end(JSON.stringify({ data: [{ id: "google/gemini-2.0-flash-exp:free", pricing: { prompt: "0", completion: "0" }, architecture: { input_modalities: ["text", "image"], output_modalities: ["text"] }, context_length: 100000 }] }));
     lastChat = JSON.parse(s);
-    // the receipt reader and the question reader ask for different shapes
-    const ask = /Answer with JSON only/.test(lastChat.messages.at(-1).content);
+    const prompt = String(lastChat.messages.at(-1).content);
+    // the receipt reader, the question reader and the dictation ask for different shapes
+    const ask = /Answer with JSON only/.test(prompt) && /"months"/.test(prompt);
+    const dictate = /dictating/.test(prompt);
     const content = ask
       ? '{"months":["2026-10"],"category":"","branch":"","shop":"","products":[],"from":"","to":""}'
+      : dictate
+      ? '{"items":[{"name":"Tomates","qty":2,"price":2.32}],"store":"Spar","note":""}'
       : 'Here:\n```json\n{"store":"Spar","location":"Centro","date":"2026-10-03","items":[{"name":"Pan","qty":1,"price":1.2}],"total":1.2,"tax":0.08,"currency":"EUR","category":"food"}\n```';
     res.end(JSON.stringify({ model: "google/gemini-2.0-flash-exp:free", choices: [{ message: { content } }] }));
   });
@@ -25,6 +32,8 @@ await new Promise((r) => mock.listen(0, "127.0.0.1", r));
 process.env.OPENROUTER_BASE_URL = `http://127.0.0.1:${mock.address().port}`;
 process.env.OPENROUTER_API_KEY = "test-key";
 process.env.AI_PROVIDERS = "openrouter";
+process.env.NAGAAI_API_KEY = "test-naga";
+process.env.NAGAAI_BASE_URL = `http://127.0.0.1:${mock.address().port}/v1`;
 process.env.GROQ_API_KEY = ""; process.env.MISTRAL_API_KEY = "";
 process.env.DATA_DIR = mkdtempSync(join(tmpdir(), "exp-e2e-"));
 
@@ -145,4 +154,33 @@ test("ask: the model reads the question, the server does the maths", async () =>
   const en = await call("POST", `${P}/ask`, { question: "how much did I spend in october?" }, { "x-lang": "en" });
   assert.match(en.body.answer, /october/i);
   assert.equal((await call("POST", `${P}/ask`, { question: "  " })).status, 400);
+});
+test("dictate: the recording becomes items, the total is the items plus the IGIC", async () => {
+  const audio = "data:audio/webm;base64," + Buffer.from("fake-webm").toString("base64");
+  const r = await call("POST", `${P}/dictate`, { audio, items: [], taxRate: 0.07 });
+  assert.equal(r.status, 200);
+  assert.equal(r.body.provider, "nagaai");            // the audio was transcribed
+  assert.equal(r.body.items.length, 1);
+  assert.equal(r.body.items[0].name, "Tomates");
+  assert.equal(r.body.items[0].priceCents, 232);     // the price of one unit
+  assert.equal(r.body.netCents, 464);                // 2 x 2,32
+  assert.equal(r.body.taxCents, 32);                 // 7% IGIC
+  assert.equal(r.body.totalCents, 496);
+  assert.match(r.body.speech, /^data:audio\//);       // the confirmation to speak
+  const p = await call("POST", `${P}/parse`, { text: "dos kilos de tomates" });
+  assert.equal(p.body.items.length, 1);
+  assert.equal((await call("POST", `${P}/parse`, { text: "  " })).status, 400);
+});
+test("the total is the items plus the tax: the client never types it", async () => {
+  const r = await call("POST", `${P}/items`, { date: "2026-10-21", locationId: st.locs[0].id, items: [{ name: "Tomates", qty: 2, price: "2,32" }] });
+  assert.equal(r.status, 201);
+  assert.equal(r.body.taxCents, 32);
+  assert.equal(r.body.totalCents, 496);
+  assert.equal(r.body.taxRate, 0.07);
+  // a typed total is ignored when there are items
+  const t = await call("POST", `${P}/items`, { date: "2026-10-22", locationId: st.locs[0].id, items: [{ name: "Pan", qty: 1, price: "1,00" }], total: 999 });
+  assert.equal(t.body.totalCents, 107);
+  // with no items the business types the amount (a whole rent)
+  const rent = await call("POST", `${P}/items`, { date: "2026-10-23", locationId: st.locs[0].id, total: "800,00" });
+  assert.equal(rent.body.totalCents, 80000);
 });

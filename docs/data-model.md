@@ -101,7 +101,8 @@ Every card change calls `notify()`, which `index.mjs` wires to Apple and Google 
 ### 2.6 `expenses` (`expenses.mjs`)
 
 - `configs[]`: `clientId`, `enabled` (only the owner can switch it), `currency`, `locations[{id,name}]`.
-- `items[]`: `id`, `clientId`, `date`, `locationId`, `store`, `category`, `totalCents`, `taxCents`, `items[]`, `notes`, `source` (`manual/scan`), `photoFile` (the receipt photo, see `data/receipts/`), timestamps.
+- `items[]`: `id`, `clientId`, `date`, `locationId`, `store`, `category`, `totalCents`, `taxCents`, `taxRate` (0.07 IGIC / 0.21 IVA / 0), `taxIncluded`, `items[]`, `notes`, `source` (`manual/scan`), `photoFile` (the receipt photo, see `data/receipts/`), timestamps.
+- **The total is never typed when there are items**: it is the items plus the tax (`totalCents = items + taxCents`), the same way a Spanish receipt adds the IGIC to the base prices. With no items (a whole rent) the amount is typed. The tax is the rate on the net sum, or the exact amount a receipt prints.
 - The receipt photo of a scanned ticket is kept with the expense (in `data/receipts/`), so the business can show the original ticket again and the owner can check it. It is only reachable through the expenses API, never through the public media folder.
 
 ### 2.7 `menu` (`menu.mjs`)

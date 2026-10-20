@@ -137,5 +137,23 @@ async function manage(req, res, url, rest, scopeClient, ctx) {
     const out2 = await X.askExpenses(c, cfg, question, history, lang);
     return out(200, out2);
   }
+  // Dictate the items of an expense: the recording becomes text, the text becomes items.
+  if (rest[0] === "dictate" && rest.length === 1 && m === "POST") {
+    if (!hit(limits.ask, ip)) return out(429, { error: "Too many tries. Please wait a few minutes." });
+    const b = await ctx.readBody(req, 14e6);
+    const lang = req.headers["x-lang"] === "en" ? "en" : "es";
+    const said = await X.dictate(c, cfg, b, lang);
+    return out(200, said);
+  }
+  // The same, but the browser already has the text (it did the listening itself).
+  if (rest[0] === "parse" && rest.length === 1 && m === "POST") {
+    if (!hit(limits.ask, ip)) return out(429, { error: "Too many tries. Please wait a few minutes." });
+    const b = await ctx.readBody(req, 50e3);
+    const lang = req.headers["x-lang"] === "en" ? "en" : "es";
+    const text = typeof b.text === "string" ? b.text.trim().slice(0, 2000) : "";
+    if (!text) return out(400, { error: "Say something first." });
+    const parsed = await X.parseDictation(c, cfg, text, lang);
+    return out(200, parsed);
+  }
   return false;
 }

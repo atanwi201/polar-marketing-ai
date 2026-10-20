@@ -3,6 +3,7 @@
 // Dates are local calendar strings (YYYY-MM-DD). Money is kept in cents (integers).
 import { db, id, now } from "./store.mjs";
 import { complete, aiKey, extractJson, withClientAi } from "./openrouter.mjs";
+import { transcribe, speak } from "./voice.mjs";
 import { mkdir, writeFile, readFile, unlink, readdir } from "node:fs/promises";
 import { join } from "node:path";
 import { DATA_DIR } from "./store.mjs";
@@ -13,6 +14,9 @@ export class ExpenseError extends Error {
 
 export const CATEGORIES = ["food", "supplies", "utilities", "rent", "transport", "marketing", "equipment", "services", "other"];
 export const CURRENCIES = ["EUR", "USD", "GBP"];
+/** Tax rates the business can pick. The Canaries charge IGIC 7%; the rest of Spain IVA 21%. */
+export const TAX_RATES = [0.07, 0.21, 0];
+export const TAX_RATE_LABEL = { 0.07: "igic", 0.21: "iva", 0: "none" };
 const DATE = /^\d{4}-\d{2}-\d{2}$/, MONTH = /^\d{4}-(0[1-9]|1[0-2])$/;
 const str = (v, n = 200) => (typeof v === "string" ? v.trim().slice(0, n) : "");
 /** Lower case without accents, so "Pollo" and "pollo" match the same line. */
@@ -95,21 +99,32 @@ function cleanItems(list) {
   })).filter((it) => it.name);
 }
 
+/** The tax rate the business picked: IGIC 7% (Canarias), IVA 21% or none. */
+export const cleanRate = (v) => (TAX_RATES.includes(Number(v)) ? Number(v) : 0.07);
+
 /** Validate input into a stored expense (without id). `cfg` supplies the allowed locations. */
 export function cleanExpense(cfg, b = {}, prev = {}) {
   const date = b.date ?? prev.date;
   if (!validDate(date)) throw new ExpenseError("Choose a valid date.");
-  const totalCents = "total" in b ? toCents(b.total) : prev.totalCents;
-  if (totalCents === null || totalCents === undefined || totalCents < 0) throw new ExpenseError("Enter the total amount.");
   const locationId = b.locationId ?? prev.locationId ?? cfg.locations[0]?.id;
   if (!cfg.locations.some((l) => l.id === locationId)) throw new ExpenseError("Choose a valid location.");
   const category = b.category ?? prev.category ?? "other";
-  const taxCents = "tax" in b ? toCents(b.tax) : prev.taxCents ?? null;
+  const items = "items" in b ? cleanItems(b.items) : prev.items ?? [];
+  // The tax: a rate on the net sum, or the exact amount the business typed (what a receipt prints).
+  const taxRate = "taxRate" in b ? cleanRate(b.taxRate) : (prev.taxRate ?? 0.07);
+  const taxIncluded = "taxIncluded" in b ? b.taxIncluded === true : prev.taxIncluded === true;
+  const fixed = "tax" in b ? toCents(b.tax) : null;
+  const taxCents = taxOf(items, { taxCents: fixed, taxRate, taxIncluded });
+  // The total is always the items plus the tax. With no items there is nothing to add up, so the
+  // business types the amount (a whole rent, for example).
+  const typed = "total" in b ? toCents(b.total) : null;
+  const totalCents = items.length ? totalOf(items, taxCents) : (typed ?? prev.totalCents);
+  if (totalCents === null || totalCents === undefined || totalCents < 0) throw new ExpenseError("Enter the total amount.");
   return {
-    date, locationId, totalCents, taxCents,
+    date, locationId, totalCents, taxCents, taxRate, taxIncluded,
     store: "store" in b ? str(b.store, 120) : prev.store ?? "",
     category: CATEGORIES.includes(category) ? category : "other",
-    items: "items" in b ? cleanItems(b.items) : prev.items ?? [],
+    items,
     notes: "notes" in b ? str(b.notes, 500) : prev.notes ?? "",
     source: b.source === "scan" ? "scan" : prev.source ?? "manual",
     photoFile: receiptFile(prev),   // the photo file is set by the route, never by the client
@@ -128,8 +143,8 @@ export function editExpense(cfg, x, b) {
 export const findExpense = (eid) => edb().items.find((x) => x.id === eid);
 export function removeExpense(x) { const a = edb().items; a.splice(a.indexOf(x), 1); }
 
-export const expenseView = ({ id, locationId, date, store, category, items, totalCents, taxCents, notes, source, createdAt, updatedAt, photoFile }) =>
-  ({ id, locationId, date, store, category, items, totalCents, taxCents, notes, source, createdAt, updatedAt, hasPhoto: !!receiptFile({ photoFile }) });
+export const expenseView = ({ id, locationId, date, store, category, items, totalCents, taxCents, taxRate, taxIncluded, notes, source, createdAt, updatedAt, photoFile }) =>
+  ({ id, locationId, date, store, category, items, totalCents, taxCents, taxRate: taxRate ?? 0, taxIncluded: taxIncluded === true, notes, source, createdAt, updatedAt, hasPhoto: !!receiptFile({ photoFile }) });
 
 /** Expenses of a business, newest first, optionally limited to a month (YYYY-MM) and/or a location. */
 export function list(clientId, { month = "", locationId = "" } = {}) {
@@ -214,10 +229,18 @@ export async function removeReceipt(file) {
 
 // ---- receipt scanning ----
 const SCAN_PROMPT = `Read this shop receipt photo. Reply with ONLY one JSON object, no prose:
-{"store": string, "location": string (branch/address/city printed on the receipt, or ""), "date": "YYYY-MM-DD" or "", "items": [{"name": string, "qty": number, "price": number (line total)}], "total": number, "tax": number or null (IGIC / IVA / VAT amount if printed), "currency": "EUR"|"USD"|"GBP"|"", "category": one of ${CATEGORIES.join("|")}}
+{"store": string, "location": string (branch/address/city printed on the receipt, or ""), "date": "YYYY-MM-DD" or "", "items": [{"name": string, "qty": number, "price": number (the price of ONE unit, without tax)}], "total": number (what the customer paid, with tax), "tax": number or null (the IGIC / IVA / VAT amount if printed), "currency": "EUR"|"USD"|"GBP"|"", "category": one of ${CATEGORIES.join("|")}}
+The prices on a receipt are the base price without tax, and the tax is printed apart. If a line shows a line total, divide it by the quantity to get the price of one unit.
 Use dots for decimals and plain numbers (no currency symbols). If a value is not readable use "" or null. Never invent items.`;
 
 export const IMAGE_URL = /^data:image\/(jpeg|png|webp|heic|heif);base64,[A-Za-z0-9+/=]+$/;
+
+/** The rate a receipt seems to use, so the form can show "IGIC 7%" next to it. */
+export function rateOf(net, tax) {
+  if (!net || !tax) return 0;
+  const r = tax / net;
+  return TAX_RATES.find((x) => x && Math.abs(x - r) < 0.02) ?? 0;
+}
 
 /** Normalise the model's JSON into a draft the client reviews. Pure, for tests. */
 export function normalizeScan(raw, cfg) {
@@ -226,11 +249,26 @@ export function normalizeScan(raw, cfg) {
   const match = loc ? cfg.locations.find((l) => loc.includes(l.name.toLowerCase()) || l.name.toLowerCase().includes(loc)) : null;
   const items = cleanItems(Array.isArray(r.items) ? r.items : []);
   const total = toCents(r.total);
-  const sum = items.reduce((a, it) => a + it.priceCents, 0);
+  let taxCents = toCents(r.tax);
+  // The receipt's total is the truth. If the lines and the tax do not add up to it, the last line
+  // takes the difference (that is how a receipt rounds); if that is impossible, the tax takes it.
+  if (items.length && total != null) {
+    const net = itemsTotal(items);
+    const tax = taxCents ?? 0;
+    const diff = total - net - tax;
+    if (diff !== 0) {
+      const last = items[items.length - 1];
+      const per = Math.max(1, last.qty || 1);
+      const next = last.priceCents + Math.round(diff / per);
+      if (next >= 0) last.priceCents = next;
+      else taxCents = total - net;
+    }
+  }
+  const net = itemsTotal(items);
   return {
     store: str(r.store, 120), receiptLocation: str(r.location, 120), date: validDate(r.date) ? r.date : "",
     locationId: match?.id ?? "", category: CATEGORIES.includes(r.category) ? r.category : "other",
-    items, totalCents: total ?? (sum || null), taxCents: toCents(r.tax),
+    items, totalCents: total ?? (items.length ? net + (taxCents ?? 0) : null), taxCents, taxRate: rateOf(net, taxCents),
     currency: CURRENCIES.includes(r.currency) ? r.currency : "",
   };
 }
@@ -372,6 +410,19 @@ export function lineValue(x, item) {
   return item.priceCents;
 }
 
+/** The net sum of the items: what the business paid before the tax. */
+export const itemsTotal = (items) => (items ?? []).reduce((n, it) => n + (Number(it.priceCents) || 0) * (Number(it.qty) || 1), 0);
+
+/** The tax of an expense: a rate on the net sum, or a fixed amount the business typed. */
+export function taxOf(items, { taxCents = null, taxRate = 0.07, taxIncluded = false } = {}) {
+  if (taxIncluded) return 0;
+  if (taxCents != null) return taxCents;
+  return Math.round(itemsTotal(items) * (Number(taxRate) || 0));
+}
+
+/** The total of an expense: the items plus the tax. Never typed by hand when there are items. */
+export const totalOf = (items, tax) => itemsTotal(items) + (tax ?? 0);
+
 /** The exact answer: the numbers come from the stored expenses, never from the model. */
 export function answerExpenses(client, cfg, filter, lang = "es") {
   const en = lang === "en";
@@ -431,5 +482,74 @@ export async function askExpenses(client, cfg, question, history = [], lang = "e
   const filter = await interpretFilter(client, cfg, question, history, lang);
   const out = answerExpenses(client, cfg, filter, lang);
   return { ...out, filter };
+}
+
+// ---- dictation: what the business says becomes items ----
+const DICTATE_PROMPT = `The owner of a shop is dictating what they bought. Turn it into a list of items.
+Answer with JSON only: {"items":[{"name": string, "qty": number, "price": number (the price of one unit, without tax)}], "store": string or "", "note": string or ""}
+Rules:
+- one item per thing they bought, with a short plain name
+- qty is how many; "un kilo", "el kilo" or "media docena" is qty 1
+- price is what one unit costs, without tax; use a dot for the decimals
+- if they say a line total ("tres kilos de tomates a seis euros"), divide it by the quantity
+- if no price is said, use 0
+- never invent an item that was not said
+`;
+
+/** Read what the business dictated into items. The model only reads the words; the maths is ours. */
+export async function parseDictation(client, cfg, text, lang = "es") {
+  const said = String(text ?? "").trim().slice(0, 2000);
+  if (!said) return { items: [], text: said, store: "", note: "" };
+  if (!aiKey()) return { items: [], text: said, store: "", note: "", model: "no AI key" };
+  try {
+    const out = await complete({ key: aiKey(), prompt: `${DICTATE_PROMPT}\nThey said:\n"""${said}"""`, json: true, tier: "quick", maxTokens: 900 });
+    const j = out.json ?? {};
+    return { items: cleanItems(Array.isArray(j.items) ? j.items : []), text: said, store: str(j.store, 120), note: str(j.note, 200), model: out.model };
+  } catch (e) {
+    console.warn("Could not read the dictated items:", e.message);
+    return { items: [], text: said, store: "", note: "" };
+  }
+}
+
+/** What the business hears after dictating: the items added and the new total. */
+export function dictationSummary(items, taxRate, lang = "es", currency = "EUR") {
+  const money = (cents) => { try { return new Intl.NumberFormat(lang === "en" ? "en-IE" : "es-ES", { style: "currency", currency }).format(cents / 100); } catch { return (cents / 100).toFixed(2) + " " + currency; } };
+  const net = itemsTotal(items);
+  const tax = taxOf(items, { taxRate });
+  const total = totalOf(items, tax);
+  const names = items.map((i) => `${i.qty > 1 ? i.qty + " x " : ""}${i.name}`).join(", ");
+  const text = lang === "en"
+    ? `Added: ${names}. The total is ${money(total)}.`
+    : `Añadido: ${names}. El total es ${money(total)}.`;
+  return { text, totalCents: total, netCents: net, taxCents: tax, currency };
+}
+
+/** Dictate: the recording becomes text, the text becomes items, and the business hears the new total.
+ *  `body.audio` is a data URL of the recording; `body.text` is used when the browser listened itself. */
+export async function dictate(client, cfg, body = {}, lang = "es") {
+  const current = cleanItems(Array.isArray(body.items) ? body.items : []);
+  const taxRate = cleanRate(body.taxRate);
+  let text = typeof body.text === "string" ? body.text.trim().slice(0, 2000) : "";
+  let provider = null;
+  const audio = typeof body.audio === "string" ? body.audio : "";
+  if (audio) {
+    const m = /^data:audio\/([a-z0-9.+-]+);base64,(.+)$/i.exec(audio);
+    if (m) {
+      const heard = await transcribe(Buffer.from(m[2], "base64"), `audio/${m[1]}`, { lang });
+      if (heard) { text = heard.text; provider = heard.provider; }
+    }
+  }
+  if (!text) return { items: [], text: "", speech: null, error: "no_speech" };
+  const parsed = await parseDictation(client, cfg, text, lang);
+  const items = [...current, ...parsed.items];
+  const summary = dictationSummary(items, taxRate, lang, cfg.currency || "EUR");
+  let speech = null;
+  const said = await speak(summary.text, lang);
+  if (said?.buffer?.length) speech = `data:audio/${said.ext};base64,${said.buffer.toString("base64")}`;
+  return {
+    items: parsed.items, text, provider, store: parsed.store, note: parsed.note,
+    netCents: summary.netCents, taxCents: summary.taxCents, totalCents: summary.totalCents,
+    summary: summary.text, speech, model: parsed.model,
+  };
 }
 

@@ -263,7 +263,7 @@ function ExpenseForm({ clientId, config, expense, defaultLoc, onClose, onSaved }
 
   const save = async () => {
     setSaving(true); setErr("");
-    const body: ExpenseInput = { date, store, locationId, category, total, tax: tax === "" ? null : tax, notes };
+    const body: ExpenseInput = { date, store, locationId, category, total, tax: tax === "" ? null : tax, taxRate: expense?.taxRate ?? 0.07, notes };
     const base = `?clientId=${encodeURIComponent(clientId)}`;
     const r = expense ? await ecall<Expense>("PATCH", `/items/${expense.id}${base}`, body) : await ecall<Expense>("POST", `/items${base}`, body);
     setSaving(false);
@@ -283,6 +283,7 @@ function ExpenseForm({ clientId, config, expense, defaultLoc, onClose, onSaved }
         <Field label="Location"><Select id="ex-loc" value={locationId} onChange={setLocationId} options={config.locations.map((l) => ({ value: l.id, label: l.name }))} /></Field>
       </div>
       <Field label="Notes"><TextArea id="ex-notes" rows={2} value={notes} onChange={(v) => setNotes(v.slice(0, 500))} /></Field>
+      <span className="small faint">Type what the business paid. In the client&apos;s portal the total is worked out from the items plus the tax (IGIC 7% in the Canaries).</span>
       {err && <p className="small" role="alert" style={{ color: "var(--bad, #c0392b)" }}>{err}</p>}
       <div className="row wrap">
         <Button kind="primary" busy={saving} onClick={() => void save()}>{expense ? "Save changes" : "Add expense"}</Button>

@@ -489,6 +489,9 @@ input[type=color].inp{padding:4px;height:46px;cursor:pointer}
 .xaskrow svg{width:16px;height:16px;flex:none;color:var(--muted)}
 .xrcpt{width:30px;height:30px;border-radius:7px;object-fit:cover;flex:none;background:var(--fill-2);border:0}
 .xreceipt{display:block;width:100%;max-height:320px;object-fit:contain;background:var(--fill);border-radius:14px;margin:0 0 14px}
+.xptax{margin:0 0 14px;font-size:13px;color:var(--muted)}
+.xptax b{color:var(--ink)}
+output.xp-total{font-weight:700;display:flex;align-items:center;background:var(--fill)}
 .xcard .xm{display:flex;align-items:center;gap:8px;justify-content:space-between}
 .xcard .xm>span{min-width:0;overflow-wrap:anywhere}
 .xit{display:grid;grid-template-columns:minmax(0,1fr) 56px 84px 44px;gap:6px;align-items:center;margin:0 0 8px}
@@ -547,6 +550,7 @@ input[type=color].inp{padding:4px;height:46px;cursor:pointer}
 </head>
 <body class="cr-root">
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-mic" viewBox="0 0 24 24"><path d="M12 19v3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M19 10v2a7 7 0 0 1-14 0v-2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><rect x="9" y="2" width="6" height="13" rx="3" fill="none" stroke="currentColor" stroke-width="2"/></symbol>
   <symbol id="i-receipt" viewBox="0 0 24 24"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2zM9 8h6M9 12h6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
   <symbol id="i-chev-l" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
   <symbol id="i-chev-r" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
@@ -2281,7 +2285,8 @@ Object.assign(T.es,{
   x_export:"Descargar este mes", x_ods:"Hoja (.ods)", x_csv:"CSV (.csv)",
   x_new_t:"Nuevo gasto", x_edit_t:"Editar gasto", x_review_t:"Revisa el ticket", x_review_p:"Hemos leído el ticket. Revisa todo antes de guardar: puedes corregir cualquier dato.",
   x_f_store:"Comercio", x_f_date:"Fecha", x_f_loc:"Local", x_f_cat:"Categoría", x_f_items:"Artículos", x_f_name:"Artículo", x_f_qty:"Cant.", x_f_price:"Precio", x_f_add:"Añadir artículo", x_f_rm:"Quitar artículo",
-  x_f_tax:"Impuestos (IVA)", x_f_total:"Total", x_f_notes:"Notas (opcional)", x_choose:"Elige…", x_need:"Obligatorio", x_hint_loc:"El ticket indica: {v}",
+  x_f_tax:"Impuestos (IVA)", x_f_total:"Total (con impuesto)", x_tax_igic:"IGIC 7% (Canarias)", x_tax_iva:"IVA 21%", x_tax_none:"Sin impuesto", x_tax_note:"Impuesto:", x_f_price_ea:"Precio (sin impuesto)", x_total_note:"El total se calcula con los artículos y el impuesto.",
+  x_dictate:"Dictar", x_dictating:"Escuchando…", x_dictate_ph:"Toca el micro y dicta lo que compraste. Se añadirá artículo a artículo.", x_dictate_none:"No he entendido nada. Inténtalo otra vez.", x_dictate_busy:"Entendiendo…", x_f_notes:"Notas (opcional)", x_choose:"Elige…", x_need:"Obligatorio", x_hint_loc:"El ticket indica: {v}",
   x_e_date:"Elige la fecha del gasto.", x_e_loc:"Elige a qué local pertenece.", x_e_total:"Escribe el importe total.",
   x_save:"Guardar gasto", x_saved:"Gasto guardado", x_del:"Eliminar este gasto", x_del_c:"¿Eliminar este gasto? No se puede deshacer.", x_deleted:"Gasto eliminado", x_edit:"Editar",
   x_cat_food:"Comida y bebida", x_cat_supplies:"Suministros", x_cat_utilities:"Luz, agua y gas", x_cat_rent:"Alquiler", x_cat_transport:"Transporte", x_cat_marketing:"Marketing", x_cat_equipment:"Equipamiento", x_cat_services:"Servicios", x_cat_other:"Otros",
@@ -2300,7 +2305,9 @@ Object.assign(T.en,{
   x_export:"Download this month", x_ods:"Sheet (.ods)", x_csv:"CSV (.csv)",
   x_new_t:"New expense", x_edit_t:"Edit expense", x_review_t:"Check the receipt", x_review_p:"We read the receipt. Check everything before saving: you can correct any detail.",
   x_f_store:"Store", x_f_date:"Date", x_f_loc:"Location", x_f_cat:"Category", x_f_items:"Items", x_f_name:"Item", x_f_qty:"Qty", x_f_price:"Price", x_f_add:"Add item", x_f_rm:"Remove item",
-  x_f_tax:"Tax (VAT)", x_f_total:"Total", x_f_notes:"Notes (optional)", x_choose:"Choose…", x_need:"Required", x_hint_loc:"The receipt says: {v}",
+  x_f_tax:"Tax (VAT)", x_f_total:"Total (with tax)", x_tax_igic:"IGIC 7% (Canarias)", x_tax_iva:"IVA 21%", x_tax_none:"No tax", x_tax_note:"Tax:", x_f_price_ea:"Price (without tax)", x_total_note:"The total is calculated from the items and the tax.",
+  x_dictate:"Dictate", x_dictating:"Listening…", x_dictate_ph:"Tap the microphone and say what you bought. It is added item by item.", x_dictate_none:"I did not catch that. Try again.", x_dictate_busy:"Listening…",
+  x_f_notes:"Notes (optional)", x_choose:"Choose…", x_need:"Required", x_hint_loc:"The receipt says: {v}",
   x_e_date:"Choose the date of the expense.", x_e_loc:"Choose which location it belongs to.", x_e_total:"Enter the total amount.",
   x_save:"Save expense", x_saved:"Expense saved", x_del:"Delete this expense", x_del_c:"Delete this expense? This cannot be undone.", x_deleted:"Expense deleted", x_edit:"Edit",
   x_cat_food:"Food and drink", x_cat_supplies:"Supplies", x_cat_utilities:"Utilities", x_cat_rent:"Rent", x_cat_transport:"Transport", x_cat_marketing:"Marketing", x_cat_equipment:"Equipment", x_cat_services:"Services", x_cat_other:"Other",
@@ -2324,6 +2331,18 @@ const xpCat=c=>tl("x_cat_"+c)===("x_cat_"+c)?c:tl("x_cat_"+c);
 const xpLocName=id=>{ const l=((XP.config&&XP.config.locations)||[]).find(x=>x.id===id); return l?l.name:""; };
 function xpAmt(s){ if(s==null||s==="") return null; if(typeof s==="number") return s; let v=String(s).replace(/[^\d.,-]/g,""); const c=v.lastIndexOf(","), d=v.lastIndexOf("."); v=c>d?v.replace(/\./g,"").replace(",","."):v.replace(/,/g,""); const n=Number(v); return isFinite(n)?n:null; }
 const xpMoneyStr=c=>c==null?"":(c/100).toFixed(2);
+// The total is always the items plus the tax: the business never types it.
+const xpCur=()=>((XP.config&&XP.config.currency)||"EUR");
+const xpNet=D=>Math.round((D.items||[]).reduce((a,i)=>a+(xpAmt(i.price)||0)*(Number(i.qty)||1),0)*100);   // in cents
+const xpTax=D=>{ const t=xpAmt(D.tax); if(t!=null) return Math.round(t*100); return Math.round(xpNet(D)*Number(D.taxRate||0)); };
+const xpTotal=D=>Math.round(xpNet(D)+xpTax(D));
+// The total and the tax update while the business types, without rebuilding the form (that would
+// move the caret).
+function xpRefreshTotal(){
+  const S=XP.sheet; if(!S||S.kind!=="exp") return;
+  const out=document.querySelector(".xp-total"); if(out) out.textContent=xpMoneyStr(xpTotal(S.draft));
+  const note=document.querySelector(".xptax b"); if(note) note.textContent=xpMoneyStr(xpTax(S.draft));
+}
 // The receipt photo of an expense, served by the expenses API (never a public file name).
 const xpPhoto=id=>API+"/expenses/photo/"+encodeURIComponent(id);
 // Ask about the expenses. The model reads the question; the server does the maths.
@@ -2401,6 +2420,50 @@ function renderExpenses(){
 function staticXp(){ const a=$("#xH"),b=$("#nX"); if(a) a.textContent=tl("x_h"); if(b) b.textContent=tl("nav_x"); $("#xsX").textContent=tl("l_close"); }
 function xpLang(){ staticXp(); $("#xp").dataset.sig=""; renderExpenses(); if(XP.sheet) drawXSheet(); }
 
+// ----- dictation: say what you bought, the items are added one by one -----
+const XD={busy:false,recording:false,rec:null,stream:null,chunks:[],timer:0};
+const xpBlobToDataUrl=async b=>{ const u=new Uint8Array(await b.arrayBuffer()); let s=""; for(let i=0;i<u.length;i+=0x8000) s+=String.fromCharCode.apply(null,u.subarray(i,i+0x8000)); return "data:"+(b.type||"audio/webm")+";base64,"+btoa(s); };
+async function xpDictate(){
+  if(XD.busy||XD.recording) return;
+  const S=XP.sheet; if(!S||S.kind!=="exp") return;
+  // the browser can listen by itself: then only the text has to travel
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(SR){
+    XD.busy=true; drawXSheet();
+    try{
+      const rec=new SR(); rec.lang=lang==="en"?"en-GB":"es-ES"; rec.interimResults=false; rec.continuous=false;
+      const said=await new Promise((ok,no)=>{ let out=""; rec.onresult=e=>{ for(let i=e.resultIndex;i<e.results.length;i++) out+=e.results[i][0].transcript; ok(out); }; rec.onerror=()=>no(new Error("speech")); rec.start(); setTimeout(()=>no(new Error("speech")),20000); });
+      XD.busy=false; drawXSheet();
+      if(said&&said.trim()) await xpApplyDictation({text:said.trim()});
+    }catch(e){ XD.busy=false; drawXSheet(); toast(tl("x_dictate_none")); }
+    return;
+  }
+  if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){ toast(tl("x_dictate_none")); return; }
+  try{
+    XD.stream=await navigator.mediaDevices.getUserMedia({audio:true});
+    XD.chunks=[]; XD.recording=true; drawXSheet();
+    const mr=new MediaRecorder(XD.stream); XD.rec=mr;
+    mr.ondataavailable=e=>{ if(e.data&&e.data.size) XD.chunks.push(e.data); };
+    mr.onstop=async()=>{ XD.recording=false; XD.busy=true; drawXSheet();
+      const blob=new Blob(XD.chunks,{type:mr.mimeType||"audio/webm"});
+      try{ await xpApplyDictation({audio:await xpBlobToDataUrl(blob)}); }
+      catch(e){ toast(errMsg(e)); }
+      XD.busy=false; drawXSheet(); };
+    mr.start();
+    XD.timer=setTimeout(()=>{ if(XD.rec&&XD.rec.state==="recording") XD.rec.stop(); },15000);
+  }catch(e){ XD.busy=false; XD.recording=false; drawXSheet(); toast(tl("x_dictate_none")); }
+}
+async function xpApplyDictation(payload){
+  const S=XP.sheet, D=S.draft; if(!D) return;
+  const d=await xapi("POST","/dictate",Object.assign({ items:D.items, taxRate:Number(D.taxRate)||0.07 },payload));
+  if(d&&d.items&&d.items.length){
+    D.items=[...D.items,...d.items.map(i=>({name:i.name,qty:i.qty,price:xpMoneyStr(i.priceCents)}))];
+    if(!D.store&&d.store) D.store=d.store;
+  }
+  if(d&&d.speech){ try{ const a=new Audio(d.speech); a.play().catch(()=>{}); }catch(_){} }
+  $("#xsBody").dataset.sig=""; drawXSheet();
+  if(!d||!d.items||!d.items.length) toast(tl("x_dictate_none"));
+}
 // ----- scan -----
 async function xpScan(file){
   if(!file||XP.scanning) return;
@@ -2418,15 +2481,15 @@ function xpFromDraft(d){
   const c=XP.config, cats=c.categories||[], locs=c.locations;
   return {id:"",store:d.store||"",date:/^\d{4}-\d{2}-\d{2}$/.test(d.date||"")?d.date:"",locationId:locs.some(l=>l.id===d.locationId)?d.locationId:(locs.length===1?locs[0].id:""),
     category:cats.includes(d.category)?d.category:"other",
-    items:(d.items||[]).map(i=>({name:i.name||"",qty:i.qty||1,price:xpMoneyStr(i.priceCents)})),tax:xpMoneyStr(d.taxCents),total:xpMoneyStr(d.totalCents),notes:"",source:"scan",hint:d.receiptLocation||""};
+    items:(d.items||[]).map(i=>({name:i.name||"",qty:i.qty||1,price:xpMoneyStr(i.priceCents)})),tax:d.taxCents!=null?xpMoneyStr(d.taxCents):"",taxRate:d.taxRate!=null?d.taxRate:0.07,total:"",notes:"",source:"scan",hint:d.receiptLocation||""};
 }
 function xpBlank(){
   const c=XP.config, locs=c.locations, mon=XP.month===xpLocalMonth();
-  return {id:"",store:"",date:mon?xpLocalDay():XP.month+"-01",locationId:XP.loc||(locs.length===1?locs[0].id:""),category:"other",items:[],tax:"",total:"",notes:"",source:"manual",hint:""};
+  return {id:"",store:"",date:mon?xpLocalDay():XP.month+"-01",locationId:XP.loc||(locs.length===1?locs[0].id:""),category:"other",items:[],tax:"",taxRate:0.07,total:"",notes:"",source:"manual",hint:""};
 }
 function xpFromExpense(x){
   return {id:x.id,store:x.store||"",date:x.date,locationId:x.locationId,category:x.category||"other",items:(x.items||[]).map(i=>({name:i.name,qty:i.qty,price:xpMoneyStr(i.priceCents)})),
-    tax:xpMoneyStr(x.taxCents),total:xpMoneyStr(x.totalCents),notes:x.notes||"",source:x.source||"manual",hint:"",hasPhoto:!!x.hasPhoto};
+    tax:x.taxCents!=null?xpMoneyStr(x.taxCents):"",taxRate:x.taxRate!=null?x.taxRate:0.07,total:xpMoneyStr(x.totalCents),notes:x.notes||"",source:x.source||"manual",hint:"",hasPhoto:!!x.hasPhoto};
 }
 
 // ----- sheet -----
@@ -2465,8 +2528,12 @@ function xpExpHtml(S){
   h+=`<h3 class="lh2">${esc(tl("x_f_items"))}</h3>`;
   if(D.items.length) h+=`<div class="xit xh" aria-hidden="true"><span>${esc(tl("x_f_name"))}</span><span>${esc(tl("x_f_qty"))}</span><span>${esc(tl("x_f_price"))}</span><span></span></div>`;
   h+=D.items.map((it,i)=>`<div class="xit">${xpIn(`items.${i}.name`,it.name,`maxlength="120" aria-label="${esc(tl("x_f_name"))} ${i+1}"`)}${xpIn(`items.${i}.qty`,it.qty,`type="number" inputmode="decimal" min="0" step="any" aria-label="${esc(tl("x_f_qty"))} ${i+1}"`)}${xpIn(`items.${i}.price`,it.price,`inputmode="decimal" aria-label="${esc(tl("x_f_price"))} ${i+1}"`)}<button type="button" class="bk-x" data-xa="delitem" data-i="${i}" aria-label="${esc(tl("x_f_rm"))} ${i+1}">${icon("x")}</button></div>`).join("");
-  h+=`<button type="button" class="btn" data-xa="additem" style="margin:2px 0 14px">${icon("plus")}${esc(tl("x_f_add"))}</button>`;
-  h+=`<div class="frow">${fld(tl("x_f_tax"),xpIn("tax",D.tax,'inputmode="decimal"'))}${fld(tl("x_f_total"),xpIn("total",D.total,'inputmode="decimal" required aria-required="true"'))}</div>`;
+  h+=`<button type="button" class="btn" data-xa="additem" style="margin:2px 0 8px">${icon("plus")}${esc(tl("x_f_add"))}</button>
+    <button type="button" class="btn${XD.recording?" blue":""}" data-xa="dictate" style="margin:0 0 14px">${icon("mic")}${esc(XD.recording?tl("x_dictating"):XD.busy?tl("x_dictate_busy"):tl("x_dictate"))}</button>`;
+  const hasItems=D.items.length>0;
+  h+=`<div class="frow">${fld(tl("x_f_tax"),`<select class="inp" data-xf="taxRate">${[[0.07,tl("x_tax_igic")],[0.21,tl("x_tax_iva")],[0,tl("x_tax_none")]].map(([v,l])=>`<option value="${v}"${Number(D.taxRate)===v?" selected":""}>${esc(l)}</option>`).join("")}</select>`)}
+    ${fld(tl("x_f_total"),hasItems?`<output class="inp xp-total" aria-live="polite">${esc(xpMoneyStr(xpTotal(D)))}</output>`:xpIn("total",D.total||"",'inputmode="decimal" required aria-required="true"'))}</div>`;
+  h+=`<p class="xptax">${esc(tl("x_tax_note"))} <b>${esc(xpMoneyStr(xpTax(D)))}</b> ${esc(xpCur())} · ${esc(tl("x_total_note"))}</p>`;
   h+=fld(tl("x_f_notes"),`<textarea class="inp" data-xf="notes" maxlength="500">${esc(D.notes)}</textarea>`);
   if(D.id) h+=`<button type="button" class="linkdanger" data-xa="delexp">${esc(tl("x_del"))}</button>`;
   return h;
@@ -2481,11 +2548,12 @@ function openXExp(draft,scan){ openXSheet({kind:"exp",scan:!!scan,draft}); }
 async function xpSave(){
   const S=XP.sheet, D=S.draft;
   let items=D.items.map(i=>({name:String(i.name||"").trim(),qty:xpAmt(i.qty)||1,price:i.price})).filter(i=>i.name);
-  let total=D.total;
-  if(xpAmt(total)==null&&items.length){ const sum=items.reduce((a,i)=>a+(xpAmt(i.price)||0)*i.qty,0); if(sum>0) total=sum.toFixed(2); }
-  if(!D.date) S.err=tl("x_e_date"); else if(!D.locationId) S.err=tl("x_e_loc"); else if(xpAmt(total)==null) S.err=tl("x_e_total"); else S.err="";
+  if(!D.date) S.err=tl("x_e_date"); else if(!D.locationId) S.err=tl("x_e_loc"); else if(!items.length&&xpAmt(D.total)==null) S.err=tl("x_e_total"); else S.err="";
   if(S.err) return drawXSheet();
-  const body={date:D.date,store:D.store,locationId:D.locationId,category:D.category,items,total,tax:D.tax,notes:D.notes,source:D.source,photo:D.photo||""};
+  // the total is not sent: the server adds the items up and adds the tax
+  const body={date:D.date,store:D.store,locationId:D.locationId,category:D.category,items,
+    taxRate:Number(D.taxRate)||0, tax:D.tax===""||D.tax==null?null:D.tax,
+    total:items.length?null:(D.total||null), notes:D.notes,source:D.source,photo:D.photo||""};
   S.saving=true; drawXSheet();
   try{
     if(D.id) await xapi("PATCH","/items/"+encodeURIComponent(D.id),body); else await xapi("POST","/items",body);
@@ -2512,7 +2580,10 @@ async function xpSaveLocs(){
 }
 $("#xsBody").addEventListener("input",e=>{
   const f=e.target.dataset&&e.target.dataset.xf, S=XP.sheet; if(!f||!S) return;
-  setP(S.draft,f,e.target.value); $("#xsBody").dataset.sig=lang+"x"+Math.random();
+  setP(S.draft,f,e.target.value);
+  if(f==="taxRate"){ S.draft.tax=""; S.draft.total=""; }   // a new rate: the tax is calculated again
+  xpRefreshTotal();
+  $("#xsBody").dataset.sig=lang+"x"+Math.random();
   if(e.target.classList.contains("need")&&e.target.value){ e.target.classList.remove("need"); const sm=e.target.closest(".fld")&&e.target.closest(".fld").querySelector("small.need"); if(sm) sm.remove(); }
 });
 $("#xsBody").addEventListener("change",e=>{ if(e.target.tagName==="SELECT") e.target.dispatchEvent(new Event("input",{bubbles:true})); });
@@ -2541,6 +2612,7 @@ document.addEventListener("click",e=>{
   if(!S) return;
   const D=S.draft;
   if(a==="additem"){ D.items.push({name:"",qty:1,price:""}); redraw(); const ins=$$("#xsBody .xit:last-of-type input"); if(ins[0]) ins[0].focus(); return; }
+  if(a==="dictate") return xpDictate();
   if(a==="delitem"){ D.items.splice(+b.dataset.i,1); return redraw(); }
   if(a==="delexp") return xpDelete();
   if(a==="addloc"){ D.locations.push({id:"",name:""}); redraw(); const ins=$$("#xsBody .xloc input"); if(ins.length) ins[ins.length-1].focus(); return; }
