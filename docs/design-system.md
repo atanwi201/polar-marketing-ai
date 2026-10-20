@@ -135,7 +135,7 @@ Left rail (256px, `.rail`, collapses behind a menu button under 860px): logo til
 | 4 | Fidelidad | Loyalty | `credit-card` | Loyalty card |
 | 5 | Más | More | `ellipsis` | The Más sheet |
 
-Each item: 24px icon in a 56x32 pill, 11px/600 label under it. Active item (`aria-current="page"`): pill filled `--brand`, icon `--on-brand`, label `--ink`; inactive label uses muted ink. Focus ring on the pill. Group highlighting: Contenido is active for posts and videos; Más is active for Reservas, Carta, Gastos. Count badges are lime with `--on-brand`, 17px min, capped sensibly.
+Each item: 24px icon in a 56x32 pill, 11px/600 label under it. **On phones (max-width 768px) the bar is slimmer and more refined:** 60px tall instead of 85px, a 50x30 pill, 1.75 stroke icons, 12px/600 labels with 0.01em tracking on a 1.2 line height, and a 0.94 press on the active pill. The tap area is the button plus 4px above and below (55px), so it keeps the 44px minimum without making the bar grow, and the labels never wrap. Above 768px the bar keeps the roomier look. Active item (`aria-current="page"`): pill filled `--brand`, icon `--on-brand`, label `--ink`; inactive label uses muted ink. Focus ring on the pill. Group highlighting: Contenido is active for posts and videos; Más is active for Reservas, Carta, Gastos. Count badges are lime with `--on-brand`, 17px min, capped sensibly.
 
 ### 6.3 The Más sheet
 
@@ -200,14 +200,14 @@ Lucide (ISC licence) is the **only** icon set. Never emoji, Unicode symbols (che
 
 These are decided, not accepted. Fix opportunistically; do not copy them into new code.
 
-1. **Icon stroke:** `components.css` `.pm-ic` uses `stroke-width: 2`; the portal sprite uses 2 and 2.2; `ui.tsx` and `src/modules/polar-icons.tsx` use 2 (`.pm-icon`). Decision is 1.75.
+1. **Icon stroke:** `components.css` `.pm-ic` uses `stroke-width: 2`; the portal sprite uses 2 and 2.2 (the phone nav overrides its own icons to 1.75); `ui.tsx` and `src/modules/polar-icons.tsx` use 2 (`.pm-icon`). Decision is 1.75.
 2. **Icons are not verbatim Lucide:** `ui.tsx` `ICONS` is "Lucide-style", hand-simplified; the portal has about 50 hand-written `<symbol>`s with custom names (`i-chat`, `i-grid`, `i-card`, `i-more`, `i-cal`...). Two parallel icon sets exist in the studio (`ui.tsx` `Icon` and `polar-icons.tsx`). Portal nav currently uses `chat`, `grid`, `globe`, `card`, `more` shapes rather than the Lucide names in 6.2.
 3. **Fonts not self-hosted:** `index.html` (studio) loads Google Fonts; the privacy note in `docs/README.md` says Polar's own public pages load none. The portal, signup, landing and home pages load no font files, so Bricolage Grotesque and Figtree only render where installed; they currently show the system fallback. `server/share.mjs` also links Google Fonts (Inter, Inter Tight), which contradicts "Figtree/Bricolage; Inter retired".
 4. **Radius mismatch:** `brand/DESIGN.md` 7.1 lists sm 8 / md 12 / lg 16 / xl 24; `tokens.css` ships 12 / 16 / 24 / 32. Tokens win; `DESIGN.md` is stale on this.
 5. **`--ink-3`** fails AA on light surfaces; `src/styles.css` aliases it to `--ink-2` to hide this. Portal and public pages may still use the original value for text.
 6. **Duplicate component vocabularies:** studio `.btn/.input/.chip/.card` vs `cr-*`; portal `.primary/.cbtn/.mrow/.sheet`. Visual parity is required, class unification is not yet done. `.cr-btn--soft` and `.cr-btn--secondary` differ slightly from studio `.btn-ghost/.btn-secondary` (border colour `--line` vs `--line-strong`).
-7. **Portal nav label size:** `.nav button` labels are 11px, below the 12px minimum; the Contenido Posts | Videos toggle has not been checked against 6.2.
-8. **Portal nav focus ring** is drawn on the 56x32 pill only; the button hit area is larger.
+7. **Portal nav:** on phones it matches 6.2 (12px labels, 60px bar, 1.75 stroke); above 768px the bar is the older, roomier one (11px labels, 85px). The Contenido Posts | Videos toggle has not been checked against 6.2.
+8. **Portal nav focus ring** is drawn on the pill (50x30 on phones, 56x32 above), not on the full tap area.
 9. **Studio loyalty "Stamp icon" field** invites an emoji; this is user content for a card design (allowed), not an interface icon.
 10. **Studio storage keys:** records use `localStorage` prefix `isla:` (`src/core/store.ts`), a leftover name. Language keys `crier:lang` and `isla:lang` are still read as fallbacks (portal and signup read only `polar:lang` and `crier:lang`).
 11. **Hard-coded colours** remain in portal share-sheet brand tiles (allowed, 2.4) and possibly in older modules under `src/modules/*.css`; audit with a grep for `#` hex outside `tokens.css`.

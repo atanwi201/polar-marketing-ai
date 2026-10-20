@@ -184,6 +184,18 @@ textarea:focus{outline:none;box-shadow:0 0 0 2px var(--ink);background:var(--sur
 .nav button{border:0;background:none;display:flex;flex-direction:column;align-items:center;gap:4px;padding:4px 0;font-size:11px;font-weight:600;color:var(--faint);min-width:0}
 .nav button svg{width:24px;height:24px;display:block}
 .nav .pill{display:grid;place-items:center;width:56px;height:32px;border-radius:999px;transition:background .15s}
+/* On phones the bar is slimmer than on desktop and reads as one refined surface: 1.75 stroke icons,
+   12px tracked labels, a soft press on the active pill. The tap area is taller than the bar (::before),
+   so it keeps the 44px minimum without making the bar grow. */
+@media (max-width:768px){
+  .nav{padding:6px 10px calc(6px + env(safe-area-inset-bottom))}
+  .nav button{position:relative;gap:3px;padding:0;font-size:12px;line-height:1.2;letter-spacing:.01em;font-weight:600;white-space:nowrap}
+  .nav button::before{content:"";position:absolute;inset:-4px 0}
+  .nav button svg{width:24px;height:24px}
+  .nav button svg *{stroke-width:1.75}
+  .nav .pill{width:50px;height:30px;border-radius:999px;transition:background .18s,transform .12s}
+  .nav button:active .pill{transform:scale(.94)}
+}
 .nav button[aria-current=page]{color:var(--ink)}
 .nav button[aria-current=page] .pill{background:var(--brand);color:var(--on-brand)}
 .nav button:focus-visible{outline:0}
