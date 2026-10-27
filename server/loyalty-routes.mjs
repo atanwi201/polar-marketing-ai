@@ -7,6 +7,7 @@ import { normalisePhone } from "./phone.mjs";
 import { otp as otpService } from "./otp.mjs";
 import { qrSvg, qrPng } from "./qr.mjs";
 import * as L from "./loyalty.mjs";
+import * as C from "./consent.mjs";
 import { bookingFor } from "./bookings-links.mjs";
 import { menuFor } from "./menu-links.mjs";
 import { readFileSync } from "node:fs";
@@ -36,6 +37,7 @@ export const limits = {
   card: limiter(240, 60e3), staff: limiter(180, 5 * 60e3), badStaff: limiter(20, 15 * 60e3), badCard: limiter(30, 15 * 60e3),
   recoveryCode: limiter(10, 3600e3), recoveryPhone: limiter(5, 3600e3), recoveryVerify: limiter(30, 15 * 60e3), recoveryWait: limiter(900, 60e3),
   claimCode: limiter(10, 3600e3), claimPhone: limiter(5, 3600e3), claimVerify: limiter(30, 15 * 60e3),
+  consent: limiter(30, 10 * 60e3), unsub: limiter(30, 10 * 60e3),
   design: limiter(6, 10 * 60e3), manage: limiter(600, 60e3),
 };
 const hit = (lim, ip) => { if (lim.blocked(ip)) return false; lim.fail(ip); return true; };
@@ -71,7 +73,8 @@ export async function handleLoyalty(req, res, url, seg, ctx) {
       res.writeHead(200, { "Content-Type": "image/png", "Cache-Control": "public, max-age=86400" });
       return res.end(ctx.wallet.google.logo(prog)), true;
     }
-    if (seg[0] === "card" && seg[1]) return await cardRoutes(req, res, seg, ctx);
+    if (seg[0] === "u" && seg.length === 2) return await unsubscribeRoute(req, res, url, seg, ctx);
+    if (seg[0] === "card" && seg[1]) return await cardRoutes(req, res, url, seg, ctx);
     if (m === "GET" && seg[0] === "staff" && seg.length === 2) return await staffPageRoute(req, res, seg[1], ctx);
     // ---- public API ----
     if (seg[0] === "api" && seg[1] === "loyalty") return await publicApi(req, res, seg, ctx);
@@ -120,7 +123,7 @@ const STAFF_ACTIONS = ["lookup", "record", "find", "enrol", "waiting", "confirm"
 /** What the public join page may see: no staff token. */
 const publicProgram = ({ staffToken, ...p }) => p;
 
-async function cardRoutes(req, res, seg, ctx) {
+async function cardRoutes(req, res, url, seg, ctx) {
   const ip = ctx.clientIp(req);
   if (req.method !== "GET") return false;
   if (!hit(limits.card, ip) || limits.badCard.blocked(ip)) return notFoundPage(res, "Too many tries. Please wait a few minutes."), true;
@@ -140,8 +143,19 @@ async function cardRoutes(req, res, seg, ctx) {
     // Only old cards that have no number yet can be claimed, and only when a code can actually be
     // sent: with no SMS provider the prompt would be a dead end, so it is not rendered at all.
     const claim = recoveryOtp(ctx).available && !customer.memberId && canIssue(program);
+    // The consent panel belongs to the person, so it needs a member (a phone). Its language comes
+    // from the link, like the join page, and its text is the exact text the row will store.
+    const member = L.memberOf(customer);
+    const lang = typeof P.joinLang === "function" ? P.joinLang(url, req) : "es";
+    const bizName = db.clients.find((c) => c.id === program.clientId)?.name ?? "";
+    const consent = member && canIssue(program) ? {
+      lang, state: C.consentState(member, program.clientId),
+      title: C.CONSENT_COPY[lang].title, benefit: C.CONSENT_COPY[lang].benefit,
+      channels: C.CHANNELS.map((ch) => ({ key: ch, label: C.CONSENT_COPY[lang].label[ch], text: C.consentText(ch, lang, bizName) })),
+      save: C.CONSENT_COPY[lang].save, decline: C.CONSENT_COPY[lang].decline, saved: C.CONSENT_COPY[lang].saved,
+    } : undefined;
     await save();
-    html(res, 200, P.cardPage({ view: v, baseUrl: base, claim }));
+    html(res, 200, P.cardPage({ view: v, baseUrl: base, claim, consent }));
     return true;
   }
   if (seg.length === 3 && seg[2] === "qr.svg") return bin(res, "image/svg+xml", await qrSvg(L.codeOf(customer))), true;
@@ -400,6 +414,59 @@ async function claimRoutes(req, res, seg, ctx, ip) {
   return ctx.send(res, 200, { ok: true, cardUrl: `/card/${customer.cardToken}` }), true;
 }
 
+// ---------- marketing consent (plan Part C) ----------
+// The card page posts here. The card token is the capability; the exact text comes from the
+// server's copy, never from the request, and the row stores both the text and its version.
+async function consentRoutes(req, res, seg, ctx, ip) {
+  const customer = L.findByToken(seg[3]);
+  const program = customer && L.findProgram(customer.programId);
+  if (!customer || !program) return ctx.send(res, 404, { error: "This card link is not valid." }), true;
+  if (!canIssue(program)) return ctx.send(res, 403, { error: "This card is not active yet. Ask the owner." }), true;
+  const member = L.memberOf(customer);
+  if (!member) return ctx.send(res, 409, { error: "Add your phone number first." }), true;
+  if (!hit(limits.consent, ip)) return tooMany(ctx, res), true;
+
+  const b = await ctx.readBody(req, 3e3);
+  const lang = C.langOf(b?.lang);
+  const wanted = C.CHANNELS.filter((ch) => typeof b?.[ch] === "boolean");
+  if (!wanted.length) return ctx.send(res, 400, { error: "Choose at least one channel." }), true;
+  const declined = b?.decline === true || wanted.every((ch) => b[ch] === false);
+  const client = L.clientOf(program) ?? {};
+  const who = { ip: ctx.clientIp(req), ua: req.headers["user-agent"] ?? "" };
+  let bonus = null;
+  for (const ch of wanted) {
+    if (b[ch]) {
+      C.recordConsent({ member, customer, clientId: program.clientId, programId: program.id, channel: ch, lang, business: client.name, source: "card", ...who });
+      bonus ??= L.grantConsentBonus(customer, program, { by: "customer" });
+    } else {
+      C.withdrawConsent({ member, clientId: program.clientId, channels: [ch], lang, source: declined ? "declined" : "card", ...who });
+    }
+  }
+  await save();
+  if (bonus) bonus = { ...bonus, text: C.CONSENT_COPY[lang].bonus(bonus.n, bonus.kind) };
+  ctx.send(res, 200, { ok: true, consent: C.consentState(member, program.clientId), bonus });
+  return true;
+}
+
+/** `/u/<token>`: a page with one button, then the withdrawal. GET never changes anything. */
+async function unsubscribeRoute(req, res, url, seg, ctx) {
+  if (req.method !== "GET" && req.method !== "POST") return false;
+  if (!hit(limits.unsub, ctx.clientIp(req))) return html(res, 200, "<!doctype html><p>Too many tries. Please wait a few minutes.</p>"), true;
+  const P = await pages();
+  const lang = typeof P.joinLang === "function" ? P.joinLang(url, req) : "es";
+  const copy = C.CONSENT_COPY[lang];
+  const found = C.byUnsubToken(seg[1]);
+  if (!found) return html(res, 200, P.unsubPage({ lang, valid: false, copy })), true;
+  if (req.method === "GET") return html(res, 200, P.unsubPage({ lang, valid: true, business: found.client.name, copy })), true;
+  // Already out: say so, and do not append another row. The token stays valid, so a second click
+  // never errors, and nothing in the URL identifies the person.
+  const already = C.CHANNELS.every((ch) => !C.hasConsent(found.member, found.row.clientId, ch));
+  if (already) return html(res, 200, P.unsubPage({ lang, valid: true, business: found.client.name, done: true, again: true, copy })), true;
+  C.withdrawConsent({ member: found.member, clientId: found.row.clientId, channels: C.CHANNELS, lang, source: "link", ip: ctx.clientIp(req), ua: req.headers["user-agent"] ?? "" });
+  await save();
+  return html(res, 200, P.unsubPage({ lang, valid: true, business: found.client.name, done: true, copy })), true;
+}
+
 async function publicApi(req, res, seg, ctx) {
   const ip = ctx.clientIp(req);
   const m = req.method;
@@ -416,6 +483,8 @@ async function publicApi(req, res, seg, ctx) {
   if (seg[2] === "join" && seg.length === 5 && RECOVERY_ACTIONS.includes(seg[4])) return await recoveryRoutes(req, res, seg, ctx, ip);
   // POST /api/loyalty/card/<cardToken>/claim  and  .../claim/verify
   if (m === "POST" && seg[2] === "card" && seg[4] === "claim" && (seg.length === 5 || (seg.length === 6 && seg[5] === "verify"))) return await claimRoutes(req, res, seg, ctx, ip);
+  // POST /api/loyalty/card/<cardToken>/consent {whatsapp?, email?, lang?, decline?}
+  if (m === "POST" && seg[2] === "card" && seg[4] === "consent" && seg.length === 5) return await consentRoutes(req, res, seg, ctx, ip);
   // GET /api/loyalty/card/<cardToken>
   if (m === "GET" && seg[2] === "card" && seg.length === 4) {
     if (!hit(limits.card, ip) || limits.badCard.blocked(ip)) return tooMany(ctx, res), true;
@@ -529,6 +598,15 @@ async function manage(req, res, url, rest, scope, ctx) {
     const file = await ctx.saveUpload(b?.image);
     L.recordUpload(file, owner ? "" : scope.clientId);
     return out(200, { file });
+  }
+  if (rest.length === 1 && m === "GET" && rest[0] === "consented.csv") {
+    const cid = owner ? (str(url.searchParams.get("clientId")) || undefined) : scope.clientId;
+    const rows = C.consentedContacts({ clientId: cid });
+    const cell = (v) => { const s = String(v ?? ""); return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s; };
+    const csv = "\uFEFF" + ["phone", "shop", "channel", "date", "text_version"].join(",") + "\n"
+      + rows.map((r) => [r.phone, r.clientName, r.channel, r.at, r.textId].map(cell).join(",")).join("\n") + "\n";
+    bin(res, "text/csv; charset=utf-8", Buffer.from(csv, "utf8"), { "Content-Disposition": `attachment; filename="consented-contacts-${new Date().toISOString().slice(0, 10)}.csv"` });
+    return true;
   }
   if (rest[0] !== "programs") return false;
 

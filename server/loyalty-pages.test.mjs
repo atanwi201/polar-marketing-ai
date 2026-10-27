@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { joinPage, joinLang, cardPage, staffPage, manifest, cardStyles, qrInline } from "./loyalty-pages.mjs";
+import { joinPage, joinLang, cardPage, staffPage, manifest, cardStyles, qrInline, unsubPage } from "./loyalty-pages.mjs";
 
 const design = (o = {}) => ({ prompt: "", background: "#3b1d0e", foreground: "#fff4e0", label: "#e0b98a", accent: "#f2a33a", fontStyle: "serif", layout: "stripe", cardTitle: "Coffee Club", tagline: "Every 8th coffee on us", stampIcon: "X", stampEmptyIcon: "o", logoFile: "logo.png", stripFile: "strip.jpg", backgroundFile: "bg.jpg", ...o });
 const program = (o = {}) => ({ id: "p1", name: "Coffee Club", type: "stamps", status: "live", joinCode: "abc123", design: design(), stamps: { goal: 8, perVisit: 1, minSpendEur: 0 }, tiers: [], terms: "No cash value.", welcomeBonus: { stamps: 1, points: 0 }, rewards: [{ id: "r1", name: "Free coffee", description: "Any size", kind: "stamps", cost: 8, expiresDays: 30, minTier: "", active: true }], ...o });
@@ -158,6 +158,60 @@ test("staff page: scanner, actions, keypad, fallback", () => {
   const paused = staffPage({ program: program({ status: "paused" }), client: { name: "X" } });
   assert.match(paused, /Not live yet/);
   assert.doesNotMatch(paused, /BarcodeDetector/);
+});
+
+test("the consent panel is two unticked boxes and its script parses", () => {
+  const state = (o = {}) => ({ whatsapp: false, email: false, decided: false, ...o });
+  const consent = (o = {}) => ({
+    lang: "es", state: state(), title: "Ofertas y novedades", benefit: "Te avisamos de recompensas.",
+    channels: [{ key: "whatsapp", label: "WhatsApp", text: "Quiero recibir ofertas por WhatsApp." }, { key: "email", label: "Email", text: "Quiero recibir ofertas por email." }],
+    save: "Guardar", decline: "No gracias, solo la tarjeta", saved: "Guardado.", ...o,
+  });
+  const html = cardPage({ view: view(), consent: consent() });
+  assert.match(html, /id="consent"/);
+  assert.match(html, /<section class="panel cr-card consent" id="consent" lang="es">/);
+  assert.match(html, /id="c-whatsapp"/);
+  assert.match(html, /id="c-email"/);
+  assert.equal(/id="c-whatsapp"[^>]*checked/.test(html), false);
+  assert.match(html, /No gracias, solo la tarjeta/);
+  for (const m of html.matchAll(/<script>([\s\S]*?)<\/script>/g)) assert.doesNotThrow(() => new Function(m[1]));
+
+  const answered = cardPage({ view: view(), consent: consent({ lang: "en", state: state({ email: true, decided: true }) }) });
+  assert.match(answered, /id="c-email"[^>]*checked/);
+  assert.equal(answered.includes('id="consentNo"'), false);
+  assert.match(answered, /lang="en"/);
+
+  const plain = cardPage({ view: view() });
+  assert.equal(plain.includes('id="c-whatsapp"'), false, "a card without a number has nothing to ask");
+  const claim = cardPage({ view: view(), claim: true });
+  for (const m of claim.matchAll(/<script>([\s\S]*?)<\/script>/g)) assert.doesNotThrow(() => new Function(m[1]));
+});
+
+test("unsubscribe page: one button, no personal data, every state in both languages", () => {
+  const copy = {
+    unsubTitle: "Darte de baja", unsubBtn: "Darme de baja", unsubDone: "Hecho.", unsubAgain: "Ya estabas dado de baja.",
+    unsubInvalid: "Este enlace no es válido.", unsubBody: (biz) => `Dejaremos de enviarte ofertas de ${biz}.`,
+  };
+  const valid = unsubPage({ lang: "es", valid: true, business: "Casa Uno", copy });
+  assert.match(valid, /<html lang="es">/);
+  assert.match(valid, /Dejaremos de enviarte ofertas de Casa Uno\./);
+  assert.match(valid, /<form method="post"><button/);
+  assert.match(valid, /Darme de baja/);
+
+  const done = unsubPage({ lang: "es", valid: true, done: true, copy });
+  assert.match(done, /Hecho\./);
+  assert.equal(done.includes("<form"), false);
+
+  const again = unsubPage({ lang: "es", valid: true, done: true, again: true, copy });
+  assert.match(again, /Ya estabas dado de baja\./);
+
+  const bad = unsubPage({ lang: "es", valid: false, copy });
+  assert.match(bad, /Este enlace no es válido\./);
+  assert.equal(bad.includes("<form"), false);
+
+  const evil = unsubPage({ lang: "es", valid: true, business: '<script>alert(1)</script>', copy });
+  assert.doesNotMatch(evil, /<script>alert\(1\)/);
+  assert.match(evil, /&lt;script&gt;/);
 });
 
 test("scripts in every page parse", () => {

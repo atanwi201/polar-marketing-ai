@@ -179,6 +179,7 @@ export function applyFields(base, f = {}) {
   if ("pointsExpireDays" in f) p.pointsExpireDays = f.pointsExpireDays == null || f.pointsExpireDays === "" ? null : num(f.pointsExpireDays, 1, 3650, null);
   if ("terms" in f) p.terms = str(f.terms, 1000);
   if (f.welcomeBonus && typeof f.welcomeBonus === "object") p.welcomeBonus = { stamps: num(f.welcomeBonus.stamps, 0, 50, 0), points: num(f.welcomeBonus.points, 0, 10000, 0) };
+  if ("consentBonus" in f) p.consentBonus = num(f.consentBonus, 0, 10, 0);
   if ("tiers" in f) p.tiers = sanitizeTiers(f.tiers, p.tiers);
   if ("rewards" in f || f.stamps) p.rewards = sanitizeRewards("rewards" in f ? f.rewards : p.rewards, p.stamps.goal, p.rewards);
   if (f.design && typeof f.design === "object") p.design = sanitizeDesign(f.design, p.design);
@@ -203,7 +204,7 @@ export function createProgram(client, fields = {}) {
     design: defaultDesign(client, type),
     stamps: { goal: 8, perVisit: 1, minSpendEur: 0 }, points: { perEuro: 1, perVisit: 0 },
     tiers: type === "custom" ? [{ name: "Bronze", minPoints: 0, perk: "" }, { name: "Silver", minPoints: 500, perk: "" }, { name: "Gold", minPoints: 1500, perk: "" }] : [],
-    rewards: [], pointsExpireDays: null, terms: "", welcomeBonus: { stamps: 0, points: 0 },
+    rewards: [], pointsExpireDays: null, terms: "", welcomeBonus: { stamps: 0, points: 0 }, consentBonus: 0,
   };
   const { rewards, status, ...rest } = fields; // new programmes always start as draft
   const p = guardDesign(applyFields(base, rest), base.design, base);
@@ -513,6 +514,7 @@ export function mergeCards(program, keepRef, mergeRef, { by = "owner" } = {}) {
   if (!str(keep.email, 120)) keep.email = gone.email;
   if (!str(keep.phone, 30)) keep.phone = gone.phone;
   keep.marketingConsent = keep.marketingConsent === true || gone.marketingConsent === true;
+  if (gone.consentBonusAt && !keep.consentBonusAt) keep.consentBonusAt = gone.consentBonusAt;
   if (!km && gm) { keep.memberId = gm.id; keep.phone = gm.phone; }
   keep.redemptions = [...(keep.redemptions ?? []), ...(gone.redemptions ?? [])];
 
@@ -528,6 +530,34 @@ export function mergeCards(program, keepRef, mergeRef, { by = "owner" } = {}) {
   addTxn(keep, program, { type: "adjust", note: `Merged card ${gone.id}`, by });
   void save();
   return { keep, gone };
+}
+
+/** Optional gifts for opting in (plan C.4). Default off; one per person per shop, ever. */
+export function grantConsentBonus(customer, program, { by = "system" } = {}) {
+  const n = Math.max(0, Math.min(10, Math.round(Number(program.consentBonus) || 0)));
+  if (!n || !customer) return null;
+  // A person can hold two cards at one shop until the owner merges them, so "already paid" is a
+  // question about the person, not this row.
+  const paid = customer.memberId
+    ? ldb().customers.some((c) => c.memberId === customer.memberId && c.clientId === customer.clientId && c.consentBonusAt)
+    : customer.consentBonusAt;
+  if (paid) return null;
+  let given = n;
+  if (program.type === "points") {
+    customer.points = (customer.points ?? 0) + n;
+    customer.lifetimePoints = (customer.lifetimePoints ?? 0) + n;
+    customer.tier = tierFor(program, customer.lifetimePoints).name;
+    addTxn(customer, program, { type: "adjust", points: n, note: "Consent bonus", by });
+  } else {
+    given = Math.min(n, Math.max(0, program.stamps.goal - (customer.stamps ?? 0)));
+    if (!given) return null; // a full card cannot hold it; a later tick can, once there is room
+    customer.stamps = (customer.stamps ?? 0) + given;
+    addTxn(customer, program, { type: "adjust", stamps: given, note: "Consent bonus", by });
+  }
+  customer.consentBonusAt = now();
+  customer.updatedAt = customer.consentBonusAt;
+  void save();
+  return { kind: program.type === "points" ? "points" : "stamps", n: given };
 }
 
 // ---- recovery: proving a number on a new device (plan A.4, tiers 1 and 2) ----
@@ -778,7 +808,7 @@ export const joinUrl = (program, baseUrl) => `${baseUrl}/join/${program.joinCode
 export const staffUrl = (program, baseUrl) => `${baseUrl}/staff/${program.staffToken}`;
 
 export function programView(program, { baseUrl = "" } = {}) {
-  return { ...program, joinUrl: joinUrl(program, baseUrl), staffUrl: staffUrl(program, baseUrl), stats: stats(program), clientName: clientOf(program)?.name ?? "" };
+  return { ...program, consentBonus: program.consentBonus ?? 0, joinUrl: joinUrl(program, baseUrl), staffUrl: staffUrl(program, baseUrl), stats: stats(program), clientName: clientOf(program)?.name ?? "" };
 }
 
 /** What the customer sees on their card. Expires old points first. */

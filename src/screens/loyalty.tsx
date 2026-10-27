@@ -603,6 +603,7 @@ function RulesTab({ p, patch }: { p: ProgramDetail; patch: (b: unknown, ok?: str
   const [points, setPoints] = useState(p.points);
   const [tiers, setTiers] = useState<Tier[]>(p.tiers);
   const [bonus, setBonus] = useState(p.welcomeBonus);
+  const [consentBonus, setConsentBonus] = useState(p.consentBonus);
   const [expire, setExpire] = useState<string>(p.pointsExpireDays == null ? "" : String(p.pointsExpireDays));
   const [terms, setTerms] = useState(p.terms);
   const [saving, setSaving] = useState(false);
@@ -615,6 +616,7 @@ function RulesTab({ p, patch }: { p: ProgramDetail; patch: (b: unknown, ok?: str
       points: { perEuro: Math.max(0, num(points.perEuro)), perVisit: Math.max(0, Math.round(num(points.perVisit))) },
       tiers: p.type === "custom" ? [...tiers].sort((a, b) => a.minPoints - b.minPoints) : p.tiers,
       welcomeBonus: { stamps: Math.max(0, Math.round(num(bonus.stamps))), points: Math.max(0, Math.round(num(bonus.points))) },
+      consentBonus: Math.max(0, Math.min(10, Math.round(num(consentBonus)))),
       pointsExpireDays: expire.trim() === "" ? null : Math.max(1, Math.round(num(expire, 365))), terms,
     }, "Rules saved");
     setSaving(false);
@@ -662,6 +664,7 @@ function RulesTab({ p, patch }: { p: ProgramDetail; patch: (b: unknown, ok?: str
         <div className="form-grid top">
           {useStamps && <Field label="Welcome stamps" hint="Given when someone first joins."><Input id="lr-ws" type="number" min={0} value={bonus.stamps} onChange={(v) => setBonus({ ...bonus, stamps: num(v) })} /></Field>}
           {usePoints && <Field label="Welcome points"><Input id="lr-wp" type="number" min={0} value={bonus.points} onChange={(v) => setBonus({ ...bonus, points: num(v) })} /></Field>}
+          <Field label="Gift for accepting offers" hint="Stamps or points, added once per person and business when they opt in. 0 = no gift."><Input id="lr-cb" type="number" min={0} value={consentBonus} onChange={(v) => setConsentBonus(num(v))} /></Field>
           <Field label="Terms shown on the card" wide><TextArea id="lr-terms" rows={3} value={terms} onChange={setTerms} placeholder="One reward per visit. Not valid with other offers." /></Field>
         </div>
       </div>

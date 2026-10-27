@@ -17,7 +17,7 @@ export interface Stats { customers: number; activeLast30d: number; stampsGiven: 
 export interface Program {
   id: string; clientId: string; name: string; type: LType; status: LStatus; createdAt: string; updatedAt: string; joinCode: string; staffToken: string;
   design: Design; stamps: { goal: number; perVisit: number; minSpendEur: number }; points: { perEuro: number; perVisit: number };
-  tiers: Tier[]; rewards: Reward[]; pointsExpireDays: number | null; terms: string; welcomeBonus: { stamps: number; points: number };
+  tiers: Tier[]; rewards: Reward[]; pointsExpireDays: number | null; terms: string; welcomeBonus: { stamps: number; points: number }; consentBonus: number;
 }
 export interface ProgramView extends Program { joinUrl: string; staffUrl: string; stats: Stats; clientName: string }
 export interface CustomerRow {

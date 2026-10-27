@@ -16,6 +16,7 @@ Controller/processor: **[PENDING ATD: LEGAL_NAME, LEGAL_NIF, LEGAL_ADDRESS, LEGA
 |---|---|---|---|---|
 | Bookings (`/api/book`) | Booking customers | Name, email, phone, notes, date, status, mail log | Resend, hosting | See retention.md |
 | Loyalty cards | Members | Name, phone (E.164), email if given, visits, rewards, marketing consent and its proof, wallet tokens | Google/Apple Wallet (user-initiated), hosting | See retention.md |
+| Marketing consent log (`loyalty.consents[]`) | Members who tick or refuse offers | Phone (via the member), shop, channel (WhatsApp/email), exact text shown and its version, timestamp, SHA-256 of IP and user agent, random unsubscribe token; no name or email copied into the row | Hosting only; no sends are built in this plan | See retention.md |
 | Digital menu | None personal | Menu, allergens | AI translation | contract |
 | Expense scanner | Suppliers, possibly card/loyalty digits on receipts | Receipt images, parsed text | Vision AI providers, hosting | See retention.md |
 

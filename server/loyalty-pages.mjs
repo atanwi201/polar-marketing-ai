@@ -547,7 +547,7 @@ export function manifest(view) {
   return m;
 }
 
-export function cardPage({ view, baseUrl = "", claim = false }) {
+export function cardPage({ view, baseUrl = "", claim = false, consent = null }) {
   const d = view.program?.design || {};
   const token = tokenOf(view.installUrl);
   const bg = safeHex(d.background, "#14232b");
@@ -600,6 +600,10 @@ ul.list{list-style:none;margin:0;padding:0}
 .hint h3{margin-bottom:var(--space-2)}
 .hint ol{margin:var(--space-2) 0 0;padding-left:22px;line-height:26px}
 .hint kbd{display:inline-flex;vertical-align:middle;font:600 13px var(--font-sans);background:var(--surface-2);border-radius:6px;padding:2px 7px}
+.consent-row{display:flex;gap:12px;align-items:flex-start;padding:var(--space-3) 0;border-top:1px solid var(--line);font:400 14px/21px var(--font-sans);cursor:pointer}
+.consent-row:first-of-type{border-top:0;padding-top:0}
+.consent-row input{flex:none;width:18px;height:18px;margin:2px 0 0}
+.consent .cr-btn{margin-top:var(--space-2)}
 .terms{margin:0;color:var(--ink-2);font-size:13px;line-height:19px;white-space:pre-line}
 details.panel summary{font:700 16px/24px var(--font-display);cursor:pointer;min-height:32px}
 .status{max-width:400px;margin:var(--space-5) auto 0;text-align:center;color:var(--ink-2);font-size:13px}
@@ -643,6 +647,14 @@ details.panel summary{font:700 16px/24px var(--font-display);cursor:pointer;min-
         </div>
         <p class="status" id="claimMsg" aria-live="polite"></p>
       </div>
+    </section>` : ""}
+    ${consent ? `<section class="panel cr-card consent" id="consent" lang="${esc(consent.lang)}">
+      <h3>${esc(consent.title)}</h3>
+      <p class="muted sm" style="margin:0 0 var(--space-2)">${esc(consent.benefit)}</p>
+      ${consent.channels.map((c) => `<label class="consent-row"><input type="checkbox" id="c-${esc(c.key)}" ${consent.state[c.key] ? "checked" : ""}><span>${esc(c.text)}</span></label>`).join("")}
+      <button class="cr-btn cr-btn--soft cr-btn--block" id="consentSave" type="button">${esc(consent.save)}</button>
+      ${consent.state.decided ? "" : `<p style="text-align:center;margin:var(--space-2) 0 0"><button class="cr-link" id="consentNo" type="button">${esc(consent.decline)}</button></p>`}
+      <p class="status" id="consentMsg" aria-live="polite"></p>
     </section>` : ""}
     <section class="panel cr-card"><h3>Rewards</h3><ul class="list" id="rewards">${K.rewards(view)}</ul></section>
     <section class="panel cr-card"><h3>Activity</h3><ul class="list hist" id="history">${K.history(view)}</ul></section>
@@ -689,6 +701,29 @@ if($("claimOpen")){
     }).catch(function(e){b.disabled=false;claimErr(e)});
   });
   $("claimCode").addEventListener("keydown",function(e){if(e.key==="Enter"){e.preventDefault();$("claimVerify").click()}});
+}
+var CONSENT=${js(consent || null)};
+if(CONSENT){
+  var cPost=function(body){
+    return fetch("/api/loyalty/card/"+encodeURIComponent(token)+"/consent",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)})
+      .then(function(r){return r.json().catch(function(){return{}}).then(function(d){if(!r.ok)throw new Error(d.error||"Try again.");return d})});
+  };
+  var cMsg=function(t){var m=$("consentMsg");if(m)m.textContent=t};
+  var cBody=function(extra){var b={whatsapp:!!$("c-whatsapp").checked,email:!!$("c-email").checked,lang:CONSENT.lang};for(var k in extra)b[k]=extra[k];return b};
+  $("consentSave").addEventListener("click",function(){
+    var b=$("consentSave");b.disabled=true;
+    cPost(cBody({})).then(function(d){
+      cMsg(CONSENT.saved+(d.bonus&&d.bonus.text?" "+d.bonus.text:""));
+      var no=$("consentNo");if(no&&no.parentNode)no.parentNode.hidden=true;
+      b.disabled=false;
+    }).catch(function(e){b.disabled=false;cMsg(e.message||"Try again.")});
+  });
+  if($("consentNo"))$("consentNo").addEventListener("click",function(){
+    $("c-whatsapp").checked=false;$("c-email").checked=false;
+    var b=$("consentNo");b.disabled=true;
+    cPost(cBody({decline:true})).then(function(){cMsg(CONSENT.saved);if(b.parentNode)b.parentNode.hidden=true})
+    .catch(function(e){b.disabled=false;cMsg(e.message||"Try again.")});
+  });
 }
 var last=JSON.stringify(view),failed=0,lastOk=Date.now();
 function put(id,html){var e=$(id);if(e&&e.__h!==html){if(e.__h===undefined&&e.innerHTML===html){e.__h=html;return}e.innerHTML=html;e.__h=html}}
@@ -1053,6 +1088,40 @@ $("startCam").addEventListener("click",startCam);$("stopCam").addEventListener("
 document.addEventListener("visibilitychange",function(){if(document.hidden&&stream)stopCam()});
 })();
 </script>` : ""}
+</body>
+</html>`;
+}
+
+// ---------- Unsubscribe page ----------
+// One button, no personal data on the page or in the URL, and GET never changes anything (a mail
+// scanner that opens the link must not unsubscribe the person). The copy comes from consent.mjs.
+export function unsubPage({ lang = "es", valid = false, business = "", done = false, again = false, copy = {} } = {}) {
+  const c = copy || {};
+  const title = c.unsubTitle || "Unsubscribe";
+  const body = done ? (again ? (c.unsubAgain || "You were already unsubscribed.") : (c.unsubDone || "Done.")) : valid ? (c.unsubBody ? c.unsubBody(business) : "") : (c.unsubInvalid || "This link is not valid.");
+  return `<!doctype html>
+<html lang="${esc(lang)}">
+<head>
+${HEAD_COMMON(title)}
+<meta name="robots" content="noindex,nofollow">
+<style>${BASE_CSS}
+.u{max-width:520px;margin:0 auto;padding:max(var(--space-5),env(safe-area-inset-top)) var(--space-4) var(--space-5)}
+.u .box{padding:var(--space-5) var(--space-4)}
+.u h1{margin:0 0 var(--space-3);font:700 26px/32px var(--font-display)}
+.u p{margin:0 0 var(--space-4);color:var(--ink-2);font-size:16px;line-height:24px}
+.u .cr-btn{margin-top:var(--space-2)}
+.u .foot{margin-top:var(--space-5);text-align:center;color:var(--ink-2);font-size:13px}
+</style>
+</head>
+<body class="cr-root">
+<div class="u">
+  <div class="cr-card box">
+    <h1>${esc(title)}</h1>
+    <p>${esc(body)}</p>
+    ${valid && !done ? `<form method="post"><button class="cr-btn cr-btn--primary cr-btn--lg cr-btn--block" type="submit">${esc(c.unsubBtn || "Unsubscribe")}</button></form>` : ""}
+  </div>
+  <p class="foot"><img class="pm-logo" src="/brand/logo/polar-mark.png" alt="" style="width:24px;height:24px;border-radius:7px;vertical-align:middle"> Powered by Polar Marketing</p>
+</div>
 </body>
 </html>`;
 }

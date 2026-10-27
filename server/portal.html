@@ -1565,7 +1565,7 @@ Object.assign(T.es,{
   l_d_font:"Letra", l_d_modern:"Moderna", l_d_serif:"Clásica", l_d_rounded:"Redonda", l_d_mono:"Técnica", l_d_icon:"Icono del sello", l_save:"Guardar cambios", l_saved:"Guardado", l_saving:"Guardando…",
   l_r_t:"Reglas y premios", l_r_name:"Nombre de la tarjeta", l_r_earn:"Cómo se gana", l_r_stampsPer:"Sellos por visita", l_r_min:"Gasto mínimo para sellar (€)", l_r_min_h:"0 = sin mínimo", l_r_tiers:"Niveles", l_r_tn:"Nombre", l_r_tmin:"Desde (puntos)", l_r_tperk:"Ventaja",
   l_r_addTier:"Añadir nivel", l_r_rewards:"Premios", l_r_rn:"Premio", l_r_cost:"Cuesta", l_r_exp:"Válido (días)", l_r_exp_h:"Vacío = sin caducidad", l_r_active:"Activo", l_r_addRew:"Añadir premio", l_r_tier:"Desde el nivel", l_r_anyone:"Todos",
-  l_r_welcome:"Regalo de bienvenida", l_r_terms:"Condiciones (opcional)", l_r_pexp:"Los puntos caducan a los (días)", l_r_pexp_h:"Vacío = nunca caducan", l_remove:"Quitar", l_r_kind:"Se paga con", l_r_newrew:"Premio nuevo", l_r_newtier:"Nivel nuevo",
+  l_r_welcome:"Regalo de bienvenida", l_r_consent:"Regalo por aceptar ofertas", l_r_consent_h:"0 = sin regalo. Se suma una sola vez por persona y negocio.", l_r_consentB:"Regalo", l_r_terms:"Condiciones (opcional)", l_r_pexp:"Los puntos caducan a los (días)", l_r_pexp_h:"Vacío = nunca caducan", l_remove:"Quitar", l_r_kind:"Se paga con", l_r_newrew:"Premio nuevo", l_r_newtier:"Nivel nuevo",
   l_del:"Eliminar esta tarjeta", l_del_c:"¿Eliminar esta tarjeta y todos sus datos? No se puede deshacer.", l_deleted:"Tarjeta eliminada", l_member:"Socio", l_stampsLbl:"Sellos", l_pointsLbl:"Puntos", l_close:"Cerrar", l_copied:"Copiado", l_sample:"Lucía",
   l_pr_s:[["Compra 8 cafés, el 9º gratis",8,"Café gratis"],["10 cortes de pelo, el siguiente gratis",10,"Corte gratis"],["5 menús, postre gratis",5,"Postre gratis"]],
   l_pr_p:[["1 punto por 1 €, 100 puntos = 5 € de descuento",1,0,100,"5 € de descuento"],["10 puntos por visita, 100 puntos = regalo de la casa",0,10,100,"Regalo de la casa"]],
@@ -1602,7 +1602,7 @@ Object.assign(T.en,{
   l_d_font:"Lettering", l_d_modern:"Modern", l_d_serif:"Classic", l_d_rounded:"Rounded", l_d_mono:"Technical", l_d_icon:"Stamp icon", l_save:"Save changes", l_saved:"Saved", l_saving:"Saving…",
   l_r_t:"Rules and rewards", l_r_name:"Card name", l_r_earn:"How customers earn", l_r_stampsPer:"Stamps per visit", l_r_min:"Minimum spend to earn a stamp (€)", l_r_min_h:"0 = no minimum", l_r_tiers:"Levels", l_r_tn:"Name", l_r_tmin:"From (points)", l_r_tperk:"Perk",
   l_r_addTier:"Add a level", l_r_rewards:"Rewards", l_r_rn:"Reward", l_r_cost:"Costs", l_r_exp:"Valid for (days)", l_r_exp_h:"Empty = never expires", l_r_active:"Active", l_r_addRew:"Add a reward", l_r_tier:"From level", l_r_anyone:"Everyone",
-  l_r_welcome:"Welcome gift", l_r_terms:"Terms (optional)", l_r_pexp:"Points expire after (days)", l_r_pexp_h:"Empty = never expire", l_remove:"Remove", l_r_kind:"Paid with", l_r_newrew:"New reward", l_r_newtier:"New level",
+  l_r_welcome:"Welcome gift", l_r_consent:"Gift for accepting offers", l_r_consent_h:"0 = no gift. Added once per person and business.", l_r_consentB:"Bonus", l_r_terms:"Terms (optional)", l_r_pexp:"Points expire after (days)", l_r_pexp_h:"Empty = never expire", l_remove:"Remove", l_r_kind:"Paid with", l_r_newrew:"New reward", l_r_newtier:"New level",
   l_del:"Delete this card", l_del_c:"Delete this card and all its data? This cannot be undone.", l_deleted:"Card deleted", l_member:"Member", l_stampsLbl:"Stamps", l_pointsLbl:"Points", l_close:"Close", l_copied:"Copied", l_sample:"Lucy",
   l_pr_s:[["Buy 8 coffees, get the 9th free",8,"Free coffee"],["10 haircuts, the next one is free",10,"Free haircut"],["5 meals, free dessert",5,"Free dessert"]],
   l_pr_p:[["1 point per €1, 100 points = €5 off",1,0,100,"€5 off"],["10 points per visit, 100 points = gift from us",0,10,100,"Gift from us"]],
@@ -1861,12 +1861,13 @@ function rulesHtml(S){
       <label class="switch"><span>${esc(tl("l_r_active"))}</span><input type="checkbox" data-f="rewards.${i}.active" data-t="bool" ${r.active!==false?"checked":""}></label></div>`;
   }).join("")+`<button type="button" class="btn" data-la="addrew">${icon("plus")}${esc(tl("l_r_addRew"))}</button>`;
   h+=`<h3 class="lh2">${esc(tl("l_r_welcome"))}</h3><div class="frow">${T3!=="points"?fld(tl("l_stampsU"),num("welcomeBonus.stamps",D.welcomeBonus.stamps,'step="1"')):""}${T3!=="stamps"?fld(tl("l_pointsU"),num("welcomeBonus.points",D.welcomeBonus.points,'step="1"')):""}</div>
+    ${fld(tl("l_r_consentB"),num("consentBonus",D.consentBonus,'min="0" max="10" step="1"'),tl("l_r_consent_h"))}
     ${fld(tl("l_r_terms"),`<textarea class="inp" data-f="terms" maxlength="600">${esc(D.terms||"")}</textarea>`)}`;
   return h;
 }
 function openRules(){
-  const p=prog(); const pick=["name","type","stamps","points","tiers","rewards","terms","pointsExpireDays","welcomeBonus"], D={};
-  pick.forEach(k=>D[k]=JSON.parse(JSON.stringify(p[k]==null?(k==="tiers"||k==="rewards"?[]:k==="welcomeBonus"?{stamps:0,points:0}:k==="stamps"?{goal:8,perVisit:1,minSpendEur:0}:k==="points"?{perEuro:1,perVisit:0}:k==="terms"?"":null):p[k])));
+  const p=prog(); const pick=["name","type","stamps","points","tiers","rewards","terms","pointsExpireDays","welcomeBonus","consentBonus"], D={};
+  pick.forEach(k=>D[k]=JSON.parse(JSON.stringify(p[k]==null?(k==="tiers"||k==="rewards"?[]:k==="welcomeBonus"?{stamps:0,points:0}:k==="consentBonus"?0:k==="stamps"?{goal:8,perVisit:1,minSpendEur:0}:k==="points"?{perEuro:1,perVisit:0}:k==="terms"?"":null):p[k])));
   D.welcomeBonus={stamps:0,points:0,...D.welcomeBonus};
   openSheet2({kind:"rules",draft:D});
 }

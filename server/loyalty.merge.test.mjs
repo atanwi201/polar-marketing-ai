@@ -163,6 +163,7 @@ test("merge adds the balances up, moves the history and keeps both card links an
   keep.points = 10; gone.points = 5;
   keep.lifetimePoints = 10; gone.lifetimePoints = 5;
   keep.visits = 2; gone.visits = 1;
+  gone.consentBonusAt = "2026-01-15T00:00:00.000Z";
   keep.lastVisitAt = "2026-01-01T00:00:00.000Z";
   gone.lastVisitAt = "2026-02-01T00:00:00.000Z";
   keep.createdAt = "2025-01-01T00:00:00.000Z";
@@ -182,6 +183,7 @@ test("merge adds the balances up, moves the history and keeps both card links an
   assert.equal(keep.lastVisitAt, "2026-02-01T00:00:00.000Z");
   assert.equal(keep.createdAt, "2024-06-01T00:00:00.000Z", "the resulting card looks as old as the oldest");
   assert.equal(keep.email, "ana@example.com", "an existing value wins");
+  assert.equal(keep.consentBonusAt, "2026-01-15T00:00:00.000Z", "a gift already paid is not forgotten");
   assert.equal(L.ldb().customers.some((c) => c.id === goneId), false);
   assert.equal(txn.customerId, keep.id);
   assert.equal(L.ldb().devices.find((d) => d.id === "d-gone").serial, keep.id);
