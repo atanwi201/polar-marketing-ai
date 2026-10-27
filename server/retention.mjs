@@ -123,6 +123,7 @@ export async function purgeExpired({ declinedDays = 0, bookingDays = 0, loyaltyI
         const gone = new Set(orphanMembers);
         l.members = l.members.filter((m) => !gone.has(m.id));
         l.consents = l.consents.filter((x) => !gone.has(x.memberId));
+        l.recoveries = l.recoveries.filter((r) => !gone.has(r.memberId));
       }
     }
   }

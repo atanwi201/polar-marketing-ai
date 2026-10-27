@@ -1,6 +1,6 @@
 // Loyalty cards: programmes, customers and every balance calculation (stamps, points, tiers, rewards, expiry).
 // Data lives in db.loyalty and is saved with the rest of the studio data.
-import { randomBytes, randomInt } from "node:crypto";
+import { createHash, randomBytes, randomInt } from "node:crypto";
 import { unlink, appendFile, chmod } from "node:fs/promises";
 import { join } from "node:path";
 import { db, save, id, token, now, MEDIA_DIR, DATA_DIR } from "./store.mjs";
@@ -19,7 +19,7 @@ export const STAMP_GAP_MS = 10 * 60e3; // one stamp-earning visit per customer p
 /** The data root, created on first use. */
 export function ldb() {
   const l = (db.loyalty ??= {});
-  for (const k of ["programs", "customers", "txns", "devices", "templates", "members", "consents"]) l[k] ??= [];
+  for (const k of ["programs", "customers", "txns", "devices", "templates", "members", "consents", "recoveries"]) l[k] ??= [];
   return l;
 }
 
@@ -247,6 +247,7 @@ export async function removeClientData(clientId) {
   l.txns = l.txns.filter((t) => !(t.clientId === clientId || progIds.has(t.programId) || custIds.has(t.customerId)));
   l.devices = l.devices.filter((d) => !custIds.has(d.serial));
   l.consents = l.consents.filter((x) => x.clientId !== clientId && !custIds.has(x.customerId) && !progIds.has(x.programId));
+  l.recoveries = l.recoveries.filter((r) => r.clientId !== clientId && !progIds.has(r.programId) && !memberIds.has(r.memberId));
   // The person may still hold cards at other shops; only the ones left with nothing are removed.
   const stillHasCard = new Set(l.customers.map((c) => c.memberId));
   const orphans = [...memberIds].filter((m) => !stillHasCard.has(m));
@@ -281,6 +282,7 @@ export async function eraseMember(rawPhone, { audit = true, dataDir = DATA_DIR }
   l.txns = l.txns.filter((t) => !ids.has(t.customerId));
   l.devices = l.devices.filter((d) => !ids.has(d.serial));
   l.consents = l.consents.filter((x) => x.memberId !== member.id && !ids.has(x.customerId));
+  l.recoveries = l.recoveries.filter((r) => r.memberId !== member.id);
   l.members = l.members.filter((m) => m.id !== member.id);
   await save();
   if (audit) await appendAudit(dataDir, { event: "member_erased", cards: cards.length, txns, shops: shops.size });
@@ -448,6 +450,98 @@ export function cardForMember(member, program, { by = "system" } = {}) {
   const c = newCard(program, { name: member.name, phone: member.phone, memberId: member.id }, { by });
   void save();
   return { customer: c, created: true };
+}
+
+// ---- recovery: proving a number on a new device (plan A.4, tiers 1 and 2) ----
+// A request is the question "is this the person whose number that is?", asked from a device that has
+// no member cookie. It holds no balance and grants nothing until somebody proves the number: an OTP
+// to that phone (tier 1) or the staff, who see a first name and a masked number and confirm it in
+// person (tier 2). The device that asked holds the secret in a short-lived HttpOnly cookie; the row
+// keeps only its hash, so a leaked data file cannot be replayed as a device.
+export const RECOVERY_TTL_MS = 15 * 60e3;
+const RECOVERY_KEEP_MS = 24 * 3600e3; // how long a finished row stays before it is pruned
+
+const sha = (s) => createHash("sha256").update(String(s)).digest("hex");
+
+export const recoveries = () => ldb().recoveries;
+
+export const memberById = (mid) => ldb().members.find((m) => m.id === mid);
+
+/** Drop rows nobody can use any more; called before every write so the array cannot grow forever. */
+function pruneRecoveries(ms) {
+  const rows = recoveries();
+  for (let i = rows.length - 1; i >= 0; i--) if (Date.parse(rows[i].expiresAt) + RECOVERY_KEEP_MS < ms) rows.splice(i, 1);
+}
+
+/**
+ * Start a recovery for `phone` at `program`. Returns `undefined` when nobody has that number, which
+ * is the same answer the route gives either way: a recovery route that says "no such member" is a
+ * free way to ask whether a number is registered.
+ */
+export function newRecovery({ program, phone }) {
+  const member = memberByPhone(phone);
+  if (!member) return undefined;
+  const ms = Date.now();
+  pruneRecoveries(ms);
+  const secret = randomBytes(18).toString("base64url");
+  const t = now();
+  const row = {
+    id: id(), secretHash: sha(secret), memberId: member.id, clientId: program.clientId, programId: program.id,
+    phone: member.phone, state: "pending", method: "", createdAt: t,
+    expiresAt: new Date(ms + RECOVERY_TTL_MS).toISOString(), confirmedAt: "", confirmedBy: "",
+  };
+  recoveries().push(row);
+  void save();
+  return { row, secret };
+}
+
+/** The pending or confirmed request behind the device's cookie, expired on the way out. */
+export function recoveryBySecret(secret) {
+  if (typeof secret !== "string" || secret.length < 16) return undefined;
+  const h = sha(secret);
+  const row = recoveries().find((r) => r.secretHash === h);
+  if (!row) return undefined;
+  if (row.state === "pending" && Date.parse(row.expiresAt) <= Date.now()) row.state = "expired";
+  return row;
+}
+
+/** Pending, unexpired requests for this programme, oldest first. Staff see these at the till. */
+export function waitingRecoveries(program, { limit = 20 } = {}) {
+  const ms = Date.now();
+  const out = [];
+  for (const r of recoveries()) {
+    if (r.programId !== program.id || r.state !== "pending") continue;
+    if (Date.parse(r.expiresAt) <= ms) { r.state = "expired"; continue; }
+    out.push(r);
+  }
+  out.sort((a, b) => String(a.createdAt).localeCompare(String(b.createdAt)));
+  return out.slice(0, Math.max(1, limit));
+}
+
+/** Mark a request as proved. Returns false when it was never pending or has run out. */
+export function confirmRecovery(row, { by = "staff" } = {}) {
+  if (!row || row.state !== "pending") return false;
+  if (Date.parse(row.expiresAt) <= Date.now()) { row.state = "expired"; return false; }
+  row.state = "confirmed";
+  row.confirmedAt = now();
+  row.confirmedBy = by;
+  void save();
+  return true;
+}
+
+/** The card this recovery unlocks. Undefined when the person or the programme has gone since. */
+export function cardForRecovery(row) {
+  const member = memberById(row?.memberId);
+  const program = findProgram(row?.programId);
+  if (!member || !program || program.status !== "live") return undefined;
+  return cardForMember(member, program).customer;
+}
+
+/** What a staff screen may see: a first name, a masked number and when it was asked. */
+export function recoveryView(row) {
+  const m = memberById(row.memberId);
+  const first = String(m?.name ?? "").trim().split(/\s+/)[0] ?? "";
+  return { id: row.id, name: first, phone: maskPhone(row.phone), at: row.createdAt };
 }
 
 /** "LC1-<id>" (or a bare id) to the customer and programme. */

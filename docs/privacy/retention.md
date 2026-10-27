@@ -10,6 +10,7 @@ Status: proposals. Values marked **[PENDING ATD]** must be confirmed. Erasure ex
 | Loyalty cards, transactions, wallet device tokens | 24 months after last activity **[PENDING ATD]** | Contract; consent for offers | `purgeExpired({loyaltyInactiveDays})` (manual, dry-run by default); `eraseMember(phone)` on request |
 | Expense receipts (images, parsed text) | Per the business's accounting rules (usually 6 years) | Legal obligation of the business | None |
 | Marketing consent evidence | Life of consent + 3 years | Accountability | `loyalty.consents[]`: append-only, one row per grant or withdrawal; removed with the person |
+| Card-recovery requests (`loyalty.recoveries[]`) | 15 minutes live, row pruned 24 h after expiry | Contract (recovering their own card) | `newRecovery` writes no code, only a hash of the device secret; `eraseMember`, shop deletion and the inactivity purge all remove the rows |
 | Technical/access logs | 90 days **[PENDING ATD]** | Legitimate interest | stdout |
 | Backups (`scripts/backup.sh`) | **[PENDING ATD]** rotation, same erasure delay | Security | Snapshots |
 

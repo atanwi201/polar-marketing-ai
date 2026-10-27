@@ -4,6 +4,7 @@ import { db, save, id, token, now } from "./store.mjs";
 import { limiter } from "./auth.mjs";
 import { approval } from "./limits.mjs";
 import { normalisePhone } from "./phone.mjs";
+import { otp as otpService } from "./otp.mjs";
 import { qrSvg, qrPng } from "./qr.mjs";
 import * as L from "./loyalty.mjs";
 import { bookingFor } from "./bookings-links.mjs";
@@ -33,6 +34,7 @@ export const JOIN_LIMITS = { ip: 60, phone: 5, program: 300 };
 export const limits = {
   join: limiter(JOIN_LIMITS.ip, 3600e3), joinPhone: limiter(JOIN_LIMITS.phone, 3600e3), joinProgram: limiter(JOIN_LIMITS.program, 3600e3),
   card: limiter(240, 60e3), staff: limiter(180, 5 * 60e3), badStaff: limiter(20, 15 * 60e3), badCard: limiter(30, 15 * 60e3),
+  recoveryCode: limiter(10, 3600e3), recoveryPhone: limiter(5, 3600e3), recoveryVerify: limiter(30, 15 * 60e3), recoveryWait: limiter(900, 60e3),
   design: limiter(6, 10 * 60e3), manage: limiter(600, 60e3),
 };
 const hit = (lim, ip) => { if (lim.blocked(ip)) return false; lim.fail(ip); return true; };
@@ -112,7 +114,7 @@ async function joinPageRoute(req, res, joinCode, ctx, url) {
   }));
   return true;
 }
-const STAFF_ACTIONS = ["lookup", "record", "find", "enrol"];
+const STAFF_ACTIONS = ["lookup", "record", "find", "enrol", "waiting", "confirm"];
 
 /** What the public join page may see: no staff token. */
 const publicProgram = ({ staffToken, ...p }) => p;
@@ -168,12 +170,21 @@ async function staffPageRoute(req, res, staffToken, ctx) {
 // site cannot send it. `memberToken` in the body is the fallback for a page that stored it itself.
 const MEMBER_COOKIE = "lc_member";
 const MEMBER_COOKIE_DAYS = 730;
+const RECOVERY_COOKIE = "lc_recovery";
+const RECOVERY_COOKIE_SECONDS = 15 * 60;
 const cookies = (req) => Object.fromEntries((req.headers.cookie ?? "").split(";").map((c) => c.trim().split("=")).filter((p) => p.length === 2));
-const setMemberCookie = (req, res, token) => {
+/** `Set-Cookie` can hold several values; the second cookie on one response must not erase the first. */
+const pushCookie = (res, value) => {
+  const prev = res.getHeader("Set-Cookie");
+  res.setHeader("Set-Cookie", prev ? [].concat(prev, value) : value);
+};
+const cookieFlags = (req) => {
   const pub = process.env.PUBLIC_URL ?? "";
   const secure = (pub ? /^https:/i.test(pub) : req.headers["x-forwarded-proto"] === "https") ? "; Secure" : "";
-  res.setHeader("Set-Cookie", `${MEMBER_COOKIE}=${token}; HttpOnly; SameSite=Lax; Path=/; Max-Age=${MEMBER_COOKIE_DAYS * 86400}${secure}`);
+  return `HttpOnly; SameSite=Lax; Path=/${secure}`;
 };
+const setMemberCookie = (req, res, token) => pushCookie(res, `${MEMBER_COOKIE}=${token}; Max-Age=${MEMBER_COOKIE_DAYS * 86400}; ${cookieFlags(req)}`);
+const setRecoveryCookie = (req, res, secret) => pushCookie(res, `${RECOVERY_COOKIE}=${secret}; Max-Age=${RECOVERY_COOKIE_SECONDS}; ${cookieFlags(req)}`);
 
 /**
  * Two shapes of join body, on purpose:
@@ -237,6 +248,91 @@ async function joinRoute(req, res, program, raw, ctx) {
   return ctx.send(res, 201, { cardUrl: `/card/${customer.cardToken}` }), true;
 }
 
+// ---------- recovery (plan A.4) ----------
+// Tier 1 sends a code to the number; tier 2 asks the staff to recognise the person at the till.
+// Both end the same way: the requesting device gets the member cookie and the card URL, and the
+// card is created on demand if the person did not have one at this shop yet.
+const RECOVERY_ACTIONS = ["code", "verify", "wait"];
+const recoveryOtp = (ctx) => ctx?.otp ?? otpService;
+
+const recoveryError = (reason) => ({
+  missing: "Ask for a new code.",
+  expired: "That code has expired. Ask for a new one.",
+  locked: "Too many wrong codes. Ask for a new one, or confirm it at the till.",
+  wrong: "That code is not right.",
+}[reason] ?? "That code is not right.");
+
+async function finishRecovery(req, res, row, ctx) {
+  const member = L.memberById(row.memberId);
+  const customer = L.cardForRecovery(row);
+  if (!member || !customer) return ctx.send(res, 410, { error: "This card is not available any more. Ask the staff." }), true;
+  await save();
+  setMemberCookie(req, res, member.memberToken);
+  return ctx.send(res, 200, { state: "confirmed", cardUrl: `/card/${customer.cardToken}` }), true;
+}
+
+async function recoveryRoutes(req, res, seg, ctx, ip) {
+  const m = req.method, action = seg[4];
+  const program = byJoin(seg[3]);
+  if (!program || !canIssue(program)) return ctx.send(res, 404, { error: "This link is not valid." }), true;
+
+  // POST .../code {phone}: start a recovery and, when a provider exists, send the code.
+  if (action === "code") {
+    if (m !== "POST") return false;
+    if (!hit(limits.recoveryCode, ip)) return tooMany(ctx, res), true;
+    const b = await ctx.readBody(req, 5e3);
+    const phone = normalisePhone(typeof b?.phone === "string" ? b.phone : "");
+    if (!phone) return ctx.send(res, 400, { error: "That phone number does not look right." }), true;
+    if (!hit(limits.recoveryPhone, `phone:${phone.e164}`)) return tooMany(ctx, res), true;
+
+    const svc = recoveryOtp(ctx);
+    const made = L.newRecovery({ program, phone: phone.e164 });
+    // Same answer whether or not that number has a card. What it does say is whether this shop can
+    // send an SMS at all, which is configuration, not personal data.
+    if (!made) return ctx.send(res, 202, { recovery: svc.available ? "sms" : "staff", sent: false }), true;
+    const sent = svc.available ? (await svc.send(phone.e164)).ok : false;
+    // `method` is what the request is waiting on. With no provider (or a failed send) a code can
+    // never arrive, so the staff queue is the honest answer; the page still offers the till either way.
+    made.row.method = sent ? "sms" : "staff";
+    await save();
+    setRecoveryCookie(req, res, made.secret);
+    return ctx.send(res, 202, { recovery: svc.available ? "sms" : "staff", sent }), true;
+  }
+
+  // POST .../verify {code}: the code the phone received, if a provider sent one.
+  if (action === "verify") {
+    if (m !== "POST") return false;
+    if (!hit(limits.recoveryVerify, ip)) return tooMany(ctx, res), true;
+    const row = L.recoveryBySecret(cookies(req)[RECOVERY_COOKIE]);
+    if (!row || row.programId !== program.id) return ctx.send(res, 404, { error: "This recovery has expired. Start again." }), true;
+    if (row.state === "expired") return ctx.send(res, 410, { error: "This recovery has expired. Start again." }), true;
+    if (row.state === "confirmed") return await finishRecovery(req, res, row, ctx);
+    const b = await ctx.readBody(req, 5e3);
+    const r = recoveryOtp(ctx).verify(row.phone, b?.code);
+    if (!r.ok) {
+      const code = r.reason === "locked" ? 423 : r.reason === "expired" ? 410 : 401;
+      return ctx.send(res, code, { error: recoveryError(r.reason), triesLeft: r.triesLeft }), true;
+    }
+    L.confirmRecovery(row, { by: "sms" });
+    const member = L.memberById(row.memberId);
+    if (member) member.phoneVerifiedAt = now();
+    return await finishRecovery(req, res, row, ctx);
+  }
+
+  // GET .../wait: the page polls this while the staff find the person at the till.
+  if (action === "wait") {
+    if (m !== "GET") return false;
+    if (!hit(limits.recoveryWait, ip)) return tooMany(ctx, res), true;
+    const row = L.recoveryBySecret(cookies(req)[RECOVERY_COOKIE]);
+    if (!row) return ctx.send(res, 200, { state: "missing" }), true;
+    if (row.state === "expired") return ctx.send(res, 200, { state: "expired" }), true;
+    if (row.state !== "confirmed") return ctx.send(res, 200, { state: "pending" }), true;
+    return await finishRecovery(req, res, row, ctx);
+  }
+
+  return false;
+}
+
 async function publicApi(req, res, seg, ctx) {
   const ip = ctx.clientIp(req);
   const m = req.method;
@@ -249,6 +345,8 @@ async function publicApi(req, res, seg, ctx) {
     const b = await ctx.readBody(req, 20e3);
     return await joinRoute(req, res, program, b, ctx);
   }
+  // POST/GET /api/loyalty/join/<joinCode>/(code|verify|wait)
+  if (seg[2] === "join" && seg.length === 5 && RECOVERY_ACTIONS.includes(seg[4])) return await recoveryRoutes(req, res, seg, ctx, ip);
   // GET /api/loyalty/card/<cardToken>
   if (m === "GET" && seg[2] === "card" && seg.length === 4) {
     if (!hit(limits.card, ip) || limits.badCard.blocked(ip)) return tooMany(ctx, res), true;
@@ -288,6 +386,21 @@ async function publicApi(req, res, seg, ctx) {
       const { customer, created } = L.cardForMember(member, program, { by: "staff" });
       await save();
       ctx.send(res, created ? 201 : 200, { customer: L.staffCustomer(customer, program), cardUrl: `/card/${customer.cardToken}`, created });
+      return true;
+    }
+    // Recovery at the till (plan A.4, tier 2). The staff member sees a first name and a masked
+    // number, recognises the person in front of them and confirms. The card goes to the device that
+    // asked, never to the till, and the request expires on its own in fifteen minutes.
+    if (seg[4] === "waiting") {
+      ctx.send(res, 200, { requests: L.waitingRecoveries(program).map(L.recoveryView) });
+      return true;
+    }
+    if (seg[4] === "confirm") {
+      const row = L.recoveries().find((r) => r.id === b.id && r.programId === program.id);
+      if (!row) return ctx.send(res, 404, { error: "That request is gone. Ask them to try again." }), true;
+      if (!L.confirmRecovery(row, { by: "staff" })) return ctx.send(res, 410, { error: "That request has expired. Ask them to try again." }), true;
+      await save();
+      ctx.send(res, 200, { ok: true });
       return true;
     }
     if (seg[4] === "lookup") {

@@ -230,7 +230,18 @@ const JOIN_I18N = {
     sample: "Tu nombre",
     noJs: "Activa JavaScript para conseguir tu tarjeta.",
     recH: "Ese número ya tiene tarjeta",
-    recP: "Está en otro teléfono. Pide en la barra que te la confirmen y la abrimos aquí.",
+    recP: "Está en otro teléfono. Podemos mandarte un código por SMS o confirmarlo en la barra.",
+    recSend: "Mandarme un código",
+    recSending: "Enviando",
+    recCodeL: "Código de 6 dígitos",
+    recVerifyBtn: "Comprobar el código",
+    recCodeHint: "¿No te llega? Pide en la barra que te lo confirmen.",
+    recTill: "Pide en la barra que te confirmen. Esta página se abrirá sola cuando lo hagan.",
+    recWaiting: "Esperando en la barra",
+    recWrong: "Ese código no es correcto.",
+    recLocked: "Demasiados intentos. Pide otro código o confírmalo en la barra.",
+    recGone: "Este intento ha caducado. Empieza otra vez.",
+    recAgain: "No es mi número",
     errPhone: "Escribe tu número de teléfono.",
     errBad: "Ese número no parece correcto. Revísalo e inténtalo otra vez.",
     errOther: "Este teléfono ya está dado de alta con otro número.",
@@ -272,7 +283,18 @@ const JOIN_I18N = {
     sample: "Your name",
     noJs: "Turn on JavaScript to get your card.",
     recH: "That number already has a card",
-    recP: "It is on another phone. Ask at the till to confirm it is you and we will open it here.",
+    recP: "It is on another phone. We can text you a code, or someone at the till can confirm it is you.",
+    recSend: "Send me a code",
+    recSending: "Sending",
+    recCodeL: "6-digit code",
+    recVerifyBtn: "Check the code",
+    recCodeHint: "No code? Ask at the till to confirm it.",
+    recTill: "Ask at the till to confirm it is you. This page opens by itself when they do.",
+    recWaiting: "Waiting for the till",
+    recWrong: "That code is not right.",
+    recLocked: "Too many tries. Ask for a new code, or confirm it at the till.",
+    recGone: "This attempt has expired. Start again.",
+    recAgain: "Not my number",
     errPhone: "Type your phone number.",
     errBad: "That number does not look right. Check it and try again.",
     errOther: "This phone is already set up with another number.",
@@ -336,7 +358,12 @@ export function joinPage({ program, client, baseUrl = "", lang = "es", knownCard
     ${program.terms ? `<p class="terms">${esc(program.terms)}</p>` : ""}
   </form>`;
 
-  const clientT = { needPhone: t.errPhone, bad: t.errBad, other: t.errOther, many: t.errMany, gone: t.errGone, net: t.errNet, gen: t.errGen, recH: t.recH, recP: t.recP, busy: t.busy, go: t.go, deviceBtn: t.deviceBtn };
+  const clientT = {
+    needPhone: t.errPhone, bad: t.errBad, other: t.errOther, many: t.errMany, gone: t.errGone, net: t.errNet, gen: t.errGen,
+    recH: t.recH, recP: t.recP, recSend: t.recSend, recSending: t.recSending, recCodeL: t.recCodeL, recVerifyBtn: t.recVerifyBtn,
+    recCodeHint: t.recCodeHint, recTill: t.recTill, recWaiting: t.recWaiting, recWrong: t.recWrong, recLocked: t.recLocked,
+    recGone: t.recGone, recAgain: t.recAgain, busy: t.busy, go: t.go, deviceBtn: t.deviceBtn,
+  };
 
   return `<!doctype html>
 <html lang="${L}">
@@ -359,7 +386,12 @@ form.cr-card{margin-top:var(--space-5);padding:var(--space-5) var(--space-4)}
 .known-h{font:700 24px/30px var(--font-display);margin:0 0 var(--space-2)}
 .rec{padding:var(--space-2) 0}
 .rec h2{font:700 22px/28px var(--font-display);margin:0 0 var(--space-2)}
-.rec p{margin:0;color:var(--ink-2);font-size:16px;line-height:24px}
+.rec p{margin:0 0 var(--space-3);color:var(--ink-2);font-size:16px;line-height:24px}
+.rec .cr-input{margin:0 0 var(--space-3)}
+.rec .cr-btn{margin-top:var(--space-3)}
+.rec .hint{text-align:center}
+.rec .state{margin:var(--space-3) 0 0;color:var(--ink-2);font-size:14px;line-height:20px;text-align:center}
+.cr-link{background:none;border:0;padding:var(--space-3) 0;color:var(--ink-2);font:600 14px/20px var(--font-sans);text-decoration:underline;cursor:pointer}
 .rl{list-style:none;margin:0;padding:0;display:grid;gap:var(--space-2)}
 .rl li{display:flex;justify-content:space-between;gap:12px;font-weight:600}
 .rl span{color:var(--ink-2);font-weight:500;white-space:nowrap}
@@ -399,15 +431,76 @@ var f=$("f"),err=$("err"),go=$("go"),goTxt=$("goTxt"),KEY="lc-card-"+code;
 try{var saved=localStorage.getItem(KEY);if(saved&&/^\\/card\\/[\\w-]+$/.test(saved)){$("againLink").href=saved;$("again").hidden=false}}catch(e){}
 function show(m){err.textContent=m;err.classList.add("on");try{err.scrollIntoView({block:"nearest",behavior:"smooth"})}catch(e){}}
 function done(){go.disabled=false;go.classList.remove("busy");goTxt.textContent=state==="device"?T.deviceBtn:T.go}
-function recovery(){f.innerHTML='<div class="rec"><h2>'+T.recH+'</h2><p>'+T.recP+'</p></div>'}
-function say(status,d){
-  if(status===202)return recovery();
+var recovering=false,recPoll=null,recPhone="";
+function recStop(){if(recPoll){clearInterval(recPoll);recPoll=null}}
+function recDone(url){recStop();try{localStorage.setItem(KEY,url)}catch(e){}location.href=url}
+function recCall(action,body){
+  return fetch("/api/loyalty/join/"+encodeURIComponent(code)+"/"+action,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body||{})})
+    .then(function(r){return r.json().catch(function(){return {}}).then(function(d){
+      if(!r.ok){var e=new Error(d.error||(r.status===429?T.many:T.gen));e.status=r.status;e.triesLeft=d.triesLeft;throw e}
+      return d;
+    })},function(){throw new Error(T.net)});
+}
+function recPollStart(){
+  if(recPoll)return;
+  var deadline=Date.now()+15*60*1000;
+  recPoll=setInterval(function(){
+    if(Date.now()>deadline){recStop();var s=$("recState");if(s)s.textContent=T.recGone;return}
+    fetch("/api/loyalty/join/"+encodeURIComponent(code)+"/wait",{headers:{Accept:"application/json"}})
+      .then(function(r){return r.json()}).then(function(d){
+        if(d&&d.state==="confirmed"&&d.cardUrl)return recDone(d.cardUrl);
+        if(d&&(d.state==="expired"||d.state==="missing")){recStop();var s=$("recState");if(s)s.textContent=T.recGone}
+      }).catch(function(){});
+  },2500);
+}
+function recovery(phone){
+  recovering=true;recPhone=phone;go.hidden=true;
+  ["phone","name"].forEach(function(id){var e=$(id);if(e&&e.parentNode)e.parentNode.hidden=true});
+  var box=document.createElement("div");box.className="rec";box.id="rec";
+  box.innerHTML='<h2>'+T.recH+'</h2><p>'+T.recP+'</p>'
+    +'<button class="cr-btn cr-btn--primary cr-btn--lg cr-btn--block" id="recSend" type="button">'+T.recSend+'</button>'
+    +'<div id="recCode" hidden><label class="cr-label" for="recCodeIn">'+T.recCodeL+'</label>'
+    +'<input class="cr-input" id="recCodeIn" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6" pattern="[0-9]*">'
+    +'<button class="cr-btn cr-btn--soft cr-btn--lg cr-btn--block" id="recVerify" type="button">'+T.recVerifyBtn+'</button>'
+    +'<p class="hint">'+T.recCodeHint+'</p></div>'
+    +'<p class="hint" id="recTill" hidden>'+T.recTill+'</p>'
+    +'<p class="state" id="recState" aria-live="polite"></p>'
+    +'<p><button class="cr-link" id="recAgain" type="button">'+T.recAgain+'</button></p>';
+  f.appendChild(box);
+  $("recSend").addEventListener("click",function(){
+    var b=$("recSend");b.disabled=true;b.textContent=T.recSending;
+    recCall("code",{phone:recPhone}).then(function(d){
+      b.hidden=true;$("recTill").hidden=false;
+      if(d.recovery==="sms"){$("recCode").hidden=false;$("recCodeIn").focus()}
+      else{$("recState").textContent=T.recWaiting}
+      recPollStart();
+    }).catch(function(e){b.disabled=false;b.textContent=T.recSend;show(e.message||T.net)});
+  });
+  $("recVerify").addEventListener("click",function(){
+    var v=$("recCodeIn").value.replace(/\D/g,"");
+    if(v.length!==6){show(T.recWrong);return}
+    var b=$("recVerify");b.disabled=true;
+    recCall("verify",{code:v}).then(function(d){
+      if(d.cardUrl)return recDone(d.cardUrl);
+      b.disabled=false;show(T.recGone);
+    }).catch(function(e){
+      b.disabled=false;
+      show(e.status===410?T.recGone:e.status===423||e.triesLeft===0?T.recLocked:e.status===401?T.recWrong:(e.message||T.gen));
+    });
+  });
+  $("recCodeIn").addEventListener("keydown",function(e){if(e.key==="Enter"){e.preventDefault();$("recVerify").click()}});
+  $("recAgain").addEventListener("click",function(){location.reload()});
+}
+function say(status,d,phone){
+  if(status===202)return recovery(phone||"");
   if(!d||!d.cardUrl){show(status===400?T.bad:status===409?T.other:status===429?T.many:status===404?T.gone:T.gen);done();return}
   try{localStorage.setItem(KEY,d.cardUrl)}catch(e){}
   location.href=d.cardUrl;
 }
 f.addEventListener("submit",function(e){
-  e.preventDefault();err.classList.remove("on");
+  e.preventDefault();
+  if(recovering)return;
+  err.classList.remove("on");
   var body={};
   if(state!=="device"){
     body.phone=$("phone").value.trim();
@@ -417,7 +510,7 @@ f.addEventListener("submit",function(e){
   go.disabled=true;go.classList.add("busy");goTxt.textContent=T.busy;
   fetch("/api/loyalty/join/"+encodeURIComponent(code),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)})
   .then(function(r){return r.json().catch(function(){return {}}).then(function(d){return {status:r.status,d:d}})})
-  .then(function(x){say(x.status,x.d)})
+  .then(function(x){say(x.status,x.d,body.phone||"")})
   .catch(function(){done();show(T.net)});
 });
 })();
@@ -645,6 +738,10 @@ body{overscroll-behavior-y:contain;-webkit-tap-highlight-color:transparent}
 .hits .hit{display:flex;justify-content:space-between;align-items:center;gap:12px;width:100%;min-height:56px;padding:var(--space-2) var(--space-3);border:1px solid var(--line);border-radius:var(--radius-md);background:var(--surface-2);color:var(--ink);font:600 16px/20px var(--font-sans);text-align:left;cursor:pointer}
 .hits .hit small{display:block;font:500 13px/18px var(--font-mono);color:var(--ink-2)}
 .hits .none{margin:0;font-size:14px;color:var(--ink-2)}
+.hits .hit.static{cursor:default}
+.hits .hit .cr-btn{min-height:40px;padding:0 14px;font-size:14px}
+.recq h3{margin:0 0 var(--space-2)}
+.recq .note{margin:0 0 var(--space-3)}
 .newCard{margin:0;font-size:15px}
 .cust{margin-top:var(--space-4);padding:var(--space-4)}
 .cust-top{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}
@@ -708,6 +805,11 @@ body{overscroll-behavior-y:contain;-webkit-tap-highlight-color:transparent}
     <ul class="hits" id="hits" hidden></ul>
     <form class="manual" id="enrol" autocomplete="off" hidden><input class="cr-input" id="enName" maxlength="80" placeholder="First name (optional)" aria-label="Customer first name"><button class="cr-btn cr-btn--soft" type="submit">New card</button></form>
     <p class="newCard" id="newCard" hidden><a id="newCardLink" href="#" target="_blank" rel="noopener">Open the new card</a></p>
+  </section>
+  <section class="recq cr-card" id="recq" hidden>
+    <h3>Waiting at the till</h3>
+    <p class="note">Someone is trying to open a card on a new phone. Check the name and number with the person in front of you, then confirm.</p>
+    <ul class="hits" id="recqList"></ul>
   </section>
   <section class="cust cr-card" id="cust" hidden>
     <div class="cust-top"><div><h2 id="cName"></h2><p class="meta" id="cMeta"></p></div><button class="x" id="clear" type="button" aria-label="Clear customer"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg></button></div>
@@ -810,6 +912,24 @@ $("enrol").addEventListener("submit",function(e){
     toast(d.created?"Card created. Open it to show the customer.":"That number already had a card.",true);
   }).catch(function(e){toast(e.message,false)}).then(function(){busy=false});
 });
+// Recovery at the till (plan A.4, tier 2): the customer's page polls until one of these is confirmed.
+var recqBusy=false;
+function drawRecq(list){
+  var box=$("recq"),ul=$("recqList");
+  box.hidden=!list.length;
+  ul.innerHTML=list.map(function(r){return'<li><div class="hit static"><span>'+esc(r.name||"Customer")+"<small>"+esc(r.phone)+'</small></span><button type="button" class="cr-btn cr-btn--soft" data-confirm="'+esc(r.id)+'">This is them</button></div></li>'}).join("");
+}
+function loadRecq(){
+  if(recqBusy||document.hidden)return;recqBusy=true;
+  post("/waiting",{}).then(function(d){drawRecq(d.requests||[])}).catch(function(){}).then(function(){recqBusy=false});
+}
+$("recqList").addEventListener("click",function(e){
+  var b=e.target.closest("[data-confirm]");if(!b)return;
+  b.disabled=true;
+  post("/confirm",{id:b.getAttribute("data-confirm")}).then(function(){toast("Recovery confirmed. Their card opens on their phone.",true);loadRecq()})
+  .catch(function(err){toast(err.message,false);b.disabled=false;loadRecq()});
+});
+loadRecq();setInterval(loadRecq,15000);
 $("acts").addEventListener("click",function(e){
   var b=e.target.closest("[data-a]");if(!b||!cur)return;
   var a=b.getAttribute("data-a");

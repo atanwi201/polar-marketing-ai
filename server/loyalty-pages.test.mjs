@@ -185,3 +185,27 @@ test("cardStyles and qrInline", () => {
   assert.match(svg, /^<svg/);
   assert.match(svg, /<path d="M/);
 });
+
+test("join page: the recovery panel offers a code and the till, in both languages", () => {
+  const es = joinPage({ program: program(), client: { name: "Cafe Marron" } });
+  assert.match(es, /Mandarme un código/);
+  assert.match(es, /Código de 6 dígitos/);
+  assert.match(es, /recCall\("code"/);
+  assert.match(es, /recCall\("verify"/);
+  assert.match(es, /"\/wait"/);
+  assert.match(es, /recPollStart/);
+
+  const en = joinPage({ program: program(), client: { name: "Cafe Marron" }, lang: "en" });
+  assert.match(en, /Send me a code/);
+  assert.match(en, /6-digit code/);
+  assert.match(en, /Ask at the till to confirm it is you/);
+});
+
+test("staff page: the till can see and confirm a waiting recovery", () => {
+  const html = staffPage({ program: program(), client: { name: "Cafe Marron" } });
+  assert.match(html, /Waiting at the till/);
+  assert.match(html, /id="recqList"/);
+  assert.match(html, /post\("\/waiting"/);
+  assert.match(html, /post\("\/confirm"/);
+  assert.match(html, /This is them/);
+});
