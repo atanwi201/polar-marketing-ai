@@ -42,8 +42,11 @@ const eur = (n) => Math.round(Number(n) * 100) / 100;
 const bool = (v, d) => (typeof v === "boolean" ? v : d);
 
 export const findProgram = (pid) => ldb().programs.find((p) => p.id === pid);
-export const findCustomer = (cid) => ldb().customers.find((c) => c.id === cid || c.id.toLowerCase() === String(cid).toLowerCase());
-export const findByToken = (t) => (typeof t === "string" && t.length >= 8 ? ldb().customers.find((c) => c.cardToken === t) : undefined);
+const sameRef = (a, b) => typeof a === "string" && a.toLowerCase() === String(b).toLowerCase();
+/** A card by its id, or by the id it had before a merge (so an already-printed QR still resolves). */
+export const findCustomer = (cid) => ldb().customers.find((c) => sameRef(c.id, cid) || (c.oldIds ?? []).some((x) => sameRef(x, cid)));
+/** A card by its URL token, or by a token it absorbed in a merge. */
+export const findByToken = (t) => (typeof t === "string" && t.length >= 8 ? ldb().customers.find((c) => c.cardToken === t || (c.aliases ?? []).includes(t)) : undefined);
 export const clientOf = (p) => db.clients.find((c) => c.id === p?.clientId);
 
 // ---- staff link expiry (programme.staffTokenExpiresAt; programmes from before this field get one on first use) ----
@@ -450,6 +453,81 @@ export function cardForMember(member, program, { by = "system" } = {}) {
   const c = newCard(program, { name: member.name, phone: member.phone, memberId: member.id }, { by });
   void save();
   return { customer: c, created: true };
+}
+
+// ---- claiming an old card and merging duplicates (plan A.6, steps 3 and 4) ----
+
+/**
+ * Attach an old card to a member. The card keeps its email, its token and every balance; it gains
+ * the member link and the canonical number. Nothing is created and nothing is merged: a member who
+ * already holds another card here is a 409, because choosing which balance wins is the owner's job
+ * (`mergeCards`), not a side effect of somebody typing a number.
+ */
+export function linkCardToMember(customer, member) {
+  if (!customer || !member) throw new LoyaltyError("Card not found", 404);
+  if (customer.memberId === member.id) return customer;
+  if (customer.memberId) throw new LoyaltyError("This card is already linked to another number.", 409);
+  const other = ldb().customers.find((c) => c.id !== customer.id && c.memberId === member.id && c.programId === customer.programId);
+  if (other) throw new LoyaltyError("That number already has a card at this shop. Ask the staff to merge them.", 409);
+  const t = now();
+  customer.memberId = member.id;
+  customer.phone = member.phone;
+  if (!str(customer.name, 80)) customer.name = member.name;
+  if (!str(member.name, 80)) member.name = customer.name;
+  customer.updatedAt = t;
+  member.updatedAt = t;
+  void save();
+  return customer;
+}
+
+/** A card of this programme, by id, pre-merge id or card token. */
+export function cardInProgram(program, ref) {
+  if (typeof ref !== "string" || !ref) return undefined;
+  const c = findByToken(ref) ?? findCustomer(ref);
+  return c && c.programId === program.id ? c : undefined;
+}
+
+/**
+ * Fold `mergeId` into `keepId` (both cards of `program`), the action the duplicate report points
+ * at. Balances add up, the transactions, wallet devices and consent rows move, and the absorbed
+ * card's token and id stay resolvable as aliases so the old link and an already-printed QR keep
+ * working. The cards must belong to the same person or to nobody: merging two numbers would give
+ * one person the other's stamps, so it is refused.
+ */
+export function mergeCards(program, keepRef, mergeRef, { by = "owner" } = {}) {
+  const keep = cardInProgram(program, keepRef);
+  const gone = cardInProgram(program, mergeRef);
+  if (!keep || !gone) throw new LoyaltyError("Card not found", 404);
+  if (keep.id === gone.id) throw new LoyaltyError("Choose two different cards.", 400);
+  const km = memberOf(keep), gm = memberOf(gone);
+  if (km && gm && km.id !== gm.id) throw new LoyaltyError("These cards belong to two different numbers.", 409);
+
+  keep.stamps = (keep.stamps ?? 0) + (gone.stamps ?? 0);
+  keep.points = (keep.points ?? 0) + (gone.points ?? 0);
+  keep.lifetimePoints = (keep.lifetimePoints ?? 0) + (gone.lifetimePoints ?? 0);
+  keep.visits = (keep.visits ?? 0) + (gone.visits ?? 0);
+  keep.tier = tierFor(program, keep.lifetimePoints).name;
+  if (String(gone.lastVisitAt ?? "") > String(keep.lastVisitAt ?? "")) keep.lastVisitAt = gone.lastVisitAt;
+  if (String(gone.createdAt ?? "") < String(keep.createdAt ?? "")) keep.createdAt = gone.createdAt;
+  if (!str(keep.name, 80)) keep.name = gone.name;
+  if (!str(keep.email, 120)) keep.email = gone.email;
+  if (!str(keep.phone, 30)) keep.phone = gone.phone;
+  keep.marketingConsent = keep.marketingConsent === true || gone.marketingConsent === true;
+  if (!km && gm) { keep.memberId = gm.id; keep.phone = gm.phone; }
+  keep.redemptions = [...(keep.redemptions ?? []), ...(gone.redemptions ?? [])];
+
+  const l = ldb();
+  for (const t of l.txns) if (t.customerId === gone.id) t.customerId = keep.id;
+  for (const d of l.devices) if (d.serial === gone.id) d.serial = keep.id;
+  for (const x of l.consents) if (x.customerId === gone.id) x.customerId = keep.id;
+  l.customers = l.customers.filter((c) => c.id !== gone.id);
+
+  keep.aliases = [...new Set([...(keep.aliases ?? []), gone.cardToken, ...(gone.aliases ?? [])])];
+  keep.oldIds = [...new Set([...(keep.oldIds ?? []), gone.id, ...(gone.oldIds ?? [])])];
+  keep.updatedAt = now();
+  addTxn(keep, program, { type: "adjust", note: `Merged card ${gone.id}`, by });
+  void save();
+  return { keep, gone };
 }
 
 // ---- recovery: proving a number on a new device (plan A.4, tiers 1 and 2) ----

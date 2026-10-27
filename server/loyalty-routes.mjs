@@ -35,6 +35,7 @@ export const limits = {
   join: limiter(JOIN_LIMITS.ip, 3600e3), joinPhone: limiter(JOIN_LIMITS.phone, 3600e3), joinProgram: limiter(JOIN_LIMITS.program, 3600e3),
   card: limiter(240, 60e3), staff: limiter(180, 5 * 60e3), badStaff: limiter(20, 15 * 60e3), badCard: limiter(30, 15 * 60e3),
   recoveryCode: limiter(10, 3600e3), recoveryPhone: limiter(5, 3600e3), recoveryVerify: limiter(30, 15 * 60e3), recoveryWait: limiter(900, 60e3),
+  claimCode: limiter(10, 3600e3), claimPhone: limiter(5, 3600e3), claimVerify: limiter(30, 15 * 60e3),
   design: limiter(6, 10 * 60e3), manage: limiter(600, 60e3),
 };
 const hit = (lim, ip) => { if (lim.blocked(ip)) return false; lim.fail(ip); return true; };
@@ -134,7 +135,15 @@ async function cardRoutes(req, res, seg, ctx) {
     return bk || mn ? { ...v, ...(bk ? { booking: bk } : {}), ...(mn ? { menu: mn } : {}) } : v;
   };
   const P = await pages();
-  if (seg.length === 2) { const v = view(); await save(); html(res, 200, P.cardPage({ view: v, baseUrl: base })); return true; }
+  if (seg.length === 2) {
+    const v = view();
+    // Only old cards that have no number yet can be claimed, and only when a code can actually be
+    // sent: with no SMS provider the prompt would be a dead end, so it is not rendered at all.
+    const claim = recoveryOtp(ctx).available && !customer.memberId && canIssue(program);
+    await save();
+    html(res, 200, P.cardPage({ view: v, baseUrl: base, claim }));
+    return true;
+  }
   if (seg.length === 3 && seg[2] === "qr.svg") return bin(res, "image/svg+xml", await qrSvg(L.codeOf(customer))), true;
   if (seg.length === 3 && seg[2] === "manifest.webmanifest") {
     const man = P.manifest(view());
@@ -333,6 +342,64 @@ async function recoveryRoutes(req, res, seg, ctx, ip) {
   return false;
 }
 
+// ---------- claiming an old email card (plan A.6, step 3) ----------
+// The person already holds the card's secret URL, so the card is not in question: what the code
+// proves is that the number they are adding is theirs. Two routes, mirroring recovery: send a code,
+// then verify it. With no SMS provider the form is not shown at all (the card page asks the shop).
+const CLAIM_ERROR = {
+  missing: "Ask for a new code.",
+  expired: "That code has expired. Ask for a new one.",
+  locked: "Too many wrong codes. Ask for a new one.",
+  wrong: "That code is not right.",
+};
+
+async function claimRoutes(req, res, seg, ctx, ip) {
+  const verifyStep = seg.length === 6 && seg[5] === "verify";
+  const customer = L.findByToken(seg[3]);
+  const program = customer && L.findProgram(customer.programId);
+  if (!customer || !program) return ctx.send(res, 404, { error: "This card link is not valid." }), true;
+  if (!canIssue(program)) return ctx.send(res, 403, { error: "This card is not active yet. Ask the owner." }), true;
+  if (customer.memberId) return ctx.send(res, 409, { error: "This card already has a phone number." }), true;
+
+  if (!verifyStep) {
+    if (!hit(limits.claimCode, ip)) return tooMany(ctx, res), true;
+    const b = await ctx.readBody(req, 5e3);
+    const phone = normalisePhone(typeof b?.phone === "string" ? b.phone : "");
+    if (!phone) return ctx.send(res, 400, { error: "That phone number does not look right." }), true;
+    if (!hit(limits.claimPhone, `phone:${phone.e164}`)) return tooMany(ctx, res), true;
+    const svc = recoveryOtp(ctx);
+    if (!svc.available) return ctx.send(res, 503, { error: "Text messages are not set up. Ask the staff to add your number." }), true;
+    const sent = await svc.send(phone.e164);
+    if (!sent.ok) {
+      const code = sent.reason === "phone_cap" || sent.reason === "daily_cap" ? 429 : 502;
+      return ctx.send(res, code, { error: "We could not send the code. Try again in a few minutes." }), true;
+    }
+    return ctx.send(res, 202, { sent: true }), true;
+  }
+
+  if (!hit(limits.claimVerify, ip)) return tooMany(ctx, res), true;
+  const b = await ctx.readBody(req, 5e3);
+  const phone = normalisePhone(typeof b?.phone === "string" ? b.phone : "");
+  if (!phone) return ctx.send(res, 400, { error: "That phone number does not look right." }), true;
+  const r = recoveryOtp(ctx).verify(phone.e164, b?.code);
+  if (!r.ok) {
+    const code = r.reason === "locked" ? 423 : r.reason === "expired" ? 410 : 401;
+    return ctx.send(res, code, { error: CLAIM_ERROR[r.reason] ?? "That code is not right.", triesLeft: r.triesLeft }), true;
+  }
+  // An existing member keeps their name; a new one takes the card's. The link itself refuses a
+  // second card for the same number at this shop, which is the owner's merge to make, not ours.
+  const member = L.memberByPhone(phone.e164) ?? L.findOrCreateMember({ phone: phone.e164, name: customer.name, locale: b?.locale }).member;
+  try {
+    L.linkCardToMember(customer, member);
+  } catch (e) {
+    return ctx.send(res, e.status ?? 400, { error: e.message }), true;
+  }
+  if (!member.phoneVerifiedAt) member.phoneVerifiedAt = now();
+  await save();
+  setMemberCookie(req, res, member.memberToken);
+  return ctx.send(res, 200, { ok: true, cardUrl: `/card/${customer.cardToken}` }), true;
+}
+
 async function publicApi(req, res, seg, ctx) {
   const ip = ctx.clientIp(req);
   const m = req.method;
@@ -347,6 +414,8 @@ async function publicApi(req, res, seg, ctx) {
   }
   // POST/GET /api/loyalty/join/<joinCode>/(code|verify|wait)
   if (seg[2] === "join" && seg.length === 5 && RECOVERY_ACTIONS.includes(seg[4])) return await recoveryRoutes(req, res, seg, ctx, ip);
+  // POST /api/loyalty/card/<cardToken>/claim  and  .../claim/verify
+  if (m === "POST" && seg[2] === "card" && seg[4] === "claim" && (seg.length === 5 || (seg.length === 6 && seg[5] === "verify"))) return await claimRoutes(req, res, seg, ctx, ip);
   // GET /api/loyalty/card/<cardToken>
   if (m === "GET" && seg[2] === "card" && seg.length === 4) {
     if (!hit(limits.card, ip) || limits.badCard.blocked(ip)) return tooMany(ctx, res), true;
@@ -546,6 +615,21 @@ async function manage(req, res, url, rest, scope, ctx) {
     L.rotateStaffToken(p);
     await save();
     return out(200, { staffToken: p.staffToken, staffTokenExpiresAt: p.staffTokenExpiresAt, staffUrl: L.staffUrl(p, base) });
+  }
+
+  // POST /programs/:id/merge {keepId, mergeId, confirm:true}: fold a duplicate card into another.
+  // The owner sees the duplicate report and chooses which balance survives; nothing is automatic.
+  if (act === "merge" && rest.length === 3 && m === "POST") {
+    const b = await ctx.readBody(req, 5e3);
+    if (b.confirm !== true) return out(400, { error: "Confirm the merge first." });
+    try {
+      const r = L.mergeCards(p, b.keepId, b.mergeId, { by });
+      await save();
+      pushAll(p);
+      return out(200, { ok: true, card: L.customerRow(r.keep), mergedId: r.gone.id });
+    } catch (e) {
+      return out(e.status ?? 400, { error: e.message });
+    }
   }
 
   if (act === "customers") {

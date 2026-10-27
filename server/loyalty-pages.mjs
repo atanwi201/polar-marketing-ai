@@ -547,7 +547,7 @@ export function manifest(view) {
   return m;
 }
 
-export function cardPage({ view, baseUrl = "" }) {
+export function cardPage({ view, baseUrl = "", claim = false }) {
   const d = view.program?.design || {};
   const token = tokenOf(view.installUrl);
   const bg = safeHex(d.background, "#14232b");
@@ -628,6 +628,22 @@ details.panel summary{font:700 16px/24px var(--font-display);cursor:pointer;min-
   ${view.booking?.url ? `<a class="bk" id="bk" href="${esc(view.booking.url)}" data-es="${view.booking.kind === "room" ? "Reservar habitación" : "Reservar mesa"}">${view.booking.kind === "room" ? "Book a room" : "Book a table"}</a>` : ""}
   ${view.menu?.url ? `<a class="bk" id="mn" href="${esc(view.menu.url)}" data-es="Carta">Menu</a>` : ""}
   <div class="panels">
+    ${claim ? `<section class="panel cr-card claim" id="claim">
+      <h3>Use this card in other shops</h3>
+      <p class="muted sm" style="margin:0 0 var(--space-3)">Add your phone number and this card follows you to any shop that uses Polar.</p>
+      <button class="cr-btn cr-btn--soft cr-btn--block" id="claimOpen" type="button">Add my number</button>
+      <div id="claimForm" hidden>
+        <label class="cr-label" for="claimPhone">Phone number</label>
+        <input class="cr-input" id="claimPhone" type="tel" inputmode="tel" autocomplete="tel" placeholder="612 345 678">
+        <button class="cr-btn cr-btn--primary cr-btn--block" id="claimSend" type="button">Send me a code</button>
+        <div id="claimCodeBox" hidden>
+          <label class="cr-label" for="claimCode">6-digit code</label>
+          <input class="cr-input" id="claimCode" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6" pattern="[0-9]*">
+          <button class="cr-btn cr-btn--soft cr-btn--block" id="claimVerify" type="button">Check the code</button>
+        </div>
+        <p class="status" id="claimMsg" aria-live="polite"></p>
+      </div>
+    </section>` : ""}
     <section class="panel cr-card"><h3>Rewards</h3><ul class="list" id="rewards">${K.rewards(view)}</ul></section>
     <section class="panel cr-card"><h3>Activity</h3><ul class="list hist" id="history">${K.history(view)}</ul></section>
     ${wallet || google ? "" : `<section class="panel cr-card hint" id="hint" hidden>
@@ -648,6 +664,32 @@ details.panel summary{font:700 16px/24px var(--font-display);cursor:pointer;min-
 var K=${KIT_SRC},view=${js(view)},$=function(i){return document.getElementById(i)};
 var parts=location.pathname.split("/").filter(Boolean),token=parts[0]==="card"?parts[1]:${js(token)};
 if(token&&!$("mf").getAttribute("href"))$("mf").setAttribute("href","/card/"+token+"/manifest.webmanifest");
+function claimErr(e){var m=$("claimMsg");if(m)m.textContent=e&&e.message?e.message:"Try again."}
+function claimPost(action,body){
+  return fetch("/api/loyalty/card/"+encodeURIComponent(token)+"/claim"+action,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body||{})})
+    .then(function(r){return r.json().catch(function(){return{}}).then(function(d){if(!r.ok)throw new Error(d.error||"Try again.");return d})});
+}
+if($("claimOpen")){
+  $("claimOpen").addEventListener("click",function(){$("claimOpen").hidden=true;$("claimForm").hidden=false;$("claimPhone").focus()});
+  $("claimSend").addEventListener("click",function(){
+    var b=$("claimSend"),ph=$("claimPhone").value;
+    if(!ph.replace(/\D/g,""))return claimErr({message:"Type your phone number."});
+    b.disabled=true;
+    claimPost("",{phone:ph}).then(function(){
+      $("claimCodeBox").hidden=false;$("claimCode").focus();
+      $("claimMsg").textContent="We sent you a code. It may take a minute.";
+    }).catch(function(e){b.disabled=false;claimErr(e)});
+  });
+  $("claimVerify").addEventListener("click",function(){
+    var b=$("claimVerify"),code=$("claimCode").value.replace(/\D/g,"");
+    if(code.length!==6)return claimErr({message:"The code has six digits."});
+    b.disabled=true;
+    claimPost("/verify",{phone:$("claimPhone").value,code:code}).then(function(){
+      $("claim").innerHTML='<h3>Number saved</h3><p class="muted sm" style="margin:0">Your card now works in other shops too.</p>';
+    }).catch(function(e){b.disabled=false;claimErr(e)});
+  });
+  $("claimCode").addEventListener("keydown",function(e){if(e.key==="Enter"){e.preventDefault();$("claimVerify").click()}});
+}
 var last=JSON.stringify(view),failed=0,lastOk=Date.now();
 function put(id,html){var e=$(id);if(e&&e.__h!==html){if(e.__h===undefined&&e.innerHTML===html){e.__h=html;return}e.innerHTML=html;e.__h=html}}
 function paint(v){
