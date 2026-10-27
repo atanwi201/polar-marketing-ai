@@ -85,7 +85,8 @@ Keys are never returned in full by the API (`aiSettingsView`/`imageSettingsView`
 | Array | Record |
 |---|---|
 | `programs[]` | `id`, `clientId`, `name`, `type` (`stamps/points/custom`), `status` (`draft/live/paused`), `joinCode`, `staffToken`, `staffTokenExpiresAt` (default 365 days, `LOYALTY_STAFF_TOKEN_DAYS`), `design` (palette, font, layout, `stripFile`, `backgroundFile`), `stamps{goal,perVisit,minSpendEur}`, `points{perEuro,perVisit}`, `tiers[]`, `rewards[]`, `pointsExpireDays`, `terms`, `welcomeBonus` |
-| `customers[]` | `id`, `programId`, `clientId`, `cardToken` (web card URL secret), `authToken` (Apple Wallet auth), `name`, `email`, `phone`, `stamps`, `points`, `lifetimePoints`, `visits`, `tier`, `lastVisitAt`, `redemptions[]`, `marketingConsent` (boolean) |
+| `customers[]` | `id`, `programId`, `clientId`, `cardToken` (web card URL secret), `authToken` (Apple Wallet auth), `name`, `email`, `phone`, `memberId` (optional, set only on cards created from a phone; old cards never get one), `stamps`, `points`, `lifetimePoints`, `visits`, `tier`, `lastVisitAt`, `redemptions[]`, `marketingConsent` (boolean) |
+| `members[]` | A person, not a card: `id`, `phone` (E.164 only, the identity key), `phoneVerifiedAt` (empty until an OTP confirms it), `name`, `memberToken` (long-lived device secret), `createdAt`, `updatedAt`, `lastSeenAt`, `locale` (`es/en`). One member holds one `customers[]` card per programme. `findOrCreateMember` never creates a second member for the same normalised number; `cardForMember` is idempotent per (member, programme). |
 | `txns[]` | `id`, `programId`, `customerId`, `clientId`, `at`, `type`, `stamps`, `points`, `amountEur`, `note`, `by` (`staff/owner/portal/system`) |
 | `devices[]` | Apple Wallet registrations `{deviceId, pushToken, serial (= customer id), passTypeId, at}` |
 | `templates[]` | Reusable card designs (`clientId` empty = owner-wide) |

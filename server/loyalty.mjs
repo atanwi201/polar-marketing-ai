@@ -4,6 +4,7 @@ import { randomBytes, randomInt } from "node:crypto";
 import { unlink } from "node:fs/promises";
 import { join } from "node:path";
 import { db, save, id, token, now, MEDIA_DIR } from "./store.mjs";
+import { normalisePhone } from "./phone.mjs";
 
 export class LoyaltyError extends Error {
   constructor(message, status = 400) { super(message); this.status = status; }
@@ -18,7 +19,7 @@ export const STAMP_GAP_MS = 10 * 60e3; // one stamp-earning visit per customer p
 /** The data root, created on first use. */
 export function ldb() {
   const l = (db.loyalty ??= {});
-  for (const k of ["programs", "customers", "txns", "devices", "templates"]) l[k] ??= [];
+  for (const k of ["programs", "customers", "txns", "devices", "templates", "members"]) l[k] ??= [];
   return l;
 }
 
@@ -312,6 +313,25 @@ const livecheck = (program) => {
   if (program.status !== "live") throw new LoyaltyError("This card is not open yet. Please ask the staff.", 409);
 };
 
+/** Create the per-programme card. The only place a customer record is born, so the welcome bonus
+ *  rule lives here once: whoever calls it (join by email, join by phone) gets the same behaviour. */
+function newCard(program, { name = "", email = "", phone = "", memberId = "", marketingConsent = false } = {}, { by = "system" } = {}) {
+  const t = now();
+  const c = {
+    id: id(), programId: program.id, clientId: program.clientId, cardToken: randomBytes(18).toString("base64url"), authToken: randomBytes(16).toString("hex"),
+    name, email, phone, createdAt: t, updatedAt: t, stamps: 0, points: 0, lifetimePoints: 0, visits: 0, tier: tierFor(program, 0).name, lastVisitAt: "",
+    redemptions: [], marketingConsent: marketingConsent === true,
+  };
+  // Optional link to the person. Old cards never get it, which is what keeps the migration additive.
+  if (memberId) c.memberId = memberId;
+  const wb = program.welcomeBonus ?? {};
+  if (program.type !== "points" && wb.stamps) c.stamps = Math.min(wb.stamps, program.stamps.goal);
+  if (program.type !== "stamps" && wb.points) { c.points = wb.points; c.lifetimePoints = wb.points; c.tier = tierFor(program, c.lifetimePoints).name; }
+  ldb().customers.push(c);
+  addTxn(c, program, { type: "join", stamps: c.stamps, points: c.points, note: c.stamps || c.points ? "Welcome bonus" : "Joined", by });
+  return c;
+}
+
 /** A customer joins a live programme from the join link. */
 export function joinCustomer(program, { name, email, phone, marketingConsent } = {}, { by = "system" } = {}) {
   livecheck(program);
@@ -322,19 +342,68 @@ export function joinCustomer(program, { name, email, phone, marketingConsent } =
   if (!EMAIL.test(em)) throw new LoyaltyError("That email address does not look right.", 400);
   const ph = str(phone, 30);
   if (ph && !/^[\d+\s().-]{5,30}$/.test(ph)) throw new LoyaltyError("That phone number does not look right.", 400);
-  const t = now();
-  const c = {
-    id: id(), programId: program.id, clientId: program.clientId, cardToken: randomBytes(18).toString("base64url"), authToken: randomBytes(16).toString("hex"),
-    name: nm, email: em, phone: ph, createdAt: t, updatedAt: t, stamps: 0, points: 0, lifetimePoints: 0, visits: 0, tier: tierFor(program, 0).name, lastVisitAt: "",
-    redemptions: [], marketingConsent: marketingConsent === true,
-  };
-  const wb = program.welcomeBonus ?? {};
-  if (program.type !== "points" && wb.stamps) c.stamps = Math.min(wb.stamps, program.stamps.goal);
-  if (program.type !== "stamps" && wb.points) { c.points = wb.points; c.lifetimePoints = wb.points; c.tier = tierFor(program, c.lifetimePoints).name; }
-  ldb().customers.push(c);
-  addTxn(c, program, { type: "join", stamps: c.stamps, points: c.points, note: c.stamps || c.points ? "Welcome bonus" : "Joined", by });
+  const c = newCard(program, { name: nm, email: em, phone: ph, marketingConsent }, { by });
   void save();
   return c;
+}
+
+// ---- members: a person keyed by their phone number, with one card per shop (plan A.2) ----
+// A member is the *person*; a customer record is the *card*. Keeping them apart is what lets someone
+// hold cards at five shops while each shop only ever sees its own card.
+//
+// Lookups are linear scans on purpose. The list is small, and an in-memory index would have to be
+// invalidated on every write and every erasure; a stale index here does not throw, it silently gives
+// one person another person's stamps. The exported names are the index: swap the implementation later.
+
+/** The member with this phone, however it is written. */
+export function memberByPhone(phone) {
+  const n = normalisePhone(phone);
+  return n ? ldb().members.find((m) => m.phone === n.e164) : undefined;
+}
+
+/** The member that owns a device, from the long-lived token the browser holds. */
+export const memberByToken = (t) => (typeof t === "string" && t.length >= 16 ? ldb().members.find((m) => m.memberToken === t) : undefined);
+
+/** The member behind a card, if it has one (old email cards do not). */
+export const memberOf = (customer) => (customer?.memberId ? ldb().members.find((m) => m.id === customer.memberId) : undefined);
+
+/**
+ * Find the person by phone, or create them. Never creates a second member for the same number.
+ * Throws a 400 LoyaltyError when the number cannot be parsed, so the route can say what to fix.
+ */
+export function findOrCreateMember({ phone, name, locale } = {}) {
+  const n = normalisePhone(phone);
+  if (!n) throw new LoyaltyError("That phone number does not look right.", 400);
+  const t = now();
+  const existing = ldb().members.find((m) => m.phone === n.e164);
+  if (existing) {
+    const nm = str(name, 80);
+    if (nm) existing.name = nm;
+    existing.lastSeenAt = t;
+    existing.updatedAt = t;
+    return { member: existing, created: false };
+  }
+  const member = {
+    id: id(), phone: n.e164, phoneVerifiedAt: "", name: str(name, 80), memberToken: randomBytes(18).toString("base64url"),
+    createdAt: t, updatedAt: t, lastSeenAt: t, locale: locale === "en" ? "en" : "es",
+  };
+  ldb().members.push(member);
+  void save();
+  return { member, created: true };
+}
+
+/**
+ * The member's card for this shop, created on first use and the same one afterwards. Idempotent by
+ * (member, programme): a second visit from the same device must never mint a second card, a second
+ * welcome bonus or a second "join" transaction.
+ */
+export function cardForMember(member, program, { by = "system" } = {}) {
+  livecheck(program);
+  const existing = ldb().customers.find((c) => c.memberId === member.id && c.programId === program.id);
+  if (existing) return { customer: existing, created: false };
+  const c = newCard(program, { name: member.name, phone: member.phone, memberId: member.id }, { by });
+  void save();
+  return { customer: c, created: true };
 }
 
 /** "LC1-<id>" (or a bare id) to the customer and programme. */
