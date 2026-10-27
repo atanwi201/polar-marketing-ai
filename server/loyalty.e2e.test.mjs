@@ -43,7 +43,7 @@ let ipn = 0;
 const call = async (method, path, body, headers = {}) => {
   const r = await fetch(B + path, { method, headers: { "Content-Type": "application/json", "x-test-ip": `10.0.0.${++ipn % 250}`, ...headers }, body: body === undefined ? undefined : JSON.stringify(body) });
   const ct = r.headers.get("content-type") ?? "";
-  return { status: r.status, ct, body: ct.includes("json") ? await r.json() : ct.startsWith("text") || ct.includes("svg") || ct.includes("manifest") ? await r.text() : Buffer.from(await r.arrayBuffer()) };
+  return { status: r.status, setCookie: r.headers.get("set-cookie") ?? "", ct, body: ct.includes("json") ? await r.json() : ct.startsWith("text") || ct.includes("svg") || ct.includes("manifest") ? await r.text() : Buffer.from(await r.arrayBuffer()) };
 };
 const ADMIN = { "x-admin-token": "secret" };
 const OWNER = "/api/studio/loyalty", P1 = "/api/portal/portal-one/loyalty", P2 = "/api/portal/portal-two/loyalty";
@@ -255,4 +255,57 @@ test("limits: join, staff and bad-token guesses are rate limited; oversized bodi
   // the server cuts the connection (or answers 413) when the body is over the limit
   const big = await call("POST", `/api/loyalty/join/${codeJ}`, { name: "x".repeat(50000) }, { "x-test-ip": "7.7.7.7" }).catch(() => ({ status: 413 }));
   assert.equal(big.status, 413);
+});
+
+// L10: one person, two shops, the way it happens at the counter. The QR is the join link; the first
+// shop creates the member; the second shop recognises the device and opens its own card; the till at
+// the first shop finds the number and stamps that card only. No network, no browser, real routes.
+test("the whole path: QR, join, a second shop, staff find by number, stamp", async () => {
+  const a = await call("POST", OWNER + "/programs", { clientId: "c1", name: "Ruta Uno", type: "stamps" }, ADMIN);
+  assert.equal(a.status, 201);
+  await call("PATCH", OWNER + `/programs/${a.body.id}`, { status: "live", stamps: { goal: 5, perVisit: 1 } }, ADMIN);
+  const b = await call("POST", P2 + "/programs", { name: "Ruta Dos", type: "stamps" });
+  assert.equal(b.status, 201);
+  await call("PATCH", P2 + `/programs/${b.body.id}`, { status: "live", stamps: { goal: 5, perVisit: 1 } });
+  const shopA = L.findProgram(a.body.id), shopB = L.findProgram(b.body.id);
+
+  // The customer scans the QR: the join page offers the one field.
+  const page = await call("GET", `/join/${shopA.joinCode}`);
+  assert.equal(page.status, 200);
+  assert.match(page.body, /<form id="f"/);
+  assert.match(page.body, /id="phone"/);
+  assert.ok(page.body.includes(shopA.joinCode), "the page knows which programme it is for");
+
+  const phone = "+34 688 123 456";
+  const joined = await call("POST", `/api/loyalty/join/${shopA.joinCode}`, { phone, name: "Ruta Clienta" });
+  assert.equal(joined.status, 201);
+  const cardA = L.findByToken(joined.body.cardUrl.slice("/card/".length));
+  assert.ok(cardA);
+  const device = (/lc_member=([^;]+)/.exec(joined.setCookie) ?? [])[1] ?? "";
+  assert.ok(device, "the card is bound to this device");
+  assert.equal(cardA.memberId, L.memberByPhone(phone).id);
+
+  // The same phone at the second shop: no second member, no form, its own card and balance.
+  const second = await call("POST", `/api/loyalty/join/${shopB.joinCode}`, {}, { cookie: `lc_member=${device}` });
+  assert.equal(second.status, 201);
+  const cardB = L.findByToken(second.body.cardUrl.slice("/card/".length));
+  assert.ok(cardB);
+  assert.notEqual(cardA.id, cardB.id, "one card per shop");
+  assert.equal(cardB.memberId, cardA.memberId, "one person behind both");
+  assert.equal(cardB.programId, shopB.id);
+
+  // At the till of the first shop the customer says the last digits.
+  const S = `/api/loyalty/staff/${shopA.staffToken}`;
+  const found = await call("POST", S + "/find", { phone: "456" });
+  assert.equal(found.status, 200);
+  assert.equal(found.body.matches.length, 1);
+  assert.equal(found.body.matches[0].id, cardA.id);
+  assert.equal(found.body.matches[0].phone, "+34 6 ••• •• 456");
+  assert.equal(JSON.stringify(found.body).includes("688123456"), false, "the till never gets the whole number");
+
+  const stamp = await call("POST", S + "/record", { customerId: found.body.matches[0].id, kind: "visit" });
+  assert.equal(stamp.status, 200);
+  assert.equal(stamp.body.customer.stamps, 1);
+  assert.equal(cardB.stamps, 0, "the other shop's balance is untouched");
+  assert.equal(L.memberByPhone(phone).name, "Ruta Clienta");
 });
