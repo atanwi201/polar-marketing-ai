@@ -512,6 +512,12 @@ body{overscroll-behavior-y:contain;-webkit-tap-highlight-color:transparent}
 .manual .cr-input{flex:1;min-width:0;font:600 17px var(--font-mono);text-transform:uppercase;letter-spacing:.04em}
 .manual .cr-btn{flex:none;padding:0 var(--space-4)}
 .note{margin:0;font-size:14px;color:var(--ink-2)}
+.hits{list-style:none;margin:0;padding:0;display:grid;gap:var(--space-2)}
+.hits li{list-style:none}
+.hits .hit{display:flex;justify-content:space-between;align-items:center;gap:12px;width:100%;min-height:56px;padding:var(--space-2) var(--space-3);border:1px solid var(--line);border-radius:var(--radius-md);background:var(--surface-2);color:var(--ink);font:600 16px/20px var(--font-sans);text-align:left;cursor:pointer}
+.hits .hit small{display:block;font:500 13px/18px var(--font-mono);color:var(--ink-2)}
+.hits .none{margin:0;font-size:14px;color:var(--ink-2)}
+.newCard{margin:0;font-size:15px}
 .cust{margin-top:var(--space-4);padding:var(--space-4)}
 .cust-top{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}
 .cust h2{margin:0;font:700 26px/30px var(--font-display);overflow-wrap:anywhere}
@@ -570,6 +576,10 @@ body{overscroll-behavior-y:contain;-webkit-tap-highlight-color:transparent}
     <button class="cr-btn cr-btn--primary cr-btn--lg cr-btn--block" id="startCam" type="button" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8V6a2 2 0 0 1 2-2h2M16 4h2a2 2 0 0 1 2 2v2M20 16v2a2 2 0 0 1-2 2h-2M8 20H6a2 2 0 0 1-2-2v-2M7 12h10"/></svg>Scan customer card</button>
     <p class="note" id="noCam" hidden>Camera scanning isn't available here (it needs a secure https page). Type the code under the QR instead.</p>
     <form class="manual" id="manual" autocomplete="off"><input class="cr-input" id="code" inputmode="text" autocapitalize="characters" autocorrect="off" spellcheck="false" placeholder="LC1-..." aria-label="Customer code"><button class="cr-btn cr-btn--soft" type="submit">Find</button></form>
+    <form class="manual" id="ph" autocomplete="off"><input class="cr-input" id="phNum" inputmode="tel" autocomplete="off" placeholder="Phone or last 3 digits" aria-label="Customer phone number"><button class="cr-btn cr-btn--soft" type="submit">Search</button></form>
+    <ul class="hits" id="hits" hidden></ul>
+    <form class="manual" id="enrol" autocomplete="off" hidden><input class="cr-input" id="enName" maxlength="80" placeholder="First name (optional)" aria-label="Customer first name"><button class="cr-btn cr-btn--soft" type="submit">New card</button></form>
+    <p class="newCard" id="newCard" hidden><a id="newCardLink" href="#" target="_blank" rel="noopener">Open the new card</a></p>
   </section>
   <section class="cust cr-card" id="cust" hidden>
     <div class="cust-top"><div><h2 id="cName"></h2><p class="meta" id="cMeta"></p></div><button class="x" id="clear" type="button" aria-label="Clear customer"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg></button></div>
@@ -640,6 +650,38 @@ function record(body,label){
 }
 $("manual").addEventListener("submit",function(e){e.preventDefault();lookup($("code").value)});
 $("clear").addEventListener("click",function(){setCust(null)});
+var hitMap={};
+$("ph").addEventListener("submit",function(e){
+  e.preventDefault();
+  var raw=$("phNum").value.trim();
+  if(raw.replace(/\D/g,"").length<3){toast("Type at least 3 digits of the number.",false);return}
+  if(busy)return;busy=true;clearErr();
+  $("hits").hidden=true;$("newCard").hidden=true;
+  post("/find",{phone:raw}).then(function(d){
+    var l=$("hits"),m=d.matches||[];hitMap={};
+    m.forEach(function(c){hitMap[c.id]=c});
+    l.innerHTML=m.length?m.map(function(c){return'<li><button type="button" class="hit" data-id="'+esc(c.id)+'"><span>'+esc(c.name||"Customer")+'<small>'+esc(c.phone)+"</small></span><span>"+esc(CFG.type==="points"?c.points:c.stamps)+"</span></button></li>"}).join(""):'<li class="none">No card for that number.</li>';
+    l.hidden=false;$("enrol").hidden=false;
+  }).catch(function(e){toast(e.message,false)}).then(function(){busy=false});
+});
+$("hits").addEventListener("click",function(e){
+  var b=e.target.closest("[data-id]");if(!b)return;
+  var c=hitMap[b.getAttribute("data-id")];if(!c)return;
+  $("hits").hidden=true;$("enrol").hidden=true;
+  setCust(c);window.scrollTo({top:0,behavior:"smooth"});
+});
+$("enrol").addEventListener("submit",function(e){
+  e.preventDefault();
+  var raw=$("phNum").value.trim();
+  if(!raw){toast("Type the phone number first.",false);return}
+  if(busy)return;busy=true;
+  post("/enrol",{phone:raw,name:$("enName").value.trim()}).then(function(d){
+    $("enName").value="";$("hits").hidden=true;$("enrol").hidden=true;
+    if(d.cardUrl){$("newCardLink").href=d.cardUrl;$("newCard").hidden=false}
+    setCust(d.customer);addRecent((d.customer&&d.customer.name?d.customer.name+": ":"")+(d.created?"New card":"Card already there"));
+    toast(d.created?"Card created. Open it to show the customer.":"That number already had a card.",true);
+  }).catch(function(e){toast(e.message,false)}).then(function(){busy=false});
+});
 $("acts").addEventListener("click",function(e){
   var b=e.target.closest("[data-a]");if(!b||!cur)return;
   var a=b.getAttribute("data-a");

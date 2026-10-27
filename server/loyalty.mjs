@@ -4,7 +4,7 @@ import { randomBytes, randomInt } from "node:crypto";
 import { unlink } from "node:fs/promises";
 import { join } from "node:path";
 import { db, save, id, token, now, MEDIA_DIR } from "./store.mjs";
-import { normalisePhone } from "./phone.mjs";
+import { normalisePhone, maskPhone } from "./phone.mjs";
 
 export class LoyaltyError extends Error {
   constructor(message, status = 400) { super(message); this.status = status; }
@@ -505,6 +505,36 @@ export function staffCustomer(customer, program) {
     id: customer.id, name: customer.name, stamps: customer.stamps, points: customer.points, tier: customer.tier, visits: customer.visits, lastVisitAt: customer.lastVisitAt,
     rewards: program.rewards.filter((r) => r.active !== false).map((r) => { const s = rewardStatus(customer, program, r); return { id: s.id, name: s.name, cost: s.cost, kind: s.kind, available: s.available }; }),
   };
+}
+
+/**
+ * Cards at this programme whose number the staff member is looking at. Three or more digits is a
+ * suffix search (the last digits are what a customer reads out); a full number must match exactly,
+ * so "612 345 678" cannot quietly return the six numbers that end in 345678.
+ * Old email cards are included: their free-text phone is normalised on the fly, so a card from
+ * before the phone-first join is still findable at the till.
+ */
+export function findCardsByPhone(program, raw, { limit = 5 } = {}) {
+  const typed = String(raw ?? "").trim();
+  const digits = typed.replace(/\D/g, "");
+  if (digits.length < 3) return [];
+  const full = normalisePhone(typed)?.e164 ?? "";
+  const hits = [];
+  for (const c of ldb().customers) {
+    if (c.programId !== program.id) continue;
+    const phone = c.memberId ? (memberOf(c)?.phone ?? "") : (normalisePhone(c.phone ?? "")?.e164 ?? "");
+    if (!phone) continue;
+    if (full ? phone !== full : !phone.endsWith(digits)) continue;
+    hits.push({ customer: c, phone });
+  }
+  hits.sort((a, b) => String(b.customer.lastVisitAt).localeCompare(String(a.customer.lastVisitAt)));
+  return hits.slice(0, Math.max(1, limit));
+}
+
+/** A search result for the staff screen: first name, masked number, and the balances to pick from. */
+export function staffMatch(customer, program, phone) {
+  const first = String(customer.name ?? "").trim().split(/\s+/)[0] ?? "";
+  return { ...staffCustomer(customer, program), name: first, phone: maskPhone(phone) };
 }
 
 export function customerRow(c) {

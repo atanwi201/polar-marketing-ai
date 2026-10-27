@@ -115,3 +115,27 @@ export function normalisePhone(raw, { defaultCountry = "ES" } = {}) {
 
 /** True when this number can receive an SMS/WhatsApp code. Unknown is treated as "try it". */
 export const canReceiveCode = (phone) => !!phone && phone.kind !== "landline";
+
+/**
+ * A number safe to show on a staff screen or in a log: country code, first digit and last three,
+ * everything else replaced by bullets of the same length. "+34612345678" -> "+34 6 ••• •• 123".
+ * Not reversible on purpose: the full number is only ever sent to the person who owns it.
+ */
+export function maskPhone(e164) {
+  const m = /^\+(\d{7,15})$/.exec(typeof e164 === "string" ? e164 : "");
+  if (!m) return "";
+  const digits = m[1];
+  // The calling code cannot be counted from the left without a table: "+34 612..." would read as
+  // +346 and lose a digit. Use the table, longest plausible code first, and guess 2 digits only for
+  // a code we have never seen.
+  const fits = CC.find((e) => digits.startsWith(e.cc) && digits.length - e.cc.length >= e.nsn[0] && digits.length - e.cc.length <= e.nsn[1]);
+  const known = fits ?? CC.filter((e) => digits.startsWith(e.cc)).sort((a, b) => b.cc.length - a.cc.length)[0];
+  const cc = known ? known.cc : digits.slice(0, 2);
+  const nsn = digits.slice(cc.length);
+  const hidden = nsn.slice(1, -3);
+  if (!hidden) return `+${cc} ${nsn}`;
+  const groups = [];
+  for (let i = 0; i < hidden.length; i += 3) groups.push("•".repeat(Math.min(3, hidden.length - i)));
+  return `+${cc} ${nsn.slice(0, 1)} ${groups.join(" ")} ${nsn.slice(-3)}`;
+}
+

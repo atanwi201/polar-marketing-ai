@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { normalisePhone, canReceiveCode } from "./phone.mjs";
+import { normalisePhone, canReceiveCode, maskPhone } from "./phone.mjs";
 
 test("every way a Spanish customer writes the same mobile gives one E.164", () => {
   const ways = [
@@ -86,4 +86,11 @@ test("the default country is Spain but never overrides an explicit prefix", () =
   assert.equal(normalisePhone("612 345 678", { defaultCountry: "GB" }).country, "GB", "8 digits is a valid UK nsn");
   assert.equal(normalisePhone("+44 7700 900123", { defaultCountry: "ES" }).country, "GB");
   assert.equal(normalisePhone("612345678", { defaultCountry: "XX" }), null, "unknown default country cannot parse");
+});
+
+test("a masked number keeps the country, the first digit and the last three", () => {
+  assert.equal(maskPhone("+34612345678"), "+34 6 ••• •• 678");
+  assert.equal(maskPhone("+447700900123"), "+44 7 ••• ••• 123");
+  assert.equal(maskPhone("+351912345678"), "+351 9 ••• •• 678");
+  for (const junk of ["", null, undefined, "612345678", "+", {}, 42]) assert.equal(maskPhone(junk), "");
 });

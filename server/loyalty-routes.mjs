@@ -103,6 +103,8 @@ async function joinPageRoute(req, res, joinCode, ctx) {
   html(res, 200, (await pages()).joinPage({ program: publicProgram(program), client: { name: client.name, logoFile: client.logoFile }, baseUrl: ctx.baseUrl(req) }));
   return true;
 }
+const STAFF_ACTIONS = ["lookup", "record", "find", "enrol"];
+
 /** What the public join page may see: no staff token. */
 const publicProgram = ({ staffToken, ...p }) => p;
 
@@ -250,14 +252,35 @@ async function publicApi(req, res, seg, ctx) {
     ctx.send(res, 200, v);
     return true;
   }
-  // POST /api/loyalty/staff/<staffToken>/(lookup|record)
-  if (m === "POST" && seg[2] === "staff" && seg.length === 5 && (seg[4] === "lookup" || seg[4] === "record")) {
+  // POST /api/loyalty/staff/<staffToken>/(lookup|record|find|enrol)
+  if (m === "POST" && seg[2] === "staff" && seg.length === 5 && STAFF_ACTIONS.includes(seg[4])) {
     if (limits.badStaff.blocked(ip) || !hit(limits.staff, ip)) return tooMany(ctx, res), true;
     const program = byToken(seg[3]);
     if (!program) { limits.badStaff.fail(ip); return ctx.send(res, 404, { error: "This staff link is not valid." }), true; }
     if (!canIssue(program)) return ctx.send(res, 403, { error: "This card is not active yet. Ask the owner." }), true;
     const b = await ctx.readBody(req, 10e3);
     const progInfo = { name: program.name, type: program.type, status: program.status, stamps: { goal: program.stamps.goal }, rewards: program.rewards.filter((r) => r.active !== false).map((r) => ({ id: r.id, name: r.name, cost: r.cost, kind: r.kind })) };
+    // Phone lookup: the last digits the customer reads out. Only cards of this programme, five at
+    // most, first name only, number masked. Finding nothing is not a failed guess, so it does not
+    // count toward badStaff; the staff limit still bounds how many searches a till can make.
+    if (seg[4] === "find") {
+      if (String(b.phone ?? "").replace(/\D/g, "").length < 3) return ctx.send(res, 400, { error: "Type at least 3 digits of the phone number." }), true;
+      const hits = L.findCardsByPhone(program, b.phone);
+      ctx.send(res, 200, { matches: hits.map((h) => L.staffMatch(h.customer, program, h.phone)) });
+      return true;
+    }
+    // Enrol at the till (plan A.5): the person is standing there, so no proof of the number is
+    // needed — but that is also why no marketing consent is recorded. Only the customer, on their
+    // own phone, can tick that box (Part C).
+    if (seg[4] === "enrol") {
+      const n = normalisePhone(b.phone);
+      if (!n) return ctx.send(res, 400, { error: "That phone number does not look right." }), true;
+      const { member } = L.findOrCreateMember({ phone: n.e164, name: b.name });
+      const { customer, created } = L.cardForMember(member, program, { by: "staff" });
+      await save();
+      ctx.send(res, created ? 201 : 200, { customer: L.staffCustomer(customer, program), cardUrl: `/card/${customer.cardToken}`, created });
+      return true;
+    }
     if (seg[4] === "lookup") {
       const f = L.lookupByCode(b.code);
       if (!f || f.program.id !== program.id) return ctx.send(res, 404, { error: "Card not found. Check the code or scan again." }), true;
