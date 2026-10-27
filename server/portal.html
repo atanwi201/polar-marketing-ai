@@ -1661,6 +1661,9 @@ function cardHtml(p,d,o){
 }
 const joinShort=u=>String(u||"").replace(/^https?:\/\//,"");
 const lcStatus=s=>`<span class="lstat ${esc(s)}">${icon(s==="live"?"check-circle":s==="paused"?"pause":"pencil")}${esc(tl("l_st_"+s))}</span>`;
+// A number as a person reads it. Only the two countries our customers have get a made-up grouping;
+// anything else keeps its own shape instead of being sliced into groups we invented.
+function fmtPhone(v){const d=String(v||"").replace(/[^\d+]/g,"");const es=/^\+34(\d{9})$/.exec(d);if(es)return "+34 "+es[1].slice(0,3)+" "+es[1].slice(3,5)+" "+es[1].slice(5,7)+" "+es[1].slice(7,9);const pt=/^\+351(\d{9})$/.exec(d);if(pt)return "+351 "+pt[1].slice(0,3)+" "+pt[1].slice(3,6)+" "+pt[1].slice(6,9);return d}
 const balText=(p,c)=>p.type==="stamps"?fmt(tl("l_c_stamps"),{n:c.stamps,g:(p.stamps&&p.stamps.goal)||0}):p.type==="points"?fmt(tl("l_c_pts"),{n:c.points}):fmt(tl("l_c_pts"),{n:c.points})+(c.tier?" · "+c.tier:"");
 
 async function loadLoyalty(force){
@@ -1693,7 +1696,7 @@ function monthVisits(){
 }
 function custListHtml(p){
   const D=LS.detail&&LS.detail.id===p.id?LS.detail:null; if(!D) return `<div class="empty"><span class="spin" aria-hidden="true"></span></div>`;
-  const q=LS.q.trim().toLowerCase(), list=D.customers.filter(c=>!q||(c.name+" "+(c.email||"")+" "+(c.phone||"")).toLowerCase().includes(q));
+  const q=LS.q.trim().toLowerCase(), qd=q.replace(/\D/g,""), list=D.customers.filter(c=>!q||(c.name+" "+(c.email||"")+" "+(c.phone||"")+" "+(c.phoneE164||"")).toLowerCase().includes(q)||(qd.length>=3&&String(c.phoneE164||c.phone||"").replace(/\D/g,"").includes(qd)));
   if(!D.customers.length) return `<div class="empty">${esc(tl("l_c_none"))}</div>`;
   if(!list.length) return `<div class="empty">${esc(tl("l_c_nores"))}</div>`;
   return list.map(c=>`<button type="button" class="cust" data-la="cust" data-id="${esc(c.id)}"><span class="av" aria-hidden="true">${esc(initials(c.name))}</span><span class="tx"><b>${esc(c.name||"-")}</b><small>${esc(c.lastVisitAt?fmt(tl("l_c_last"),{x:ago(c.lastVisitAt)}):tl("l_c_never"))}</small></span><span class="bal">${esc(balText(p,c))}</span></button>`).join("");
@@ -1887,7 +1890,7 @@ function custHtml(S){
   if(p.type!=="points") tiles.push([c.stamps,tl("l_cs_stamps")]); if(p.type!=="stamps") tiles.push([c.points,tl("l_cs_pts")]); tiles.push([c.visits,tl("l_cs_visits")]);
   const kinds=p.type==="custom"?`<label class="fld"><span>${esc(tl("l_adj_what"))}</span><select class="inp" data-f="unit"><option value="stamps" ${S.unit==="stamps"?"selected":""}>${esc(tl("l_stampsU"))}</option><option value="points" ${S.unit==="points"?"selected":""}>${esc(tl("l_pointsU"))}</option></select></label>`:"";
   return `<div class="ltiles" style="grid-template-columns:repeat(${tiles.length},1fr)">${tiles.map(([n,l])=>`<div><b>${+n||0}</b><span>${esc(l)}</span></div>`).join("")}</div>
-    <p class="muted">${[c.tier,c.email&&`<a href="mailto:${esc(c.email)}">${esc(c.email)}</a>`,c.phone&&`<a href="tel:${esc(c.phone)}">${esc(c.phone)}</a>`].filter(Boolean).map((x,i)=>i===0&&c.tier?esc(x):x).join(" · ")}</p>
+    <p class="muted">${[c.tier,c.email&&`<a href="mailto:${esc(c.email)}">${esc(c.email)}</a>`,c.phone&&`<a href="tel:${esc(String(c.phoneE164||c.phone).replace(/[^\d+]/g,""))}">${esc(fmtPhone(c.phoneE164||c.phone))}</a>`].filter(Boolean).map((x,i)=>i===0&&c.tier?esc(x):x).join(" · ")}</p>
     <h3 class="lh2">${esc(tl("l_adj_h"))}</h3><p class="muted" style="margin-bottom:10px">${esc(tl("l_adj_p"))}</p>
     ${kinds}<div class="frow">${fld(tl("l_adj_amt"),`<input class="inp" data-f="amt" data-t="num" type="number" inputmode="numeric" min="1" step="1" value="${esc(S.amt||"")}">`)}${fld(tl("l_adj_note"),`<input class="inp" data-f="note" type="text" maxlength="80" value="${esc(S.note||"")}">`)}</div>
     <div class="btns" style="margin:0 0 6px"><button type="button" class="btn blue" data-la="adj" data-v="1" ${S.adjBusy?"disabled":""}>${icon("plus")}${esc(tl("l_adj_add"))}</button><button type="button" class="btn" data-la="adj" data-v="-1" ${S.adjBusy?"disabled":""}>− ${esc(tl("l_adj_rm"))}</button></div>

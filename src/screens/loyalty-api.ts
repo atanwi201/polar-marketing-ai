@@ -21,7 +21,7 @@ export interface Program {
 }
 export interface ProgramView extends Program { joinUrl: string; staffUrl: string; stats: Stats; clientName: string }
 export interface CustomerRow {
-  id: string; name: string; email: string; phone: string; stamps: number; points: number; lifetimePoints: number; tier: string; visits: number;
+  id: string; name: string; email: string; phone: string; phoneE164?: string; stamps: number; points: number; lifetimePoints: number; tier: string; visits: number;
   lastVisitAt?: string; createdAt: string; walletDevices: number;
 }
 export interface Txn {

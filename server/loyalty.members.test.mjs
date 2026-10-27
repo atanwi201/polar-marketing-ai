@@ -123,3 +123,18 @@ test("a name given later fills an empty member; locale is only es or en", () => 
   assert.equal(same.name, "Carla");
   assert.equal(same.locale, "es", "an existing member keeps their language");
 });
+
+test("the customer row carries the canonical number next to the typed one", () => {
+  const { member } = L.findOrCreateMember({ phone: "+34 611 000 999" });
+  const c = L.cardForMember(member, progA).customer;
+  const row = L.customerRow(c);
+  assert.equal(row.phone, "+34611000999");
+  assert.equal(row.phoneE164, "+34611000999", "a dialler can use it as it is");
+
+  const old = L.joinCustomer(progA, { name: "Vieja 2", email: "v2@example.com", phone: "622 333 444" });
+  const row2 = L.customerRow(old);
+  assert.equal(row2.phone, "622 333 444", "what the old card says is not rewritten");
+  assert.equal(row2.phoneE164, "+34622333444", "but the export gets one canonical form");
+  assert.equal(row2.cardToken, undefined);
+  assert.equal(row2.authToken, undefined);
+});

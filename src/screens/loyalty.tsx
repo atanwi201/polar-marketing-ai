@@ -14,6 +14,17 @@ const STATUS_LABEL: Record<LStatus, string> = { draft: "Draft", live: "Live", pa
 const num = (v: string | number, fallback = 0) => { const n = Number(v); return Number.isFinite(n) ? n : fallback; };
 const uid = () => "r" + Math.random().toString(36).slice(2, 9);
 
+/** A number as a person reads it: grouped for the two countries our customers have. Anything else
+ *  keeps its own shape rather than being sliced into groups we made up. */
+export function fmtPhone(v: string): string {
+  const digits = String(v ?? "").replace(/[^\d+]/g, "");
+  const es = /^\+34(\d{9})$/.exec(digits);
+  if (es) return `+34 ${es[1].slice(0, 3)} ${es[1].slice(3, 5)} ${es[1].slice(5, 7)} ${es[1].slice(7, 9)}`;
+  const pt = /^\+351(\d{9})$/.exec(digits);
+  if (pt) return `+351 ${pt[1].slice(0, 3)} ${pt[1].slice(3, 6)} ${pt[1].slice(6, 9)}`;
+  return digits;
+}
+
 // ---------- Load helper ----------
 
 type Load<T> = { state: "loading" } | { state: "error"; message: string } | { state: "ok"; data: T };
@@ -710,7 +721,10 @@ function CustomersTab({ p, refresh }: { p: ProgramDetail; refresh: () => void })
   const [open, setOpen] = useState<CustomerRow | null>(null);
   const rows = useMemo(() => {
     const t = q.trim().toLowerCase();
-    return p.customers.filter((c) => !t || [c.name, c.email, c.phone, c.tier].some((x) => (x ?? "").toLowerCase().includes(t)));
+    const digits = t.replace(/\D/g, "");
+    return p.customers.filter((c) => !t
+      || [c.name, c.email, c.phone, c.phoneE164, c.tier].some((x) => (x ?? "").toLowerCase().includes(t))
+      || (digits.length >= 3 && String(c.phoneE164 ?? c.phone ?? "").replace(/\D/g, "").includes(digits)));
   }, [p.customers, q]);
   const hasTier = p.type === "custom" || p.tiers.length > 0;
   const bal = (c: CustomerRow) => p.type === "stamps" ? `${c.stamps} / ${p.stamps.goal}` : p.type === "points" ? String(c.points) : `${c.stamps} st · ${c.points} pts`;
@@ -725,7 +739,7 @@ function CustomersTab({ p, refresh }: { p: ProgramDetail; refresh: () => void })
       <div className="loy-search"><Input id="lc-q" value={q} onChange={setQ} placeholder="Search by name, email or phone" type="search" /></div>
       <Table rows={rows} rowKey={(c) => c.id} onRow={setOpen} empty={p.customers.length ? "No one matches that search." : "No customers yet. Share the join link and they will appear here."}
         cols={[
-          { label: "Customer", render: (c) => <div className="stack-sm"><span className="strong">{c.name || "Unnamed"}</span><span className="small muted">{c.email || c.phone || "No contact"}</span></div> },
+          { label: "Customer", render: (c) => <div className="stack-sm"><span className="strong">{c.name || "Unnamed"}</span><span className="small muted">{c.email || fmtPhone(c.phoneE164 ?? c.phone) || "No contact"}</span></div> },
           { label: "Balance", render: (c) => <span className="tabular">{bal(c)}</span> },
           ...(hasTier ? [{ label: "Tier", render: (c: CustomerRow) => c.tier ? <Badge tone="accent">{c.tier}</Badge> : <span className="faint">-</span> }] : []),
           { label: "Visits", num: true, render: (c) => c.visits },
@@ -768,8 +782,8 @@ function CustomerDrawer({ p, row, onClose, onChanged }: { p: ProgramDetail; row:
         <div className="card-head"><h2>{row.name || "Customer"}</h2><Button small kind="ghost" onClick={onClose}>Close</Button></div>
         <div className="loy-drawer-body">
           <div className="loy-kv">
-            {row.email && <span><small>Email</small>{row.email}</span>}
-            {row.phone && <span><small>Phone</small>{row.phone}</span>}
+            {row.email && <span><small>Email</small><a href={`mailto:${row.email}`}>{row.email}</a></span>}
+            {row.phone && <span><small>Phone</small><a href={`tel:${String(row.phoneE164 || row.phone).replace(/[^\d+]/g, "")}`}>{fmtPhone(row.phoneE164 ?? row.phone)}</a></span>}
             <span><small>Joined</small>{fmtWhen(row.createdAt)}</span>
             <span><small>Visits</small>{c.visits}</span>
             {p.type !== "points" && <span><small>Stamps</small>{c.stamps} / {p.stamps.goal}</span>}

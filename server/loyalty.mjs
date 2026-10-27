@@ -537,8 +537,11 @@ export function staffMatch(customer, program, phone) {
   return { ...staffCustomer(customer, program), name: first, phone: maskPhone(phone) };
 }
 
+/** `phone` is what was typed (old cards) or the member's number; `phoneE164` is the canonical form
+ *  for a dialler, an export or a match. They differ only for cards that predate the phone join. */
 export function customerRow(c) {
-  return { id: c.id, name: c.name, email: c.email, phone: c.phone, stamps: c.stamps, points: c.points, lifetimePoints: c.lifetimePoints, tier: c.tier, visits: c.visits, lastVisitAt: c.lastVisitAt, createdAt: c.createdAt, walletDevices: ldb().devices.filter((d) => d.serial === c.id).length };
+  const phoneE164 = c.memberId ? (memberOf(c)?.phone ?? "") : (normalisePhone(c.phone ?? "")?.e164 ?? "");
+  return { id: c.id, name: c.name, email: c.email, phone: c.phone, phoneE164, stamps: c.stamps, points: c.points, lifetimePoints: c.lifetimePoints, tier: c.tier, visits: c.visits, lastVisitAt: c.lastVisitAt, createdAt: c.createdAt, walletDevices: ldb().devices.filter((d) => d.serial === c.id).length };
 }
 
 export function stats(program) {
