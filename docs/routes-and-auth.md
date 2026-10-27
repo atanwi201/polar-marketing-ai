@@ -66,7 +66,7 @@ Legend for the Auth column: **none** = public, **token** = portal token in path,
 | GET | `/api/book/<code>/availability` | `bookings-routes.mjs` | code | `read` 240/min |
 | POST | `/api/book/<code>` | `bookings-routes.mjs` | code; creates a booking | `create` 12/h |
 | POST | `/api/booking/<manageToken>/cancel` | `bookings-routes.mjs` | code (manage token) | `cancel` 20/h, `badToken` 30 failures/15 min |
-| GET | `/join/<joinCode>` | `loyalty-routes.mjs` | code | none in app |
+| GET | `/join/<joinCode>` (`?l=es\|en`) | `loyalty-routes.mjs` | code; renders three states from the `lc_member` cookie (open the card / one-tap add / phone form), Spanish by default | none in app |
 | POST | `/api/loyalty/join/<joinCode>` | `loyalty-routes.mjs` | code; `{phone, name?}` creates a member + card and sets the `lc_member` device cookie; `{name, email}` (old cached page) still creates one card per submit | `join` 60/h per IP, `joinPhone` 5/h per number, `joinProgram` 300/h per programme |
 | GET | `/card/<cardToken>` and `/card/<token>/(qr.svg\|manifest.webmanifest\|pass.pkpass\|google-wallet)` | `loyalty-routes.mjs` | code (card token) | `card` 240/min, `badCard` 30 failures/15 min |
 | GET | `/api/loyalty/card/<cardToken>` | `loyalty-routes.mjs` | code | same as above |

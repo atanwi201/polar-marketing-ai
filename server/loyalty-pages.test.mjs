@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { joinPage, cardPage, staffPage, manifest, cardStyles, qrInline } from "./loyalty-pages.mjs";
+import { joinPage, joinLang, cardPage, staffPage, manifest, cardStyles, qrInline } from "./loyalty-pages.mjs";
 
 const design = (o = {}) => ({ prompt: "", background: "#3b1d0e", foreground: "#fff4e0", label: "#e0b98a", accent: "#f2a33a", fontStyle: "serif", layout: "stripe", cardTitle: "Coffee Club", tagline: "Every 8th coffee on us", stampIcon: "X", stampEmptyIcon: "o", logoFile: "logo.png", stripFile: "strip.jpg", backgroundFile: "bg.jpg", ...o });
 const program = (o = {}) => ({ id: "p1", name: "Coffee Club", type: "stamps", status: "live", joinCode: "abc123", design: design(), stamps: { goal: 8, perVisit: 1, minSpendEur: 0 }, tiers: [], terms: "No cash value.", welcomeBonus: { stamps: 1, points: 0 }, rewards: [{ id: "r1", name: "Free coffee", description: "Any size", kind: "stamps", cost: 8, expiresDays: 30, minTier: "", active: true }], ...o });
@@ -87,20 +87,63 @@ test("escapes customer and business data and rejects bad colours/files", () => {
   assert.doesNotMatch(s, /<script>alert\(1\)/);
 });
 
-test("join page: form posts to the join code, preview, closed state", () => {
+test("join page: phone only, one button, preview, closed state", () => {
   const html = joinPage({ program: program(), client: { name: "Cafe Marron" } });
-  assert.match(html, /Join Coffee Club/);
+  assert.match(html, /<html lang="es">/);
+  assert.match(html, /Únete a Coffee Club/);
   assert.match(html, /\/api\/loyalty\/join\//);
   assert.match(html, /"abc123"/);
+  assert.match(html, /id="phone"/);
+  assert.match(html, /autocomplete="tel"/);
+  assert.match(html, /inputmode="tel"/);
   assert.match(html, /name="name"/);
-  assert.match(html, /marketingConsent/);
-  assert.match(html, /1 free stamp/);
+  assert.doesNotMatch(html, /name="email"/, "no email field any more");
+  assert.doesNotMatch(html, /marketingConsent/, "consent is its own task (C3)");
+  assert.match(html, /1 sello gratis/);
   assert.match(html, /Free coffee/);
+  assert.match(html, /Quiero mi tarjeta/);
   assert.match(html, /<span class="wc-st on">X<\/span>/);
   const draft = joinPage({ program: program({ status: "draft" }), client: { name: "Cafe Marron" } });
-  assert.match(draft, /Not open yet/);
+  assert.match(draft, /Todavía no está abierta/);
   assert.doesNotMatch(draft, /<form/);
   assert.doesNotMatch(draft, /\/api\/loyalty\/join/);
+});
+
+test("join page: English on request, Spanish by default", () => {
+  const en = joinPage({ program: program(), client: { name: "Cafe Marron" }, lang: "en" });
+  assert.match(en, /<html lang="en">/);
+  assert.match(en, /Join Coffee Club/);
+  assert.match(en, /1 free stamp/);
+  assert.match(en, /What you can earn/);
+  assert.match(en, /Get my card/);
+  assert.doesNotMatch(en, /marketingConsent/);
+  const other = joinPage({ program: program(), client: { name: "Cafe Marron" }, lang: "fr" });
+  assert.match(other, /<html lang="es">/, "anything we do not translate falls back to Spanish");
+});
+
+test("join page: a known device is not asked for its number again", () => {
+  const known = joinPage({ program: program(), client: { name: "Cafe Marron" }, knownCardUrl: "/card/tok99", deviceKnown: true });
+  assert.match(known, /Ya tienes tu tarjeta/);
+  assert.match(known, /href="\/card\/tok99"/);
+  assert.doesNotMatch(known, /<form/, "nothing to submit");
+  assert.doesNotMatch(known, /id="phone"/);
+
+  const device = joinPage({ program: program(), client: { name: "Cafe Marron" }, deviceKnown: true });
+  assert.match(device, /Añadir esta tarjeta/);
+  assert.match(device, /ya está apuntado/);
+  assert.doesNotMatch(device, /id="phone"/, "no typing for a device that already has a member");
+  assert.doesNotMatch(device, /id="name"/);
+  assert.match(device, /\/api\/loyalty\/join\//, "the one button still posts to the join route");
+});
+
+test("the page language follows the link, then the browser, and Spanish wins by default", () => {
+  const u = (q) => new URL("http://x/join/abc" + q);
+  assert.equal(joinLang(u("")), "es");
+  assert.equal(joinLang(u(""), { headers: { "accept-language": "en-GB,en;q=0.9,es;q=0.8" } }), "en");
+  assert.equal(joinLang(u(""), { headers: { "accept-language": "es-ES,es;q=0.9" } }), "es");
+  assert.equal(joinLang(u(""), { headers: { "accept-language": "de-DE,de;q=0.9" } }), "es", "a German tourist gets the shop's language");
+  assert.equal(joinLang(u("?l=en"), { headers: { "accept-language": "es" } }), "en");
+  assert.equal(joinLang(u("?l=es"), { headers: { "accept-language": "en-GB" } }), "es", "the link beats the phone");
 });
 
 test("staff page: scanner, actions, keypad, fallback", () => {

@@ -167,3 +167,34 @@ test("a body that is not an object is a 400, not a 500", async () => {
 test("the caps are the ones the plan asked for", () => {
   assert.deepEqual(JOIN_LIMITS, { ip: 60, phone: 5, program: 300 });
 });
+
+test("the join page knows what the device already has, and speaks the right language", async () => {
+  const shop = cliente("jd", "Page Shop");
+  const p = live(shop);
+
+  const plain = await call("GET", `/join/${p.joinCode}`);
+  assert.equal(plain.status, 200);
+  assert.match(plain.body, /<html lang="es">/);
+  assert.match(plain.body, /id="phone"/);
+  assert.doesNotMatch(plain.body, /name="email"/);
+
+  const en = await call("GET", `/join/${p.joinCode}`, undefined, { "accept-language": "en-GB,en;q=0.9" });
+  assert.match(en.body, /<html lang="en">/);
+  assert.match(en.body, /Get my card/);
+  const forced = await call("GET", `/join/${p.joinCode}?l=en`, undefined, { "accept-language": "es-ES" });
+  assert.match(forced.body, /<html lang="en">/, "the link beats the phone");
+
+  const j = await call("POST", path(p), { phone: "+34 622 000 111" });
+  assert.equal(j.status, 201);
+  const cookie = `lc_member=${cookieOf(j.setCookie)}`;
+
+  const known = await call("GET", `/join/${p.joinCode}`, undefined, { cookie });
+  assert.match(known.body, /Ya tienes tu tarjeta/);
+  assert.ok(known.body.includes(j.body.cardUrl), "the card link is the page");
+  assert.doesNotMatch(known.body, /<form/);
+
+  const other = await call("GET", `/join/${progB.joinCode}`, undefined, { cookie });
+  assert.match(other.body, /Añadir esta tarjeta/);
+  assert.doesNotMatch(other.body, /id="phone"/, "no typing on a device that already has a member");
+  assert.match(other.body, /\/api\/loyalty\/join\//);
+});

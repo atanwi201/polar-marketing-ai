@@ -57,7 +57,7 @@ export async function handleLoyalty(req, res, url, seg, ctx) {
   const m = req.method;
   try {
     // ---- public pages ----
-    if (m === "GET" && seg[0] === "join" && seg.length === 2) return await joinPageRoute(req, res, seg[1], ctx);
+    if (m === "GET" && seg[0] === "join" && seg.length === 2) return await joinPageRoute(req, res, seg[1], ctx, url);
     if (m === "GET" && seg[0] === "assets" && seg[1] === "jsqr.js" && seg.length === 2) {
       res.writeHead(200, { "Content-Type": "text/javascript; charset=utf-8", "Cache-Control": "public, max-age=604800" });
       return res.end(JSQR()), true;
@@ -95,12 +95,21 @@ export async function handleLoyalty(req, res, url, seg, ctx) {
  *  Declined businesses never reach here (declinedClientFor in index.mjs); this covers "pending". */
 const canIssue = (program) => approval(L.clientOf(program) ?? {}) === "approved";
 
-async function joinPageRoute(req, res, joinCode, ctx) {
+async function joinPageRoute(req, res, joinCode, ctx, url) {
   const program = byJoin(joinCode);
   if (!program) return notFoundPage(res), true;
   if (!canIssue(program)) return notFoundPage(res), true;
   const client = L.clientOf(program) ?? {};
-  html(res, 200, (await pages()).joinPage({ program: publicProgram(program), client: { name: client.name, logoFile: client.logoFile }, baseUrl: ctx.baseUrl(req) }));
+  const P = await pages();
+  // A device that already has a member skips the form entirely: its card for this shop if it has
+  // one, otherwise one button that creates it. Nothing about the member is put in the HTML.
+  const member = L.memberByToken(cookies(req)[MEMBER_COOKIE]);
+  const card = member ? L.ldb().customers.find((c) => c.memberId === member.id && c.programId === program.id) : undefined;
+  const lang = typeof P.joinLang === "function" ? P.joinLang(url, req) : "es";
+  html(res, 200, P.joinPage({
+    program: publicProgram(program), client: { name: client.name, logoFile: client.logoFile }, baseUrl: ctx.baseUrl(req),
+    lang, knownCardUrl: card ? `/card/${card.cardToken}` : "", deviceKnown: !!member,
+  }));
   return true;
 }
 const STAFF_ACTIONS = ["lookup", "record", "find", "enrol"];

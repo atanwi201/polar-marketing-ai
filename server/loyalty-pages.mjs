@@ -197,30 +197,154 @@ body{margin:0;min-height:100vh;min-height:100dvh}
 `;
 
 // ---------- Join page ----------
-export function joinPage({ program, client, baseUrl = "" }) {
+// Every string on this page exists in Spanish and English, and Spanish is the default: a browser
+// that is not clearly English gets Spanish. The shop is in Tenerife; a German tourist is better
+// served by the language of the street than by English. `?l=en` or `?l=es` forces it.
+const JOIN_I18N = {
+  es: {
+    title: (name, biz) => `Únete a ${name} - ${biz}`,
+    meta: (biz) => `Únete a la tarjeta de fidelidad de ${biz}`,
+    joinH: (name) => `Únete a ${name}`,
+    knownH: "Ya tienes tu tarjeta",
+    knownP: "Ábrela para ver tus sellos y tu código.",
+    knownBtn: "Abrir mi tarjeta",
+    deviceP: "Este teléfono ya está apuntado. Añade la tarjeta de este negocio con un toque.",
+    deviceBtn: "Añadir esta tarjeta",
+    again: "Ya tienes esta tarjeta en este dispositivo.",
+    open: "Abrir",
+    bonus: (x) => `Únete hoy y empieza con ${x}.`,
+    and: " y ",
+    stamps: (n) => `${n} ${n === 1 ? "sello gratis" : "sellos gratis"}`,
+    points: (n) => `${n} ${n === 1 ? "punto de regalo" : "puntos de regalo"}`,
+    earnH: "Lo que puedes conseguir",
+    costStamps: (n) => `${n} ${n === 1 ? "sello" : "sellos"}`,
+    costPoints: (n) => `${n} ${n === 1 ? "punto" : "puntos"}`,
+    phone: "Tu teléfono",
+    phoneHint: "Te damos la tarjeta al momento. No hace falta email.",
+    phonePh: "612 345 678",
+    name: "Tu nombre",
+    nameOpt: "(opcional)",
+    nameHint: "Así te reconocen en la barra.",
+    go: "Quiero mi tarjeta",
+    busy: "Creando tu tarjeta",
+    sample: "Tu nombre",
+    noJs: "Activa JavaScript para conseguir tu tarjeta.",
+    recH: "Ese número ya tiene tarjeta",
+    recP: "Está en otro teléfono. Pide en la barra que te la confirmen y la abrimos aquí.",
+    errPhone: "Escribe tu número de teléfono.",
+    errBad: "Ese número no parece correcto. Revísalo e inténtalo otra vez.",
+    errOther: "Este teléfono ya está dado de alta con otro número.",
+    errMany: "Demasiados intentos. Espera unos minutos.",
+    errGone: "Este enlace ya no está activo.",
+    errNet: "No hemos podido conectar. Revisa tu conexión e inténtalo otra vez.",
+    errGen: "Algo ha fallado. Inténtalo otra vez.",
+    closedH: "Todavía no está abierta",
+    closedP: (biz) => `${biz} está preparando esta tarjeta. Vuelve pronto o pregúntanos en la barra.`,
+    powered: "Con la tecnología de Polar Marketing",
+    privacy: "Privacidad",
+  },
+  en: {
+    title: (name, biz) => `Join ${name} - ${biz}`,
+    meta: (biz) => `Join ${biz}'s loyalty card`,
+    joinH: (name) => `Join ${name}`,
+    knownH: "You have your card",
+    knownP: "Open it to see your stamps and your code.",
+    knownBtn: "Open my card",
+    deviceP: "This phone is already set up. Add this shop's card with one tap.",
+    deviceBtn: "Add this card",
+    again: "You already have this card on this device.",
+    open: "Open",
+    bonus: (x) => `Join today and start with ${x}.`,
+    and: " and ",
+    stamps: (n) => `${n} free stamp${n === 1 ? "" : "s"}`,
+    points: (n) => `${n} bonus point${n === 1 ? "" : "s"}`,
+    earnH: "What you can earn",
+    costStamps: (n) => `${n} stamp${n === 1 ? "" : "s"}`,
+    costPoints: (n) => `${n} point${n === 1 ? "" : "s"}`,
+    phone: "Your phone",
+    phoneHint: "You get the card right away. No email needed.",
+    phonePh: "612 345 678",
+    name: "Your name",
+    nameOpt: "(optional)",
+    nameHint: "So the staff know who you are.",
+    go: "Get my card",
+    busy: "Creating your card",
+    sample: "Your name",
+    noJs: "Turn on JavaScript to get your card.",
+    recH: "That number already has a card",
+    recP: "It is on another phone. Ask at the till to confirm it is you and we will open it here.",
+    errPhone: "Type your phone number.",
+    errBad: "That number does not look right. Check it and try again.",
+    errOther: "This phone is already set up with another number.",
+    errMany: "Too many tries. Wait a few minutes.",
+    errGone: "This link is not active any more.",
+    errNet: "We could not reach the server. Check your connection and try again.",
+    errGen: "Something went wrong. Please try again.",
+    closedH: "Not open yet",
+    closedP: (biz) => `${biz} is still setting up this card. Check back soon, or ask at the till.`,
+    powered: "Powered by Polar Marketing",
+    privacy: "Privacy",
+  },
+};
+
+/**
+ * Spanish unless the browser asks for English in so many words, or the link says `?l=en`.
+ * `?l=es` always wins, so a shop can hand out a Spanish link to an English phone.
+ */
+export function joinLang(url, req) {
+  const q = String(url?.searchParams?.get("l") ?? url?.searchParams?.get("lang") ?? "").toLowerCase();
+  if (q.startsWith("es")) return "es";
+  if (q.startsWith("en")) return "en";
+  return /^\s*en\b/i.test(String(req?.headers?.["accept-language"] ?? "")) ? "en" : "es";
+}
+
+export function joinPage({ program, client, baseUrl = "", lang = "es", knownCardUrl = "", deviceKnown = false }) {
+  const t = JOIN_I18N[lang === "en" ? "en" : "es"];
+  const L = lang === "en" ? "en" : "es";
   const design = program.design || {};
   const live = program.status === "live";
   const bizName = client?.name || "";
   const sample = {
     business: { name: bizName },
     program: { id: program.id, name: program.name, type: program.type, design, stamps: { goal: program.stamps?.goal || 8 }, tiers: program.tiers || [], rewards: [] },
-    customer: { id: "", name: "Your name", stamps: Math.min(2, Math.max(0, (program.stamps?.goal || 8) - 1)), points: 0, lifetimePoints: 0, tier: (program.tiers || [])[0]?.name || "", nextTier: null, visits: 0 },
+    customer: { id: "", name: t.sample, stamps: Math.min(2, Math.max(0, (program.stamps?.goal || 8) - 1)), points: 0, lifetimePoints: 0, tier: (program.tiers || [])[0]?.name || "", nextTier: null, visits: 0 },
     rewards: [],
   };
   if (program.type === "points") sample.customer.stamps = 0;
   const bonus = program.welcomeBonus || {};
-  const bonusTxt = [bonus.stamps > 0 ? `${bonus.stamps} free stamp${bonus.stamps === 1 ? "" : "s"}` : "", bonus.points > 0 ? `${bonus.points} bonus point${bonus.points === 1 ? "" : "s"}` : ""].filter(Boolean).join(" and ");
+  const bonusTxt = [bonus.stamps > 0 ? t.stamps(bonus.stamps) : "", bonus.points > 0 ? t.points(bonus.points) : ""].filter(Boolean).join(t.and);
   const logo = safeFile(design.logoFile);
   const themeColor = safeHex(design.background, "#14232b");
-  const preview = `<div class="${K.cls(design)}" style="${esc(K.vars(design))}">${K.face(sample, { preview: true })}<div class="wc-qr ph">Your QR code appears here once you join</div></div>`;
+  const preview = `<div class="${K.cls(design)}" style="${esc(K.vars(design))}">${K.face(sample, { preview: true })}<div class="wc-qr ph">${L === "en" ? "Your QR code appears here once you join" : "Tu código QR aparece aquí cuando te unas"}</div></div>`;
   const rewardsList = (program.rewards || []).filter((r) => r.active !== false).slice(0, 4);
+
+  // Three states, decided on the server so the first paint is already right:
+  //   known   this device holds a member who already has a card here -> just open it
+  //   device  this device holds a member, but not this shop's card   -> one button, no typing
+  //   new     no member on this device                               -> phone + optional name
+  const known = !!knownCardUrl;
+  const state = known ? "known" : deviceKnown ? "device" : "new";
+  const formHtml = known
+    ? `<section class="cr-card known"><h2 class="known-h">${esc(t.knownH)}</h2><p class="muted">${esc(t.knownP)}</p><a class="cr-btn cr-btn--primary cr-btn--lg cr-btn--block" href="${esc(knownCardUrl)}">${esc(t.knownBtn)}</a></section>`
+    : `<form id="f" class="cr-card" novalidate>
+    <div id="err" class="err" role="alert" aria-live="assertive"></div>
+    ${deviceKnown ? `<p class="device-p">${esc(t.deviceP)}</p>` : `
+    <div class="f cr-field"><label class="cr-label" for="phone">${esc(t.phone)}</label><input class="cr-input" id="phone" name="phone" type="tel" autocomplete="tel" inputmode="tel" maxlength="30" placeholder="${esc(t.phonePh)}" aria-describedby="phoneHint" required><p class="hint" id="phoneHint">${esc(t.phoneHint)}</p></div>
+    <div class="f cr-field"><label class="cr-label" for="name">${esc(t.name)} <span class="muted">${esc(t.nameOpt)}</span></label><input class="cr-input" id="name" name="name" type="text" autocomplete="given-name" maxlength="80" aria-describedby="nameHint"><p class="hint" id="nameHint">${esc(t.nameHint)}</p></div>`}
+    <button class="cr-btn cr-btn--primary cr-btn--lg cr-btn--block" id="go" type="submit"><span class="spin"></span><span id="goTxt">${esc(deviceKnown ? t.deviceBtn : t.go)}</span></button>
+    <noscript><p class="err on">${esc(t.noJs)}</p></noscript>
+    ${program.terms ? `<p class="terms">${esc(program.terms)}</p>` : ""}
+  </form>`;
+
+  const clientT = { needPhone: t.errPhone, bad: t.errBad, other: t.errOther, many: t.errMany, gone: t.errGone, net: t.errNet, gen: t.errGen, recH: t.recH, recP: t.recP, busy: t.busy, go: t.go, deviceBtn: t.deviceBtn };
+
   return `<!doctype html>
-<html lang="en">
+<html lang="${L}">
 <head>
-${HEAD_COMMON(`Join ${program.name} - ${bizName}`)}
+${HEAD_COMMON(t.title(program.name, bizName))}
 <meta name="theme-color" content="${themeColor}">
 <meta name="robots" content="noindex">
-<meta name="description" content="${esc(design.tagline || `Join ${bizName}'s loyalty card`)}">
+<meta name="description" content="${esc(t.meta(bizName))}">
 ${logo ? `<link rel="apple-touch-icon" href="/media/${esc(logo)}">` : ""}
 <style>${BASE_CSS}${cardStyles}
 .jh{text-align:center;margin:var(--space-2) 0 var(--space-5)}
@@ -229,8 +353,13 @@ ${logo ? `<link rel="apple-touch-icon" href="/media/${esc(logo)}">` : ""}
 .bonus{margin:var(--space-5) 0 0;padding:var(--space-3) var(--space-4);border-radius:var(--radius-md);background:var(--good-soft);color:var(--good);font:600 15px/22px var(--font-sans);text-align:center}
 form.cr-card{margin-top:var(--space-5);padding:var(--space-5) var(--space-4)}
 .f{margin-bottom:var(--space-4)}
-.check{display:flex;gap:12px;align-items:flex-start;margin:0 0 var(--space-4);font:400 15px/22px var(--font-sans);cursor:pointer;min-height:var(--tap)}
-.check input{flex:none;width:24px;height:24px;margin:0;accent-color:var(--brand)}
+.hint{margin:6px 0 0;color:var(--ink-2);font-size:13px;line-height:18px}
+.device-p{margin:0 0 var(--space-4);font-size:17px;line-height:25px}
+.known{margin-top:var(--space-5);text-align:center}
+.known-h{font:700 24px/30px var(--font-display);margin:0 0 var(--space-2)}
+.rec{padding:var(--space-2) 0}
+.rec h2{font:700 22px/28px var(--font-display);margin:0 0 var(--space-2)}
+.rec p{margin:0;color:var(--ink-2);font-size:16px;line-height:24px}
 .rl{list-style:none;margin:0;padding:0;display:grid;gap:var(--space-2)}
 .rl li{display:flex;justify-content:space-between;gap:12px;font-weight:600}
 .rl span{color:var(--ink-2);font-weight:500;white-space:nowrap}
@@ -250,47 +379,46 @@ form.cr-card{margin-top:var(--space-5);padding:var(--space-5) var(--space-4)}
 <body class="cr-root">
 <div class="wrap">
   <header class="jh">
-    <h1>${esc(live ? `Join ${program.name}` : program.name)}</h1>
+    <h1>${esc(live ? t.joinH(program.name) : program.name)}</h1>
     <p>${esc(bizName)}${design.tagline ? ` &middot; ${esc(design.tagline)}` : ""}</p>
   </header>
-  <div id="again" class="again" hidden><span>You already have this card on this device.</span><a id="againLink" href="#">Open it</a></div>
+  ${known ? "" : `<div id="again" class="again" hidden><span>${esc(t.again)}</span><a id="againLink" href="#">${esc(t.open)}</a></div>`}
   ${preview}
   ${live ? `
-  ${bonusTxt ? `<p class="bonus">Join today and start with ${esc(bonusTxt)}.</p>` : ""}
-  ${rewardsList.length ? `<section class="sec cr-card"><h3>What you can earn</h3><ul class="rl">${rewardsList.map((r) => `<li><b>${esc(r.name)}</b><span>${esc(r.kind === "stamps" ? `${r.cost} stamp${r.cost === 1 ? "" : "s"}` : `${r.cost} points`)}</span></li>`).join("")}</ul></section>` : ""}
-  <form id="f" class="cr-card" novalidate>
-    <div id="err" class="err" role="alert"></div>
-    <div class="f cr-field"><label class="cr-label" for="name">Your name</label><input class="cr-input" id="name" name="name" type="text" autocomplete="name" maxlength="80" required></div>
-    <div class="f cr-field"><label class="cr-label" for="email">Email</label><input class="cr-input" id="email" name="email" type="email" autocomplete="email" inputmode="email" maxlength="120" required></div>
-    <div class="f cr-field"><label class="cr-label" for="phone">Phone <span class="muted">(optional)</span></label><input class="cr-input" id="phone" name="phone" type="tel" autocomplete="tel" inputmode="tel" maxlength="40"></div>
-    <label class="check"><input type="checkbox" id="consent"><span>Send me offers and news from ${esc(bizName)}. I can stop at any time.</span></label>
-    <button class="cr-btn cr-btn--primary cr-btn--lg cr-btn--block" id="go" type="submit"><span class="spin"></span><span id="goTxt">Get my card</span></button>
-    ${program.terms ? `<p class="terms">${esc(program.terms)}</p>` : ""}
-  </form>` : `
-  <section class="closed cr-card"><h2>Not open yet</h2><p class="muted">${esc(bizName)} is still setting up this card. Please check back soon, or ask at the till.</p></section>`}
-  <footer class="foot"><div id="themeSel"></div><span class="by"><img class="pm-logo" src="/brand/logo/polar-mark.png" alt="">Powered by Polar Marketing</span> <a href="/privacy" style="font-size:.8em;opacity:.7">Privacy</a></footer>
+  ${!known && bonusTxt ? `<p class="bonus">${esc(t.bonus(bonusTxt))}</p>` : ""}
+  ${!known && rewardsList.length ? `<section class="sec cr-card"><h3>${esc(t.earnH)}</h3><ul class="rl">${rewardsList.map((r) => `<li><b>${esc(r.name)}</b><span>${esc(r.kind === "stamps" ? t.costStamps(r.cost) : t.costPoints(r.cost))}</span></li>`).join("")}</ul></section>` : ""}
+  ${formHtml}` : `
+  <section class="closed cr-card"><h2>${esc(t.closedH)}</h2><p class="muted">${esc(t.closedP(bizName))}</p></section>`}
+  <footer class="foot"><div id="themeSel"></div><span class="by"><img class="pm-logo" src="/brand/logo/polar-mark.png" alt="">${esc(t.powered)}</span> <a href="/privacy" style="font-size:.8em;opacity:.7">${esc(t.privacy)}</a></footer>
 </div>
 <script>if(window.PolarTheme)PolarTheme.mount(document.getElementById("themeSel"),document.documentElement.lang)</script>
-${live ? `<script>
+${live && !known ? `<script>
 (function(){
-var code=${js(program.joinCode || "")},$=function(i){return document.getElementById(i)},f=$("f"),err=$("err"),go=$("go"),KEY="lc-card-"+code;
+var code=${js(program.joinCode || "")},state=${js(state)},T=${js(clientT)},$=function(i){return document.getElementById(i)};
+var f=$("f"),err=$("err"),go=$("go"),goTxt=$("goTxt"),KEY="lc-card-"+code;
 try{var saved=localStorage.getItem(KEY);if(saved&&/^\\/card\\/[\\w-]+$/.test(saved)){$("againLink").href=saved;$("again").hidden=false}}catch(e){}
-function show(m){err.textContent=m;err.classList.add("on");err.scrollIntoView({block:"nearest",behavior:"smooth"})}
+function show(m){err.textContent=m;err.classList.add("on");try{err.scrollIntoView({block:"nearest",behavior:"smooth"})}catch(e){}}
+function done(){go.disabled=false;go.classList.remove("busy");goTxt.textContent=state==="device"?T.deviceBtn:T.go}
+function recovery(){f.innerHTML='<div class="rec"><h2>'+T.recH+'</h2><p>'+T.recP+'</p></div>'}
+function say(status,d){
+  if(status===202)return recovery();
+  if(!d||!d.cardUrl){show(status===400?T.bad:status===409?T.other:status===429?T.many:status===404?T.gone:T.gen);done();return}
+  try{localStorage.setItem(KEY,d.cardUrl)}catch(e){}
+  location.href=d.cardUrl;
+}
 f.addEventListener("submit",function(e){
   e.preventDefault();err.classList.remove("on");
-  var name=$("name").value.trim();
-  if(!name){show("Please enter your name.");$("name").focus();return}
-  var em=$("email").value.trim();
-  if(!/^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$/.test(em)){show("Please enter a valid email address.");$("email").focus();return}
-  go.disabled=true;go.classList.add("busy");$("goTxt").textContent="Creating your card";
-  fetch("/api/loyalty/join/"+encodeURIComponent(code),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({name:name,email:$("email").value.trim(),phone:$("phone").value.trim(),marketingConsent:$("consent").checked})})
-  .then(function(r){return r.json().catch(function(){return {}}).then(function(d){return {ok:r.ok,d:d}})})
-  .then(function(x){
-    if(!x.ok||!x.d.cardUrl)throw new Error(x.d.error||"Something went wrong. Please try again.");
-    try{localStorage.setItem(KEY,x.d.cardUrl)}catch(e){}
-    location.href=x.d.cardUrl;
-  })
-  .catch(function(e){go.disabled=false;go.classList.remove("busy");$("goTxt").textContent="Get my card";show(e&&e.message&&e.message!=="Failed to fetch"?e.message:"We couldn't reach the server. Check your connection and try again.")});
+  var body={};
+  if(state!=="device"){
+    body.phone=$("phone").value.trim();
+    body.name=$("name").value.trim();
+    if(!body.phone){show(T.needPhone);$("phone").focus();return}
+  }
+  go.disabled=true;go.classList.add("busy");goTxt.textContent=T.busy;
+  fetch("/api/loyalty/join/"+encodeURIComponent(code),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)})
+  .then(function(r){return r.json().catch(function(){return {}}).then(function(d){return {status:r.status,d:d}})})
+  .then(function(x){say(x.status,x.d)})
+  .catch(function(){done();show(T.net)});
 });
 })();
 </script>` : ""}
