@@ -12,7 +12,7 @@ Everything here was read from code; if code and this file disagree, the code win
 3. `route()` runs top to bottom. **Order matters**, first match answers:
    1. `/privacy`, `/legal`, `/declined`
    2. **Declined-business gate** (`declinedClientFor`, section 4). Runs before every client-facing handler.
-   3. `handleWallet` (`wallet.mjs`), `handleLoyalty` (`loyalty-routes.mjs`), `handleBookings` (`bookings-routes.mjs`), `handleExpenses` (`expenses-routes.mjs`), `handleMenu` (`menu-routes.mjs`). Each returns `true` when it answered, `false` to fall through.
+   3. `handleWallet` (`wallet.mjs`), `handleLoyalty` (`loyalty-routes.mjs`), `handleBookings` (`bookings-routes.mjs`), `handleExpenses` (`expenses-routes.mjs`), `handleMenu` (`menu-routes.mjs`), `handleGbp` (`gbp-routes.mjs`). Each returns `true` when it answered, `false` to fall through.
    4. `/api/ai*`, landing/login/auth/signup pages and APIs
    5. `/portal/<token>` page and `/api/portal/<token>/...` (generic portal API)
    6. `/api/studio/...` (admin API; first line is the admin check)
@@ -98,6 +98,7 @@ The token is the credential. Unknown token: 404 JSON on API, the portal HTML she
 | GET/PUT/PATCH/POST | `/api/portal/<token>/bookings/...` (config, bookings, qr) | `bookings-routes.mjs` `manage()` | token; booking must belong to the business | `manage` 600/min |
 | GET/PUT/PATCH/POST | `/api/portal/<token>/menu/...` (config, photo, import, translate) | `menu-routes.mjs` `manage()` | token; 403 `disabled` until the owner enables it | `manage` 600/min, `photo` 120/h, `ai` 30/h |
 | GET/PUT/PATCH/POST/DELETE | `/api/portal/<token>/expenses/...` (config, scan, export, items, photo, ask, dictate, parse) | `expenses-routes.mjs` `manage()` | token; 403 `disabled` until the owner enables it; expense must belong to the business | `manage` 600/min, `scan` 30/h, `ask` 20/h |
+| GET/PATCH/POST | `/api/portal/<token>/gbp` and `/gbp/kit` (manual Google Business Profile kit and status) | `gbp-routes.mjs` `handleGbp()` | token; 403 for pending/declined businesses; only the caller's own `client.gbp` is ever read or written | `read` 180/min per IP, `write` 60/min, `ai` 6/h (kit generation) |
 
 Client session (convenience only, not an API credential): after a correct code, `POST /api/client-login` sets `isla_client` (`<clientId>.<random>`, 90-day sliding, HttpOnly, SameSite=Lax) and `/login` uses it to redirect to `/portal/<token>`. API calls still need the token in the path.
 

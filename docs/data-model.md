@@ -55,7 +55,7 @@ Created by `POST /api/signup` (`index.mjs`, status `pending`) or by the owner (`
 | Website | `websiteMode` (`ai`/`own`), `websiteUrl`, `siteSlug`, `site` (status `building/waiting/ready/failed`, `step`, `url`, `kind` `ai/upload`, `design`, `direction`, `builtAt`, `attempts`, `nextTryAt`, `error`), `siteChat[]` (last 60), `siteEdit`, `siteVersions`, `profileSaves[]` |
 | Brand | `profile` (tagline, story, services, social links, colours, style, ...), `logoFile`, `photos[]` (`{file, ...}`, max 12) |
 | Publishing | `accounts: {facebook, instagram, x, youtube}` with access tokens in plain text (masked by `maskAccounts` before leaving the server) |
-| Portal state | `uploads[]` (files this business uploaded, last 200), `marketingConsent` (`false` or `{at, source}`) |
+| Portal state | `uploads[]` (files this business uploaded, last 200), `marketingConsent` (`false` or `{at, source}`), `gbp` (`{mode: "manual", status: not_started/created/verification_pending/verified, notes, kit, updatedAt}`, see `gbp-kit.mjs`) |
 
 Business-wide feature configs (loyalty, bookings, expenses, menu) are stored in their own sections, keyed by `clientId`, not inside the client.
 

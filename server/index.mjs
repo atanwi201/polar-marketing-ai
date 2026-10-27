@@ -43,6 +43,7 @@ const { handleBookings } = await import("./bookings-routes.mjs");
 const bookings = await import("./bookings.mjs");
 const { handleExpenses } = await import("./expenses-routes.mjs");
 const { handleMenu } = await import("./menu-routes.mjs");
+const { handleGbp } = await import("./gbp-routes.mjs");
 const menuData = await import("./menu.mjs");
 const expenses = await import("./expenses.mjs");
 const { bookingMailer } = await import("./booking-mail.mjs");
@@ -339,6 +340,7 @@ async function route(req, res, url) {
     if (req.method === "PUT" || req.method === "PATCH") void import("./bookings-links.mjs").then((m) => m.syncAllSites(SITES_DIR)).catch(() => {});
     return;
   }
+  if (await handleGbp(req, res, url, seg, loyaltyCtx)) return;
 
   // --- AI proxy for the main app ---
   if (p === "/api/ai/status") {
