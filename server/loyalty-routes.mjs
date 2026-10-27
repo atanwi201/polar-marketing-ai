@@ -2,6 +2,7 @@
 // handleLoyalty(req, res, url, seg, ctx) returns true when it answered the request.
 import { db, save, id, token, now } from "./store.mjs";
 import { limiter } from "./auth.mjs";
+import { approval } from "./limits.mjs";
 import { qrSvg, qrPng } from "./qr.mjs";
 import * as L from "./loyalty.mjs";
 import { bookingFor } from "./bookings-links.mjs";
@@ -83,9 +84,14 @@ export async function handleLoyalty(req, res, url, seg, ctx) {
 }
 
 // ---------- public pages ----------
+/** A business that is not approved yet must not issue cards or take stamps (see docs/routes-and-auth.md).
+ *  Declined businesses never reach here (declinedClientFor in index.mjs); this covers "pending". */
+const canIssue = (program) => approval(L.clientOf(program) ?? {}) === "approved";
+
 async function joinPageRoute(req, res, joinCode, ctx) {
   const program = byJoin(joinCode);
   if (!program) return notFoundPage(res), true;
+  if (!canIssue(program)) return notFoundPage(res), true;
   const client = L.clientOf(program) ?? {};
   html(res, 200, (await pages()).joinPage({ program: publicProgram(program), client: { name: client.name, logoFile: client.logoFile }, baseUrl: ctx.baseUrl(req) }));
   return true;
@@ -132,6 +138,7 @@ async function staffPageRoute(req, res, staffToken, ctx) {
   if (limits.badStaff.blocked(ip)) return notFoundPage(res, "Too many tries. Please wait a few minutes."), true;
   const program = byToken(staffToken);
   if (!program) { limits.badStaff.fail(ip); return notFoundPage(res), true; }
+  if (!canIssue(program)) return notFoundPage(res), true;
   const client = L.clientOf(program) ?? {};
   html(res, 200, (await pages()).staffPage({ program: { id: program.id, name: program.name, type: program.type, status: program.status, design: program.design }, client: { name: client.name, logoFile: client.logoFile }, baseUrl: ctx.baseUrl(req) }));
   return true;
@@ -146,6 +153,7 @@ async function publicApi(req, res, seg, ctx) {
     if (!hit(limits.join, ip)) return tooMany(ctx, res), true;
     const program = byJoin(seg[3]);
     if (!program) return ctx.send(res, 404, { error: "This link is not valid." }), true;
+    if (!canIssue(program)) return ctx.send(res, 404, { error: "This link is not valid." }), true;
     const b = await ctx.readBody(req, 20e3);
     const c = L.joinCustomer(program, b);
     await save();
@@ -169,6 +177,7 @@ async function publicApi(req, res, seg, ctx) {
     if (limits.badStaff.blocked(ip) || !hit(limits.staff, ip)) return tooMany(ctx, res), true;
     const program = byToken(seg[3]);
     if (!program) { limits.badStaff.fail(ip); return ctx.send(res, 404, { error: "This staff link is not valid." }), true; }
+    if (!canIssue(program)) return ctx.send(res, 403, { error: "This card is not active yet. Ask the owner." }), true;
     const b = await ctx.readBody(req, 10e3);
     const progInfo = { name: program.name, type: program.type, status: program.status, stamps: { goal: program.stamps.goal }, rewards: program.rewards.filter((r) => r.active !== false).map((r) => ({ id: r.id, name: r.name, cost: r.cost, kind: r.kind })) };
     if (seg[4] === "lookup") {
