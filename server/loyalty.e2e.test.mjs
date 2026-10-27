@@ -9,7 +9,7 @@ import { join } from "node:path";
 process.env.DATA_DIR = mkdtempSync(join(tmpdir(), "loy-e2e-"));
 delete process.env.APPLE_PASS_TYPE_ID;
 const { db } = await import("./store.mjs");
-const { handleLoyalty } = await import("./loyalty-routes.mjs");
+const { handleLoyalty, JOIN_LIMITS } = await import("./loyalty-routes.mjs");
 const L = await import("./loyalty.mjs");
 const { walletStatus } = await import("./pass.mjs");
 
@@ -247,8 +247,8 @@ test("limits: join, staff and bad-token guesses are rate limited; oversized bodi
   const p = L.findProgram(st.p2.id);
   const codeJ = p.joinCode;
   let last;
-  for (let i = 0; i < 12; i++) last = await call("POST", `/api/loyalty/join/${codeJ}`, { name: "N" + i, email: `n${i}@example.com` }, ip);
-  assert.equal(last.status, 429);
+  for (let i = 0; i <= JOIN_LIMITS.ip; i++) last = await call("POST", `/api/loyalty/join/${codeJ}`, { name: "N" + i, email: `n${i}@example.com` }, ip);
+  assert.equal(last.status, 429, "the IP cap is what stops a script, not the shard of wifi it sits behind");
   const g = { "x-test-ip": "8.8.8.8" };
   for (let i = 0; i < 20; i++) await call("POST", `/api/loyalty/staff/guess-${i}-xxxxxxxx/lookup`, { code: "x" }, g);
   assert.equal((await call("POST", `/api/loyalty/staff/${p.staffToken}/lookup`, { code: "x" }, g)).status, 429);

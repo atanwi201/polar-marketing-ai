@@ -67,7 +67,7 @@ Legend for the Auth column: **none** = public, **token** = portal token in path,
 | POST | `/api/book/<code>` | `bookings-routes.mjs` | code; creates a booking | `create` 12/h |
 | POST | `/api/booking/<manageToken>/cancel` | `bookings-routes.mjs` | code (manage token) | `cancel` 20/h, `badToken` 30 failures/15 min |
 | GET | `/join/<joinCode>` | `loyalty-routes.mjs` | code | none in app |
-| POST | `/api/loyalty/join/<joinCode>` | `loyalty-routes.mjs` | code; creates a loyalty customer | `join` 10/h |
+| POST | `/api/loyalty/join/<joinCode>` | `loyalty-routes.mjs` | code; `{phone, name?}` creates a member + card and sets the `lc_member` device cookie; `{name, email}` (old cached page) still creates one card per submit | `join` 60/h per IP, `joinPhone` 5/h per number, `joinProgram` 300/h per programme |
 | GET | `/card/<cardToken>` and `/card/<token>/(qr.svg\|manifest.webmanifest\|pass.pkpass\|google-wallet)` | `loyalty-routes.mjs` | code (card token) | `card` 240/min, `badCard` 30 failures/15 min |
 | GET | `/api/loyalty/card/<cardToken>` | `loyalty-routes.mjs` | code | same as above |
 | GET | `/loyalty/logo/<programId>.png` | `loyalty-routes.mjs` | none | none |
@@ -76,6 +76,8 @@ Legend for the Auth column: **none** = public, **token** = portal token in path,
 | GET/HEAD | `/menu/<code>` (+ `/qr.svg`, `/qr.png`, `/img/<file>`) and `/api/menu/<code>` | `menu-routes.mjs` | code; only when the menu is enabled | `read` 300/min |
 | POST/DELETE/GET | `/wallet/v1/devices/<deviceId>/registrations/<passTypeId>[/<serial>]`, GET `/wallet/v1/passes/<passTypeId>/<serial>` | `wallet.mjs` | `Authorization: ApplePass <authToken>` per pass (timing-safe compare); 404 when Wallet is not configured | none in app |
 | POST | `/wallet/v1/log` | `wallet.mjs` | none by design (Apple sends no token); 8 KB / 20 lines / 300 chars | 30/min per IP |
+
+**Loyalty join responses** (`joinRoute` in `loyalty-routes.mjs`). A number that has never joined: `201` + `{cardUrl}`, and the `lc_member` cookie (HttpOnly, `SameSite=Lax`, 2 years) binds the card to that browser. A browser that already holds that cookie gets its card for another shop with no body at all (`201` when the card is new, `200` when it already existed). A number that belongs to another device: `202 {recovery:"verify"}`, no card, no name, no write. That last one is a **deliberate departure from plan A.8** ("identical response for existing and new"): a zero-friction join and a protected balance cannot both be silent about which case you are in, so the route leaks exactly one bit (this number has a card somewhere) and nothing else. Proving the number is task L5.
 
 ### 3.2 Tenant (portal token)
 

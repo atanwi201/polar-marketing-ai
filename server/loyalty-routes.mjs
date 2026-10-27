@@ -3,6 +3,7 @@
 import { db, save, id, token, now } from "./store.mjs";
 import { limiter } from "./auth.mjs";
 import { approval } from "./limits.mjs";
+import { normalisePhone } from "./phone.mjs";
 import { qrSvg, qrPng } from "./qr.mjs";
 import * as L from "./loyalty.mjs";
 import { bookingFor } from "./bookings-links.mjs";
@@ -23,9 +24,15 @@ const fallbackPages = {
 let pagesP;
 const pages = async () => (pagesP ??= import("./loyalty-pages.mjs").then((m) => ({ ...fallbackPages, ...m }), () => fallbackPages));
 
+// Join limits, one hour (plan A.8). The IP cap alone was too tight for a shop's shared wifi and too
+// loose for one person scripting numbers; the number and the programme caps bound it from the other
+// two sides. Tests pin the numbers.
+export const JOIN_LIMITS = { ip: 60, phone: 5, program: 300 };
+
 // Per-IP limits (count every request; limiter's `fail` is just a hit counter).
 export const limits = {
-  join: limiter(10, 3600e3), card: limiter(240, 60e3), staff: limiter(180, 5 * 60e3), badStaff: limiter(20, 15 * 60e3), badCard: limiter(30, 15 * 60e3),
+  join: limiter(JOIN_LIMITS.ip, 3600e3), joinPhone: limiter(JOIN_LIMITS.phone, 3600e3), joinProgram: limiter(JOIN_LIMITS.program, 3600e3),
+  card: limiter(240, 60e3), staff: limiter(180, 5 * 60e3), badStaff: limiter(20, 15 * 60e3), badCard: limiter(30, 15 * 60e3),
   design: limiter(6, 10 * 60e3), manage: limiter(600, 60e3),
 };
 const hit = (lim, ip) => { if (lim.blocked(ip)) return false; lim.fail(ip); return true; };
@@ -145,6 +152,80 @@ async function staffPageRoute(req, res, staffToken, ctx) {
 }
 
 // ---------- public API ----------
+
+// The device token lives in an HttpOnly cookie, so a page cannot read it and a script on another
+// site cannot send it. `memberToken` in the body is the fallback for a page that stored it itself.
+const MEMBER_COOKIE = "lc_member";
+const MEMBER_COOKIE_DAYS = 730;
+const cookies = (req) => Object.fromEntries((req.headers.cookie ?? "").split(";").map((c) => c.trim().split("=")).filter((p) => p.length === 2));
+const setMemberCookie = (req, res, token) => {
+  const pub = process.env.PUBLIC_URL ?? "";
+  const secure = (pub ? /^https:/i.test(pub) : req.headers["x-forwarded-proto"] === "https") ? "; Secure" : "";
+  res.setHeader("Set-Cookie", `${MEMBER_COOKIE}=${token}; HttpOnly; SameSite=Lax; Path=/; Max-Age=${MEMBER_COOKIE_DAYS * 86400}${secure}`);
+};
+
+/**
+ * Two shapes of join body, on purpose:
+ *   {phone, name?}          the new page. The card is keyed by the number and bound to this device.
+ *   {name, email, ...}      a page cached from before the update. Untouched: one card per submit.
+ *
+ * The phone path returns three answers:
+ *   201 card        a new number, or a known device getting its card for another shop
+ *   200 card        a known device asking again for a shop it already has
+ *   202 recovery    the number belongs to someone else's device. Nothing about that person is
+ *                   returned, not even their name, and no card is created. Proving the number
+ *                   (L5) is the only way through.
+ *
+ * The last one is a deliberate difference between "new" and "already registered": a zero-friction
+ * join and a protected balance cannot both be silent about which case you are in. It leaks one bit
+ * (this number has a card somewhere) and nothing else. Documented in docs/routes-and-auth.md.
+ */
+async function joinRoute(req, res, program, raw, ctx) {
+  const b = raw && typeof raw === "object" && !Array.isArray(raw) ? raw : {};
+  const rawPhone = typeof b.phone === "string" ? b.phone.trim() : "";
+  const held = (typeof b.memberToken === "string" && b.memberToken) || cookies(req)[MEMBER_COOKIE] || "";
+  const device = L.memberByToken(held);
+
+  // No phone: either a device that already proved its number, or a page cached before this change.
+  // A body carrying a name or an email is always the old shape, even on a device that has a cookie,
+  // so an old page keeps doing exactly what it did.
+  if (!rawPhone) {
+    if (device && b.name == null && b.email == null) {
+      const { customer, created } = L.cardForMember(device, program);
+      await save();
+      setMemberCookie(req, res, device.memberToken);
+      return ctx.send(res, created ? 201 : 200, { cardUrl: `/card/${customer.cardToken}` }), true;
+    }
+    if (!hit(limits.joinProgram, program.id)) return tooMany(ctx, res), true;
+    const c = L.joinCustomer(program, b);
+    await save();
+    return ctx.send(res, 201, { cardUrl: `/card/${c.cardToken}` }), true;
+  }
+
+  const phone = normalisePhone(rawPhone);
+  if (!phone) return ctx.send(res, 400, { error: "That phone number does not look right." }), true;
+  // Both caps count the attempt: a script has to spend valid numbers to burn either budget.
+  if (!hit(limits.joinProgram, program.id) || !hit(limits.joinPhone, `phone:${phone.e164}`)) return tooMany(ctx, res), true;
+
+  if (device) {
+    if (device.phone !== phone.e164) return ctx.send(res, 409, { error: "This device is already set up for a different number." }), true;
+    const { customer, created } = L.cardForMember(device, program);
+    await save();
+    setMemberCookie(req, res, device.memberToken);
+    return ctx.send(res, created ? 201 : 200, { cardUrl: `/card/${customer.cardToken}` }), true;
+  }
+
+  // A number that is already known is never handed over on the strength of typing it: anyone who
+  // knows the number could read the name on the card. No write happens on this path either.
+  if (L.memberByPhone(phone.e164)) return ctx.send(res, 202, { recovery: "verify" }), true;
+
+  const { member } = L.findOrCreateMember({ phone: phone.e164, name: b.name, locale: b.locale });
+  const { customer } = L.cardForMember(member, program);
+  await save();
+  setMemberCookie(req, res, member.memberToken);
+  return ctx.send(res, 201, { cardUrl: `/card/${customer.cardToken}` }), true;
+}
+
 async function publicApi(req, res, seg, ctx) {
   const ip = ctx.clientIp(req);
   const m = req.method;
@@ -155,10 +236,7 @@ async function publicApi(req, res, seg, ctx) {
     if (!program) return ctx.send(res, 404, { error: "This link is not valid." }), true;
     if (!canIssue(program)) return ctx.send(res, 404, { error: "This link is not valid." }), true;
     const b = await ctx.readBody(req, 20e3);
-    const c = L.joinCustomer(program, b);
-    await save();
-    ctx.send(res, 201, { cardUrl: `/card/${c.cardToken}` });
-    return true;
+    return await joinRoute(req, res, program, b, ctx);
   }
   // GET /api/loyalty/card/<cardToken>
   if (m === "GET" && seg[2] === "card" && seg.length === 4) {
