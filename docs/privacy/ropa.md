@@ -15,7 +15,7 @@ Controller/processor: **[PENDING ATD: LEGAL_NAME, LEGAL_NIF, LEGAL_ADDRESS, LEGA
 | Activity | Subjects | Data | Sub-processors | Retention |
 |---|---|---|---|---|
 | Bookings (`/api/book`) | Booking customers | Name, email, phone, notes, date, status, mail log | Resend, hosting | See retention.md |
-| Loyalty cards | Members | Name, email/phone, visits, rewards, marketing consent, wallet tokens | Google/Apple Wallet (user-initiated), hosting | See retention.md |
+| Loyalty cards | Members | Name, phone (E.164), email if given, visits, rewards, marketing consent and its proof, wallet tokens | Google/Apple Wallet (user-initiated), hosting | See retention.md |
 | Digital menu | None personal | Menu, allergens | AI translation | contract |
 | Expense scanner | Suppliers, possibly card/loyalty digits on receipts | Receipt images, parsed text | Vision AI providers, hosting | See retention.md |
 

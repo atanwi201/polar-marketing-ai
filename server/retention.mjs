@@ -91,7 +91,7 @@ export const retentionFromEnv = (env = process.env) => ({
  */
 export async function purgeExpired({ declinedDays = 0, bookingDays = 0, loyaltyInactiveDays = 0, at = Date.now(), dryRun = false, sitesDir, dataDir } = {}) {
   const cut = (d) => at - d * 864e5;
-  const out = { clients: 0, bookings: 0, loyaltyCustomers: 0 };
+  const out = { clients: 0, bookings: 0, loyaltyCustomers: 0, loyaltyMembers: 0 };
   if (declinedDays > 0) {
     const old = db.clients.filter((c) => c.approval?.status === "declined" && Date.parse(c.approval.at) < cut(declinedDays));
     out.clients = old.length;
@@ -107,11 +107,23 @@ export async function purgeExpired({ declinedDays = 0, bookingDays = 0, loyaltyI
     const l = loyalty.ldb();
     const old = l.customers.filter((c) => Date.parse(c.lastVisitAt || c.updatedAt || c.createdAt) < cut(loyaltyInactiveDays));
     out.loyaltyCustomers = old.length;
+    // A member whose last card goes with this purge goes too, with their consents: keeping a name
+    // and a number that no shop can use any more is the opposite of a retention policy.
+    const oldIds = new Set(old.map((c) => c.id));
+    const memberIds = new Set(old.map((c) => c.memberId).filter(Boolean));
+    const left = new Set(l.customers.filter((c) => !oldIds.has(c.id)).map((c) => c.memberId));
+    const orphanMembers = [...memberIds].filter((m) => !left.has(m));
+    out.loyaltyMembers = orphanMembers.length;
     if (!dryRun && old.length) {
-      const ids = new Set(old.map((c) => c.id));
+      const ids = oldIds;
       l.customers = l.customers.filter((c) => !ids.has(c.id));
       l.txns = l.txns.filter((t) => !ids.has(t.customerId));
       l.devices = l.devices.filter((d) => !ids.has(d.serial));
+      if (orphanMembers.length) {
+        const gone = new Set(orphanMembers);
+        l.members = l.members.filter((m) => !gone.has(m.id));
+        l.consents = l.consents.filter((x) => !gone.has(x.memberId));
+      }
     }
   }
   if (!dryRun && (out.bookings || out.loyaltyCustomers)) await save();

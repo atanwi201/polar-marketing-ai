@@ -64,10 +64,10 @@ test("retention purge is off by default and honours dry runs", async () => {
   db.clients.push({ id: "cd", name: "D", approval: { status: "declined", at: old } });
   const l = L.ldb(); l.customers.push({ id: "k9", programId: "x", clientId: "cx", lastVisitAt: old });
   B.bdb().items.push({ clientId: "cx", date: "2020-01-01" });
-  assert.deepEqual(await purgeExpired({}), { clients: 0, bookings: 0, loyaltyCustomers: 0 });
+  assert.deepEqual(await purgeExpired({}), { clients: 0, bookings: 0, loyaltyCustomers: 0, loyaltyMembers: 0 });
   assert.ok(db.clients.some((c) => c.id === "cd"));
   const dry = await purgeExpired({ declinedDays: 30, bookingDays: 30, loyaltyInactiveDays: 30, dryRun: true });
-  assert.deepEqual(dry, { clients: 1, bookings: 1, loyaltyCustomers: 1 });
+  assert.deepEqual(dry, { clients: 1, bookings: 1, loyaltyCustomers: 1, loyaltyMembers: 0 });
   assert.ok(db.clients.some((c) => c.id === "cd"));
   await purgeExpired({ declinedDays: 30, bookingDays: 30, loyaltyInactiveDays: 30, sitesDir: sites });
   assert.ok(!db.clients.some((c) => c.id === "cd"));

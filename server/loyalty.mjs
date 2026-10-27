@@ -1,9 +1,9 @@
 // Loyalty cards: programmes, customers and every balance calculation (stamps, points, tiers, rewards, expiry).
 // Data lives in db.loyalty and is saved with the rest of the studio data.
 import { randomBytes, randomInt } from "node:crypto";
-import { unlink } from "node:fs/promises";
+import { unlink, appendFile, chmod } from "node:fs/promises";
 import { join } from "node:path";
-import { db, save, id, token, now, MEDIA_DIR } from "./store.mjs";
+import { db, save, id, token, now, MEDIA_DIR, DATA_DIR } from "./store.mjs";
 import { normalisePhone, maskPhone } from "./phone.mjs";
 
 export class LoyaltyError extends Error {
@@ -19,7 +19,7 @@ export const STAMP_GAP_MS = 10 * 60e3; // one stamp-earning visit per customer p
 /** The data root, created on first use. */
 export function ldb() {
   const l = (db.loyalty ??= {});
-  for (const k of ["programs", "customers", "txns", "devices", "templates", "members"]) l[k] ??= [];
+  for (const k of ["programs", "customers", "txns", "devices", "templates", "members", "consents"]) l[k] ??= [];
   return l;
 }
 
@@ -231,12 +231,14 @@ export function removeProgram(program) {
   void save();
 }
 
-/** Erase everything a business has in loyalty: programmes (and their staff tokens), customers, transactions, wallet device registrations, templates, card pictures. */
+/** Erase everything a business has in loyalty: programmes (and their staff tokens), customers, transactions, wallet device registrations, templates, card pictures, consent records. */
 export async function removeClientData(clientId) {
   const l = ldb();
   const progs = l.programs.filter((p) => p.clientId === clientId);
   const progIds = new Set(progs.map((p) => p.id));
-  const custIds = new Set(l.customers.filter((c) => c.clientId === clientId || progIds.has(c.programId)).map((c) => c.id));
+  const mine = l.customers.filter((c) => c.clientId === clientId || progIds.has(c.programId));
+  const custIds = new Set(mine.map((c) => c.id));
+  const memberIds = new Set(mine.map((c) => c.memberId).filter(Boolean));
   const files = new Set();
   for (const p of progs) for (const f of [p.design?.stripFile, p.design?.backgroundFile]) if (f && f.startsWith(designFilePrefix(p.id))) files.add(f);
   const counts = { programs: progs.length, customers: custIds.size, txns: l.txns.filter((t) => t.clientId === clientId || progIds.has(t.programId) || custIds.has(t.customerId)).length };
@@ -244,10 +246,52 @@ export async function removeClientData(clientId) {
   l.customers = l.customers.filter((c) => !custIds.has(c.id));
   l.txns = l.txns.filter((t) => !(t.clientId === clientId || progIds.has(t.programId) || custIds.has(t.customerId)));
   l.devices = l.devices.filter((d) => !custIds.has(d.serial));
+  l.consents = l.consents.filter((x) => x.clientId !== clientId && !custIds.has(x.customerId) && !progIds.has(x.programId));
+  // The person may still hold cards at other shops; only the ones left with nothing are removed.
+  const stillHasCard = new Set(l.customers.map((c) => c.memberId));
+  const orphans = [...memberIds].filter((m) => !stillHasCard.has(m));
+  counts.members = orphans.length;
+  if (orphans.length) { const gone = new Set(orphans); l.members = l.members.filter((m) => !gone.has(m.id)); l.consents = l.consents.filter((x) => !gone.has(x.memberId)); }
   l.templates = l.templates.filter((t) => t.clientId !== clientId);
   for (const [f, owner] of Object.entries(l.uploads ?? {})) if (owner === clientId) { files.add(f); delete l.uploads[f]; }
   for (const f of files) if (!fileStillUsed(f)) await unlink(join(MEDIA_DIR, f)).catch(() => {});
   return counts;
+}
+
+/**
+ * Erase one person, by the number they gave: every card they hold, at every shop, with its
+ * transactions, wallet registrations and consents. Answers a subject erasure request; the shops
+ * are not told who it was. One audit line is appended (counts only — no number, no name, no id),
+ * because "we deleted it" has to be provable without keeping the thing deleted.
+ *
+ * An invalid number is an error (400), a valid number nobody uses is `found: false`, so a caller
+ * can tell "wrong input" from "already gone".
+ */
+export async function eraseMember(rawPhone, { audit = true, dataDir = DATA_DIR } = {}) {
+  const phone = normalisePhone(rawPhone);
+  if (!phone) throw new LoyaltyError("That phone number does not look right.", 400);
+  const l = ldb();
+  const member = l.members.find((m) => m.phone === phone.e164);
+  if (!member) return { found: false, cards: 0, txns: 0, shops: 0 };
+  const cards = l.customers.filter((c) => c.memberId === member.id);
+  const ids = new Set(cards.map((c) => c.id));
+  const shops = new Set(cards.map((c) => c.clientId));
+  const txns = l.txns.filter((t) => ids.has(t.customerId)).length;
+  l.customers = l.customers.filter((c) => !ids.has(c.id));
+  l.txns = l.txns.filter((t) => !ids.has(t.customerId));
+  l.devices = l.devices.filter((d) => !ids.has(d.serial));
+  l.consents = l.consents.filter((x) => x.memberId !== member.id && !ids.has(x.customerId));
+  l.members = l.members.filter((m) => m.id !== member.id);
+  await save();
+  if (audit) await appendAudit(dataDir, { event: "member_erased", cards: cards.length, txns, shops: shops.size });
+  return { found: true, cards: cards.length, txns, shops: shops.size };
+}
+
+/** One line per erasure, owner-only (0600), no personal data. Same file as the client audit. */
+export async function appendAudit(dataDir, entry) {
+  const file = join(dataDir, "erasure-audit.log");
+  await appendFile(file, JSON.stringify({ at: now(), ...entry }) + "\n", { mode: 0o600 }).catch(() => {});
+  await chmod(file, 0o600).catch(() => {});
 }
 
 export function duplicateProgram(program, { name, clientId, design } = {}) {
