@@ -14,6 +14,7 @@ import { createCipheriv, createDecipheriv, createHash, hkdfSync, randomBytes } f
 import { db, save, now } from "./store.mjs";
 import { ensureGbp, GbpError } from "./gbp-kit.mjs";
 import { approval } from "./limits.mjs";
+import { gbpApiEnabled } from "./gbp.mjs";
 
 export const SCOPE = "https://www.googleapis.com/auth/business.manage";
 export const PENDING_TTL = 10 * 60e3;
@@ -120,6 +121,8 @@ export function gbpAuthView(client) {
   const tokens = a.enc ? decrypt(client.id, a.enc) : null;
   return {
     configured: gbpOAuthConfigured(),
+    // The portal swaps the manual kit for the API screens only when the owner turns the flag on (G5/G10).
+    enabled: gbpApiEnabled(),
     connected: !!(a.enc && tokens),
     connectedAt: a.connectedAt || "",
     expiresAt: tokens ? tokens.expiresAt : 0,

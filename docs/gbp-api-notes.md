@@ -129,6 +129,11 @@ These change task text, not just trivia. Each one would have cost a day if disco
 - **G4/G5 stay fake-first and this is now cheaper, not riskier**: the hosts and paths above are stable
   enough to write the fake against today. Every call in section 3 is reachable from a stub server.
 - **`GBP_API_ENABLED` stays off until the quota page reads 300 QPM.** Not "until the form is sent".
+- **The wrapper is `server/gbp.mjs`**, built against the hosts and calls above: it always sends `readMask`
+  (mandatory) and `updateMask`, retries GET/PATCH on 5xx and every call on 429/`Retry-After`, refuses the
+  11th edit in a minute locally, defaults `locations.create` to `validateOnly` with a unique `requestId`,
+  and maps Google's 403 `SERVICE_DISABLED` to `access_pending`. Tested against a fake of all five hosts in
+  `server/gbp.test.mjs`; no real call is made until the flag is on.
 - **G6 must be data-driven off `fetchVerificationOptions`.** Hard-coding postcard/phone/video breaks
   on the first client whose category offers only email.
 - **The 60-day clock is the critical path.** G1 should be started before any GBP code is written, even

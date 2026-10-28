@@ -216,6 +216,7 @@ test("the portal view says whether it is configured, and never contains a token"
   const r = await call(c.token);
   assert.equal(r.status, 200);
   assert.equal(r.payload.gbp.api.configured, true);
+  assert.equal(r.payload.gbp.api.enabled, false, "the API UI stays off until GBP_API_ENABLED");
   assert.equal(r.payload.gbp.api.connected, true);
   const body = JSON.stringify(r.payload);
   assert.equal(body.includes("rt-1") || body.includes("at-"), false);

@@ -2999,7 +2999,7 @@ function renderGbp(){
   const v=GBP.view||{status:"not_started",notes:"",kit:null,hasKit:false};
   const kit=v.kit;
   const api=v.api||{};
-  const connCard=!api.configured?"":(api.connected
+  const connCard=!(api.configured&&api.enabled)?"":(api.connected
     ? `<div class="card" style="margin:0 0 12px"><strong>${esc(t("gbpConnOn"))}</strong><p class="muted" style="margin:6px 0 10px">${esc(t("gbpConnOnText"))}</p><button type="button" class="btn" data-gbp="disconnect">${esc(t("gbpDisconnect"))}</button></div>`
     : `<div class="card" style="margin:0 0 12px"><strong>${esc(t("gbpConn"))}</strong><p class="muted" style="margin:6px 0 10px">${esc(api.lastError==="reconnect"?t("gbpConnExpired"):t("gbpConnText"))}</p><a class="btn" href="${API}/gbp/connect">${icon("open")}${esc(t("gbpConnect"))}</a></div>`);
   const statusCard=`<div class="card" style="margin:0 0 12px">
