@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { mkdtempSync, readFileSync, writeFileSync, statSync, existsSync, chmodSync, readdirSync } from "node:fs";
+import { mkdtempSync, mkdirSync, readFileSync, writeFileSync, statSync, existsSync, chmodSync, readdirSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { spawnSync } from "node:child_process";
@@ -51,12 +51,16 @@ test("save() rejects when the write fails", { skip: process.getuid?.() === 0 }, 
 // chmod resets the ACL mask, and a masked-off entry grants nothing. The operator sets a read-only
 // ACL for the backup user, so a restart must not silently kill it.
 const aclTools = () => process.platform === "linux" && !spawnSync("getfacl", ["-c", "-p", dir], { encoding: "utf8" }).error && !spawnSync("setfacl", ["--help"], { encoding: "utf8" }).error;
-test("a read-only ACL for the backup user survives a restart", { skip: !aclTools() }, () => {
+const aclGroup = () => spawnSync("getent", ["group", "isla"], { encoding: "utf8" }).stdout.trim();
+test("a read-only ACL for the backup user survives a restart", { skip: !aclTools() || !aclGroup() }, () => {
   const aclDir = join(mkdtempSync(join(tmpdir(), "acl-")), "data");
   mkdirSync(aclDir, { recursive: true });
-  const group = spawnSync("id", ["-gn"], { encoding: "utf8" }).stdout.trim();
-  assert.ok(group, "the current user needs a group to name in the ACL");
+  chmodSync(aclDir, 0o700);                       // the shape the app has on the server
+  const group = aclGroup().split(":")[0];
+  assert.ok(group, "the acl group has to exist");
+  // the access ACL and the default ACL are set apart: setfacl refuses "X" in a default ACL
   assert.equal(spawnSync("setfacl", ["-m", `g:${group}:r-x`, aclDir]).status, 0);
+  assert.equal(spawnSync("setfacl", ["-d", "-m", `g:${group}:r-x,m::r-x`, aclDir]).status, 0);
 
   const boot = spawnSync(process.execPath, ["--input-type=module", "-e", `await import("./store.mjs")`], { cwd: import.meta.dirname, env: { PATH: process.env.PATH, DATA_DIR: aclDir } });
   assert.equal(boot.status, 0, boot.stderr);
@@ -66,4 +70,22 @@ test("a read-only ACL for the backup user survives a restart", { skip: !aclTools
   assert.doesNotMatch(acl, /#effective:---/, "the named entry is still effective (the mask was not reset)");
   assert.match(acl, /^group::---$/m, "the owning group still has no access");
   assert.match(acl, /^other::---$/m, "others still have no access");
+});
+
+test("a dead access mask is put back to the default one", { skip: !aclTools() || !aclGroup() }, async () => {
+  const { healMask } = await import("./store.mjs");
+  const dir = join(mkdtempSync(join(tmpdir(), "acl2-")), "data");
+  mkdirSync(dir, { recursive: true });
+  chmodSync(dir, 0o700);
+  const group = aclGroup().split(":")[0];
+  spawnSync("setfacl", ["-m", `g:${group}:r-x`, dir]);
+  spawnSync("setfacl", ["-d", "-m", `g:${group}:r-x,m::r-x`, dir]);
+  spawnSync("setfacl", ["-m", "m::---", dir]);           // the mask is dead: the entry grants nothing
+  const before = spawnSync("getfacl", ["-c", "-p", dir], { encoding: "utf8" }).stdout;
+  assert.match(before, /^mask::---$/m, "the mask starts dead");
+  assert.match(before, new RegExp(`^group:${group}:r-x\\t#effective:---$`, "m"));
+  healMask(dir);
+  const after = spawnSync("getfacl", ["-c", "-p", dir], { encoding: "utf8" }).stdout;
+  assert.match(after, /^mask::r-x$/m, "the mask is back to the default one");
+  assert.doesNotMatch(after, /#effective:---/, "and the named entry works again");
 });

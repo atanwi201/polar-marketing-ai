@@ -21,6 +21,30 @@ function hasNamedAcl(path) {
   } catch { return false; }
 }
 
+/** The mask of the ACL, as rwx letters ("r-x"). */
+const maskLetters = (out, prefix = "") => out.match(new RegExp(`^${prefix}mask::([rwx-]{3})$`, "m"))?.[1] ?? "";
+
+/** Set the access mask of a path (the tool is only there when the acl package is installed). */
+function setMask(path, letters) {
+  try { execFileSync("setfacl", ["-m", `m::${letters}`, path], { stdio: "ignore" }); return true; }
+  catch { return false; }
+}
+
+/** The access mask of a folder can be dead while its default ACL still holds what the operator
+ *  wanted: a chmod at some point reset it, and a masked-off entry grants nothing. The app owns the
+ *  folder, so it can put the access mask back to the default one and the read-only ACL for the
+ *  backup user keeps working. It only ever revives a dead mask, never widens anything. */
+export function healMask(path) {
+  try {
+    const out = execFileSync("getfacl", ["-c", "-p", path], { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] });
+    if (!hasNamedAcl(path)) return;                                  // no exception to protect
+    if (maskLetters(out) !== "---") return;                          // the access mask is alive
+    const def = maskLetters(out, "default:");
+    if (!def || def === "---") return;                               // nothing to restore it to
+    setMask(path, def);
+  } catch { /* no acl tool here: the mode is still tight */ }
+}
+
 /** Tighten a path that is looser than `mode` (only when we own it; never fails the boot). */
 function tighten(path, mode) {
   try {
@@ -29,15 +53,12 @@ function tighten(path, mode) {
       // chmod resets the ACL mask, and a masked-off entry grants nothing: that silently disabled the
       // read-only ACL the operator sets for the backup user, so every restart broke the backups.
       // Tighten the mode as usual, then put the mask back so that ACL keeps working.
-      const bits = (st.mode & 0o070) >> 3;
-      const mask = `${bits & 4 ? "r" : "-"}${bits & 2 ? "w" : "-"}${bits & 1 ? "x" : "-"}`;
+      const mask = (st.mode & 0o070) >> 3;
       const named = hasNamedAcl(path);
       chmodSync(path, mode);
-      if (named && mask !== "---") {
-        try { execFileSync("setfacl", ["-m", `m::${mask}`, path], { stdio: "ignore" }); }
-        catch { console.warn("[store] could not restore an ACL mask (is the acl package installed?)"); }
-      }
+      if (named && mask) setMask(path, `${mask & 4 ? "r" : "-"}${mask & 2 ? "w" : "-"}${mask & 1 ? "x" : "-"}`);
     }
+    healMask(path);
   } catch { /* missing or not ours */ }
 }
 tighten(DATA_DIR, 0o700);
