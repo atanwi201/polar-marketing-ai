@@ -277,6 +277,10 @@ export function gbpClient({ accessToken = "", fetchImpl = fetch, sleep = (ms) =>
     },
 
     media: {
+      /** Photos already on the profile, with the public URL the owner sees on Maps. */
+      async list(account, location, { pageSize = 100, pageToken = "" } = {}) {
+        return send("GET", `${v4()}/${account}/${location}/media${qs({ pageSize, pageToken })}`);
+      },
       /** A photo already on a public URL: one call, and the only way to attach media to a local post. */
       async createFromUrl(account, location, { sourceUrl, mediaFormat = "PHOTO", category = "ADDITIONAL" }) {
         return send("POST", `${v4()}/${account}/${location}/media`, {
@@ -289,7 +293,10 @@ export function gbpClient({ accessToken = "", fetchImpl = fetch, sleep = (ms) =>
         const start = await send("POST", `${v4()}/media:startUpload`, { body: { fileName }, idempotent: true });
         const resourceName = String(start?.resourceName ?? "");
         if (!resourceName) throw new GbpApiError("Google did not return an upload reference.", 502, "google_down");
-        const target = `${upload()}/media/${resourceName.split("/").map(encodeURIComponent).join("/")}${qs({ upload_type: "media" })}`;
+        // The upload URL already ends in /media/, so a resourceName that starts with "media/" must not
+        // repeat it (the docs' {GoogleProvidedValue} is the part after the prefix).
+        const ref = resourceName.replace(/^media\//, "").split("/").map(encodeURIComponent).join("/");
+        const target = `${upload()}/media/${ref}${qs({ upload_type: "media" })}`;
         const res = await fetchImpl(target, {
           method: "POST",
           headers: { authorization: `Bearer ${accessToken}`, "content-type": contentType },
@@ -300,8 +307,9 @@ export function gbpClient({ accessToken = "", fetchImpl = fetch, sleep = (ms) =>
           const text = await res.text().catch(() => "");
           throw errorFrom(res.status, safeJson(text), res.headers);
         }
+        // Per "Upload from bytes": the final call references the upload with `dataRef`, not `resourceName`.
         return send("POST", `${v4()}/${account}/${location}/media`, {
-          body: { resourceName, mediaFormat, locationAssociation: { category } },
+          body: { mediaFormat, locationAssociation: { category }, dataRef: { resourceName } },
         });
       },
     },

@@ -12,6 +12,7 @@ import {
   googleView, apiFor, requireApi, listAccounts, listLocations, linkLocation, lookup, preview, create,
   categories, verificationOptions, startVerification, completeVerification, refreshVerification,
 } from "./gbp-google.mjs";
+import { readProfile, saveProfile, listPhotos, uploadPhoto } from "./gbp-info.mjs";
 
 export const limits = {
   read: limiter(180, 60e3),
@@ -55,6 +56,14 @@ const ES = {
   "Add the email address Google should write to.": "Añade el correo al que Google debe escribir.",
   "Start the verification first.": "Primero empieza la verificación.",
   "That code should be 6 digits.": "El código debe tener 6 dígitos.",
+  "Check the opening hours: use 09:00 for nine in the morning.": "Revisa el horario: escribe 09:00 para las nueve de la mañana.",
+  "Choose one of your photos.": "Elige una de tus fotos.",
+  "That photo is no longer there.": "Esa foto ya no está.",
+  "That photo is empty.": "Esa foto está vacía.",
+  "That photo is over 5 MB. Google will not take it.": "Esa foto pesa más de 5 MB. Google no la acepta.",
+  "Google only takes JPEG or PNG photos.": "Google solo acepta fotos JPEG o PNG.",
+  "Link the profile again to manage its photos.": "Vuelve a vincular la ficha para gestionar sus fotos.",
+  "Choose a photo type.": "Elige un tipo de foto.",
 };
 
 /** The state cookie is only valid for the callback path, and only sent on a top-level GET from Google. */
@@ -194,6 +203,33 @@ export async function handleGbp(req, res, url, seg, ctx) {
         await completeVerification(c, api, b ?? {});
         await save();
         return out(200, { google: googleView(c) });
+      }
+
+      // --- G7: info, hours and photos ------------------------------------------------------------
+      const ownPhotos = () => (c.photos ?? []).map((p) => p.file);
+
+      if (sub.length === 1 && sub[0] === "info" && isGet) {
+        return out(200, { profile: await readProfile(c, api), photos: await listPhotos(c, api), ownPhotos: ownPhotos() });
+      }
+
+      if (sub.length === 2 && sub[0] === "info" && sub[1] === "preview" && m === "POST") {
+        const r = await saveProfile(c, api, b ?? {}, { apply: false });
+        return out(200, { changes: r.changes, profile: r.profile });
+      }
+
+      if (sub.length === 1 && sub[0] === "info" && m === "POST") {
+        const r = await saveProfile(c, api, b ?? {}, { apply: true });
+        if (r.applied) await save();
+        return out(200, { changes: r.changes, applied: r.applied, profile: r.profile, google: googleView(c) });
+      }
+
+      if (sub.length === 1 && sub[0] === "photos" && isGet) {
+        return out(200, { photos: await listPhotos(c, api), ownPhotos: ownPhotos() });
+      }
+
+      if (sub.length === 1 && sub[0] === "photos" && m === "POST") {
+        const photo = await uploadPhoto(c, api, { file: b?.file, category: b?.category });
+        return out(200, { photo, google: googleView(c) });
       }
 
       return out(404, { error: "Not found" });

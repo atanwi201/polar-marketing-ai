@@ -165,11 +165,11 @@ test("media bytes go startUpload -> raw upload -> media.create", async () => {
   const out = await api().media.uploadBytes("accounts/1", "locations/2", { buffer: Buffer.from([1, 2, 3]), contentType: "image/png" });
   assert.equal(out.name, "accounts/1/locations/2/media/9");
   assert.equal(seen[0].url, "/v4/media:startUpload");
-  assert.equal(seen[1].url, "/upload/v1/media/media/abc?upload_type=media");
+  assert.equal(seen[1].url, "/upload/v1/media/abc?upload_type=media", "the /media/ prefix is not repeated");
   assert.equal(seen[1].headers["content-type"], "image/png");
   assert.deepEqual([...seen[1].raw], [1, 2, 3]);
   assert.equal(seen[2].url, "/v4/accounts/1/locations/2/media");
-  assert.equal(seen[2].body.resourceName, "media/abc");
+  assert.deepEqual(seen[2].body, { mediaFormat: "PHOTO", locationAssociation: { category: "ADDITIONAL" }, dataRef: { resourceName: "media/abc" } });
 });
 
 test("performance asks for each metric separately with a date range", async () => {
