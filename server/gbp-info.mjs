@@ -14,9 +14,7 @@ import { readFile, stat } from "node:fs/promises";
 import { basename, join } from "node:path";
 import { MEDIA_DIR } from "./store.mjs";
 import { GbpError, clamp } from "./gbp-kit.mjs";
-import { gbpClient } from "./gbp.mjs";
-import { accessToken } from "./gbp-auth.mjs";
-import { ensureGoogle, requireApi } from "./gbp-google.mjs";
+import { ensureGoogle, apiFor } from "./gbp-google.mjs";
 import { normalisePhone } from "./phone.mjs";
 import { now } from "./store.mjs";
 
@@ -40,14 +38,6 @@ function requireLinked(client) {
   const x = ensureGoogle(client);
   if (!isLocation(x.location)) throw new GbpError("Link or create a profile first.", 409, "not_linked");
   return x;
-}
-
-async function apiFor(client, api) {
-  if (api) return api;
-  requireApi(client);
-  const token = await accessToken(client);
-  if (!token) throw new GbpError("Connect your Google profile again.", 401, "reconnect");
-  return gbpClient({ accessToken: token });
 }
 
 // --- hours ---------------------------------------------------------------------------------------

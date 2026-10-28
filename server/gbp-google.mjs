@@ -91,8 +91,9 @@ export function requireApi(client) {
   if (!gbpAuthView(client).connected) throw new GbpError("Connect your Google profile first.", 409, "not_connected");
 }
 
-/** A client bound to this business's token, refreshed if needed. */
-export async function apiFor(client) {
+/** A client bound to this business's token, refreshed if needed. `api` lets tests inject a fake. */
+export async function apiFor(client, api) {
+  if (api) return api;
   requireApi(client);
   const token = await accessToken(client);
   if (!token) throw new GbpError("Connect your Google profile again.", 401, "reconnect");

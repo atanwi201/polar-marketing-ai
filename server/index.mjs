@@ -36,6 +36,7 @@ const { shareItem, checkAccounts, connections, maskAccounts, mergeAccounts, publ
 const { startVideo, runVideo, rerender, capabilities, startVideoScheduler, videoTick, LENGTHS } = await import("./video.mjs");
 const { sharePage } = await import("./share.mjs");
 const { receiveUpload, addMessage, startAssistant, portalMessages } = await import("./assistant.mjs");
+const { startReviewAutoReplies } = await import("./gbp-reviews.mjs");
 const { applyProfile, applyImages, profileView, MAX_PHOTOS } = await import("./profile.mjs");
 const { handleLoyalty } = await import("./loyalty-routes.mjs");
 const loyalty = await import("./loyalty.mjs");
@@ -1083,6 +1084,7 @@ server.listen(PORT, HOST, () => {
   startScheduler();
   startVideoScheduler();
   startAssistant();
+  startReviewAutoReplies(); // only touches businesses that switched automatic replies on
   startSiteRetries(); // resumes half-built sites and retries waiting ones (the live site stays up meanwhile)
   setInterval(() => videoTick(), 60e3).unref();
   videoTick();

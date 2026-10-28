@@ -13,6 +13,7 @@ import {
   categories, verificationOptions, startVerification, completeVerification, refreshVerification,
 } from "./gbp-google.mjs";
 import { readProfile, saveProfile, listPhotos, uploadPhoto } from "./gbp-info.mjs";
+import { listReviews, summaryOf, draftReply, sendReply, reviewSettings, setAutoReply } from "./gbp-reviews.mjs";
 
 export const limits = {
   read: limiter(180, 60e3),
@@ -64,6 +65,20 @@ const ES = {
   "Google only takes JPEG or PNG photos.": "Google solo acepta fotos JPEG o PNG.",
   "Link the profile again to manage its photos.": "Vuelve a vincular la ficha para gestionar sus fotos.",
   "Choose a photo type.": "Elige un tipo de foto.",
+  "Link the profile again to read its reviews.": "Vuelve a vincular la ficha para leer sus reseñas.",
+  "Choose a review first.": "Elige primero una reseña.",
+  "That review is no longer on the profile.": "Esa reseña ya no está en la ficha.",
+  "Write the reply first.": "Escribe primero la respuesta.",
+  "A reply can be at most 4096 characters.": "Una respuesta puede tener como máximo 4096 caracteres.",
+  "Google does not allow phone numbers in replies.": "Google no permite números de teléfono en las respuestas.",
+  "Google does not allow links in replies.": "Google no permite enlaces en las respuestas.",
+  "Do not offer refunds or discounts in a public reply.": "No ofrezcas reembolsos ni descuentos en una respuesta pública.",
+  "This review already has a reply.": "Esta reseña ya tiene respuesta.",
+  "Only 4 and 5 star reviews are answered automatically.": "Solo se responden automáticamente las reseñas de 4 y 5 estrellas.",
+  "No AI is configured, so write the reply yourself.": "No hay IA configurada; escribe tú la respuesta.",
+  "The AI is not answering right now. Write the reply yourself.": "La IA no responde ahora mismo. Escribe tú la respuesta.",
+  "The AI returned nothing usable. Write the reply yourself.": "La IA no devolvió nada utilizable. Escribe tú la respuesta.",
+  "Choose whether to answer automatically.": "Elige si quieres responder automáticamente.",
 };
 
 /** The state cookie is only valid for the callback path, and only sent on a top-level GET from Google. */
@@ -230,6 +245,32 @@ export async function handleGbp(req, res, url, seg, ctx) {
       if (sub.length === 1 && sub[0] === "photos" && m === "POST") {
         const photo = await uploadPhoto(c, api, { file: b?.file, category: b?.category });
         return out(200, { photo, google: googleView(c) });
+      }
+
+      // --- G9: reviews and replies --------------------------------------------------------------
+      if (sub.length === 1 && sub[0] === "reviews" && isGet) {
+        const reviews = await listReviews(c, api);
+        return out(200, { reviews, summary: summaryOf(reviews), settings: reviewSettings(c) });
+      }
+
+      if (sub.length === 2 && sub[0] === "reviews" && sub[1] === "draft" && m === "POST") {
+        // Drafting spends the AI budget the rest of the product shares.
+        if (!hit(limits.ai, ip)) return out(429, { error: say("Too many tries. Please wait a few minutes.") });
+        const { review, draft } = await draftReply(c, api, b?.reviewId, { lang: b?.lang === "en" ? "en" : "es" });
+        await save();
+        return out(200, { review, draft });
+      }
+
+      if (sub.length === 2 && sub[0] === "reviews" && sub[1] === "reply" && m === "POST") {
+        const done = await sendReply(c, api, { reviewId: b?.reviewId, comment: b?.comment, replace: b?.replace === true });
+        await save();
+        return out(200, { review: done.review, replaced: done.replaced, settings: reviewSettings(c) });
+      }
+
+      if (sub.length === 2 && sub[0] === "reviews" && sub[1] === "settings" && m === "POST") {
+        const settings = setAutoReply(c, { auto: b?.auto });
+        await save();
+        return out(200, { settings });
       }
 
       return out(404, { error: "Not found" });
