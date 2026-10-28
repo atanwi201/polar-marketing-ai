@@ -7,8 +7,22 @@ import { limiter } from "./auth.mjs";
 import { approval } from "./limits.mjs";
 import { ensureGbp, gbpView, setStatus, buildKit } from "./gbp-kit.mjs";
 import { connectUrl, finishConnect, disconnect, pendingClient, gbpAuthView, redirectUri } from "./gbp-auth.mjs";
+import { friendly, GbpApiError } from "./gbp.mjs";
+import {
+  googleView, apiFor, requireApi, listAccounts, listLocations, linkLocation, lookup, preview, create,
+  categories, verificationOptions, startVerification, completeVerification, refreshVerification,
+} from "./gbp-google.mjs";
 
-export const limits = { read: limiter(180, 60e3), ai: limiter(6, 3600e3), write: limiter(60, 60e3), connect: limiter(20, 15 * 60e3), callback: limiter(60, 15 * 60e3) };
+export const limits = {
+  read: limiter(180, 60e3),
+  ai: limiter(6, 3600e3),
+  write: limiter(60, 60e3),
+  connect: limiter(20, 15 * 60e3),
+  callback: limiter(60, 15 * 60e3),
+  // The wizard calls Google; 300 searches and 300 creates per day are project-wide, so this is tight.
+  googleRead: limiter(120, 60e3),
+  googleWrite: limiter(30, 60e3),
+};
 const hit = (lim, ip) => { if (lim.blocked(ip)) return false; lim.fail(ip); return true; };
 
 const ES = {
@@ -24,6 +38,23 @@ const ES = {
   "Could not reach Google. Try again.": "No se pudo conectar con Google. Inténtalo de nuevo.",
   "Google did not send an authorisation code.": "Google no ha enviado el código de autorización.",
   "This business no longer exists.": "Este negocio ya no existe.",
+  "Google API access is not switched on yet.": "El acceso a la API de Google todavía no está activado.",
+  "Connect your Google profile first.": "Conecta primero tu ficha de Google.",
+  "Connect your Google profile again.": "Vuelve a conectar tu ficha de Google.",
+  "Choose an account.": "Elige una cuenta.",
+  "Choose a location.": "Elige una ficha.",
+  "That location is not in that account.": "Esa ficha no está en esa cuenta.",
+  "Give the business a name.": "Ponle un nombre al negocio.",
+  "That phone number does not look right.": "Ese teléfono no parece correcto.",
+  "Add a street address and a town.": "Añade la dirección y el municipio.",
+  "Choose a category.": "Elige una categoría.",
+  "The website must start with https://.": "La web debe empezar por https://.",
+  "This business is already on Google. Claim it instead of creating a new one.": "Este negocio ya está en Google. Reclama esa ficha en vez de crear otra.",
+  "Link or create a profile first.": "Primero vincula o crea una ficha.",
+  "Choose a verification method.": "Elige un método de verificación.",
+  "Add the email address Google should write to.": "Añade el correo al que Google debe escribir.",
+  "Start the verification first.": "Primero empieza la verificación.",
+  "That code should be 6 digits.": "El código debe tener 6 dígitos.",
 };
 
 /** The state cookie is only valid for the callback path, and only sent on a top-level GET from Google. */
@@ -33,8 +64,8 @@ const stateCookie = (state) => `gbp_oauth=${state}; ${COOKIE_PATH}; HttpOnly; Sa
 const clearCookie = () => `gbp_oauth=; ${COOKIE_PATH}; HttpOnly; SameSite=Lax; Max-Age=0${secure() ? "; Secure" : ""}`;
 const cookie = (header, name) => String(header ?? "").split(/;\s*/).map((p) => p.split("=")).find(([k]) => k === name)?.[1] ?? "";
 
-/** Everything a portal response may carry: the manual kit plus the connection state, never tokens. */
-const view = (c) => ({ ...gbpView(c), api: gbpAuthView(c) });
+/** Everything a portal response may carry: the manual kit, the connection state and the wizard. */
+const view = (c) => ({ ...gbpView(c), api: gbpAuthView(c), google: googleView(c) });
 
 export async function handleGbp(req, res, url, seg, ctx) {
   const ip = ctx.clientIp(req);
@@ -42,8 +73,8 @@ export async function handleGbp(req, res, url, seg, ctx) {
   const out = (code, body) => (ctx.send(res, code, body), true);
   const fail = (e) => {
     if (!e.status) console.error("[gbp]", e?.message ?? e);
-    const msg = e.status ? e.message : "Something went wrong. Please try again.";
-    return out(e.status ?? 500, { error: say(msg), ...(e.code ? { code: e.code } : {}) });
+    const msg = e instanceof GbpApiError ? friendly(e, req.headers["x-lang"] === "en" ? "en" : "es") : e.status ? e.message : "Something went wrong. Please try again.";
+    return out(e.status ?? 500, { error: say(msg), ...(e.code ? { code: e.code } : {}), ...(e.candidates ? { candidates: e.candidates } : {}) });
   };
 
   // The OAuth callback has no portal token: the single-use state plus its cookie are the proof, and the
@@ -95,6 +126,77 @@ export async function handleGbp(req, res, url, seg, ctx) {
       if (!hit(limits.write, ip)) return out(429, { error: say("Too many tries. Please wait a few minutes.") });
       await disconnect(c);
       return out(200, { gbp: view(c) });
+    }
+
+    // --- G6: create/claim wizard and verification -----------------------------------------------
+    if (rest[0] === "google") {
+      const sub = rest.slice(1);
+      const isGet = m === "GET";
+      if (!hit(isGet ? limits.googleRead : limits.googleWrite, ip)) return out(429, { error: say("Too many tries. Please wait a few minutes.") });
+      // apiFor() is what enforces "flag on + token connected": every route below answers 403/409
+      // before a single Google call leaves the server.
+      requireApi(c);
+      const api = ctx.gbpApiFor ? await ctx.gbpApiFor(c) : await apiFor(c);
+      const b = isGet ? {} : await ctx.readBody(req, 30e3);
+
+      if (sub.length === 0 && isGet) return out(200, { google: googleView(c) });
+
+      if (sub.length === 1 && sub[0] === "accounts" && isGet) {
+        return out(200, { accounts: await listAccounts(c, api) });
+      }
+
+      if (sub.length === 1 && sub[0] === "locations" && isGet) {
+        return out(200, { locations: await listLocations(c, api, url.searchParams.get("account") ?? "") });
+      }
+
+      if (sub.length === 1 && sub[0] === "categories" && isGet) {
+        return out(200, { categories: await categories(c, api, { q: url.searchParams.get("q") ?? "", lang: req.headers["x-lang"] === "en" ? "en" : "es" }) });
+      }
+
+      if (sub.length === 1 && sub[0] === "link" && m === "POST") {
+        await linkLocation(c, api, { account: b?.account, location: b?.location });
+        await save();
+        return out(200, { google: googleView(c) });
+      }
+
+      if (sub.length === 1 && sub[0] === "lookup" && m === "POST") {
+        return out(200, { candidates: await lookup(c, api, b ?? {}) });
+      }
+
+      if (sub.length === 1 && sub[0] === "preview" && m === "POST") {
+        return out(200, await preview(c, api, b ?? {}));
+      }
+
+      if (sub.length === 1 && sub[0] === "create" && m === "POST") {
+        const rid = /^[A-Za-z0-9-]{8,50}$/.test(String(b?.requestId ?? "")) ? String(b.requestId) : undefined;
+        const done = await create(c, api, b ?? {}, { requestId: rid });
+        await save();
+        return out(200, { google: googleView(c), candidates: done.candidates });
+      }
+
+      if (sub.length === 1 && sub[0] === "refresh" && m === "POST") {
+        await refreshVerification(c, api);
+        await save();
+        return out(200, { google: googleView(c) });
+      }
+
+      if (sub.length === 1 && sub[0] === "verification" && isGet) {
+        return out(200, { verification: await verificationOptions(c, api), google: googleView(c) });
+      }
+
+      if (sub.length === 1 && sub[0] === "verification" && m === "POST") {
+        await startVerification(c, api, b ?? {});
+        await save();
+        return out(200, { google: googleView(c) });
+      }
+
+      if (sub.length === 2 && sub[0] === "verification" && sub[1] === "complete" && m === "POST") {
+        await completeVerification(c, api, b ?? {});
+        await save();
+        return out(200, { google: googleView(c) });
+      }
+
+      return out(404, { error: "Not found" });
     }
 
     if (rest.length === 0 && (m === "PATCH" || m === "PUT")) {

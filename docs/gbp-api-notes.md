@@ -64,7 +64,8 @@ approval (all of them are); **deprecated** = do not build against it, use the re
 | Create: check for a duplicate | `POST googleLocations.search` (v1) | works, gated | 300 QPD. Returns claimed/unclaimed matches by name/address/phone. |
 | Create: validation pass | `POST mybusinessbusinessinformation/v1/{parent=accounts/*}/locations?validateOnly=true` | works, gated | No sandbox; this is the only dry run. |
 | Create: create | same call with `validateOnly=false` and a **unique `requestId`** | works, gated | 300 QPD. `requestId` dedupes retries: same id returns the existing location. |
-| Create: claim an existing listing | `googleLocations.search` → request access (invitation) → owner accepts (`accounts.invitations.accept`) | works, gated | `locations.associate` is **deprecated** (2023-05-30). See correction 4. |
+| Create: claim an existing listing | `googleLocations.search` → `requestAdminRightsUri` → the owner opens Google's claim UI | works, gated | `requestAdminRightsUri` is present **only when the listing is already claimed** (by anyone, including the owner). There is no API call that claims it for us. `locations.associate` is **deprecated** (2023-05-30). See correction 4. |
+| Create: category ids | `GET mybusinessbusinessinformation/v1/categories?languageCode=es&regionCode=ES&view=FULL` | works, gated | Paginated. `Location.categories.primaryCategory.name` must be one of these `categories/gcid:*` values, not a display name. |
 | Verification: options | `POST mybusinessverifications/v1/{locationId}:fetchVerificationOptions` | works, gated | `{ "languageCode": "es" }`. Options vary by region/business. |
 | Verification: start | `POST mybusinessverifications/v1/locations/{locationId}:verify` | works, gated | Moves to verified or returns an error state. |
 | Verification: finish with a PIN | `POST .../v1/{name=locations/*/verifications/*}:complete` | works, gated | Postcard PIN etc. |
@@ -105,11 +106,12 @@ These change task text, not just trivia. Each one would have cost a day if disco
    `accounts.locations.admins`). "Add the studio as a manager" must use **Account Management API
    v1.1**, not the v4 calls a 2023-era tutorial shows.
 4. **`locations.associate` / `clearAssociation` were deprecated 2023-05-30**, so the plan's
-   "associate" step for claiming is a dead end. Claiming is `googleLocations.search` → request access
-   → the owner accepts an invitation. **Transfer requires tokens for both accounts and an existing
-   owner relationship**, so it is not a claim mechanism either. G6's "refuses to create when a
-   matching listing exists until the client chooses claim" is right; the claim implementation behind
-   that button is different.
+   "associate" step for claiming is a dead end. Claiming is `googleLocations.search` → **the
+   `requestAdminRightsUri` on the claimed match** → the owner opens Google's claim UI. There is no
+   invitation to send and no API call that accepts on the owner's behalf. **Transfer requires tokens
+   for both accounts and an existing owner relationship**, so it is not a claim mechanism either.
+   G6's "refuses to create when a matching listing exists until the client chooses claim" is right;
+   the claim implementation behind that button is the URL, nothing more.
 5. **Quotas are tighter than the plan implies in two places.** `create` and `search` are **300 per
    day**, not just 300 QPM, and the **10 edits/min per location** cap is explicitly "cannot be
    increased". G5's per-location guard is required, not defensive nicety. One client's hourly-sync

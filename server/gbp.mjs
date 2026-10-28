@@ -207,9 +207,20 @@ export function gbpClient({ accessToken = "", fetchImpl = fetch, sleep = (ms) =>
     },
 
     googleLocations: {
-      /** Look for an existing listing before creating a duplicate (300 searches/day). */
+      /**
+       * Look for an existing listing before creating a duplicate (300 searches/day). Accepts a plain
+       * string or a location object; Google says the object is more accurate, but it must have a title.
+       */
       async search(query, { pageSize = 10, pageToken = "" } = {}) {
-        return send("POST", `${bi()}/googleLocations:search${qs({ pageSize, pageToken })}`, { body: { query }, idempotent: true });
+        const body = query && typeof query === "object" ? { location: query } : { query: String(query ?? "") };
+        return send("POST", `${bi()}/googleLocations:search${qs({ pageSize, pageToken })}`, { body, idempotent: true });
+      },
+    },
+
+    categories: {
+      /** The category picker's source. Google's IDs are `categories/gcid:*`; names alone are useless on create. */
+      async list({ languageCode = "es", regionCode = "ES", pageSize = 200, pageToken = "", view = "FULL" } = {}) {
+        return send("GET", `${bi()}/categories${qs({ languageCode, regionCode, pageSize, pageToken, view })}`);
       },
     },
 

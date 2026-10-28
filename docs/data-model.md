@@ -57,6 +57,7 @@ Created by `POST /api/signup` (`index.mjs`, status `pending`) or by the owner (`
 | Publishing | `accounts: {facebook, instagram, x, youtube}` with access tokens in plain text (masked by `maskAccounts` before leaving the server) |
 | Portal state | `uploads[]` (files this business uploaded, last 200), `marketingConsent` (`false` or `{at, source}`), `gbp` (`{mode: "manual"|"api", status: not_started/created/verification_pending/verified, notes, kit, auth?, updatedAt}`, see `gbp-kit.mjs` and `gbp-auth.mjs`) |
 | Google connection | `gbp.auth = {enc, connectedAt, updatedAt, expiresAt, scope, lastError}`: one AES-256-GCM blob (access + refresh token, key `TOKEN_ENC_KEY`, AAD = client id). Nothing decrypts it outside `gbp-auth.mjs`; no route returns it. `mode` flips to `"api"` while connected, back to `"manual"` on disconnect or a dead grant (`lastError: "reconnect"`). |
+| Google profile (G6) | `gbp.google = {account, location, title, address, phone, website, status, verification, linkedAt, updatedAt}`. `status` is `not_linked` / `linked` / `verification_pending` / `verified`; `verification` is `{method, name, state, startedAt, completedAt}` from `verifications.verify`. Additive: old clients get an empty block on first use. `location` is a Google resource name (`locations/*`), never a place id. |
 
 Business-wide feature configs (loyalty, bookings, expenses, menu) are stored in their own sections, keyed by `clientId`, not inside the client.
 
