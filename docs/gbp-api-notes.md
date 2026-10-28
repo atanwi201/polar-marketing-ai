@@ -132,6 +132,7 @@ These change task text, not just trivia. Each one would have cost a day if disco
 - **G6 must be data-driven off `fetchVerificationOptions`.** Hard-coding postcard/phone/video breaks
   on the first client whose category offers only email.
 - **The 60-day clock is the critical path.** G1 should be started before any GBP code is written, even
-  though the code does not depend on it, because nothing else in Part B can go live without it.
+  though the code does not depend on it, because nothing else in Part B can go live without it. The
+  click-by-click checklist, form answers and G2 video script are in `docs/gbp-access-request.md`.
 - **The fallback kit (G3) is not a stopgap for a fortnight; it is the product for at least two
   months**, and for any client whose verification stalls. Treat its quality as launch quality.
