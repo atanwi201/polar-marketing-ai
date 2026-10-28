@@ -5,6 +5,9 @@ import { readFile } from "node:fs/promises";
 import { createHmac, randomBytes } from "node:crypto";
 import { join } from "node:path";
 import { MEDIA_DIR, now } from "./store.mjs";
+import { gbpApiEnabled, gbpClient } from "./gbp.mjs";
+import { accessToken, gbpAuthView } from "./gbp-auth.mjs";
+import { ensureGoogle } from "./gbp-google.mjs";
 
 const env = (k, d = "") => process.env[k] ?? d;
 const GRAPH = () => env("META_GRAPH_URL", `https://graph.facebook.com/${env("META_GRAPH_VERSION", "v25.0")}`);
@@ -14,9 +17,9 @@ const YT_API = () => env("YOUTUBE_API_URL", "https://www.googleapis.com");
 const POLL_MS = () => Number(env("SOCIAL_POLL_MS", "4000"));
 const sleep = (ms) => new Promise((ok) => setTimeout(ok, ms));
 
-export const LABELS = { facebook: "Facebook", instagram: "Instagram", x: "X", youtube: "YouTube Shorts" };
-/** Which platforms can take which kind of content. */
-export const TARGETS = { post: ["instagram", "facebook", "x"], video: ["instagram", "facebook", "youtube"] };
+export const LABELS = { facebook: "Facebook", instagram: "Instagram", x: "X", youtube: "YouTube Shorts", google: "Google" };
+/** Which platforms can take which kind of content. A local post is text plus one photo; no video. */
+export const TARGETS = { post: ["instagram", "facebook", "x", "google"], video: ["instagram", "facebook", "youtube"] };
 
 // ---------- Public address (Instagram fetches photos by URL; link previews need it too) ----------
 
@@ -58,6 +61,14 @@ export function mergeAccounts(old = {}, incoming = {}) {
 
 const igToken = (a) => a.instagram?.token || a.facebook?.token || "";
 
+/** What still stands between the client and a Google local post, once the API flag is on. */
+function googleMissing(client) {
+  if (!ensureGoogle(client).location) return "Connect or create the Google profile in the client's portal";
+  const auth = gbpAuthView(client);
+  if (auth.connected) return null;
+  return auth.lastError === "reconnect" ? "Reconnect the Google profile in the client's portal" : "Connect the Google profile in the client's portal";
+}
+
 /** Per platform: ready to post, or what is missing. */
 export function connections(client) {
   const a = client.accounts ?? {};
@@ -67,6 +78,8 @@ export function connections(client) {
     instagram: need(a.instagram?.userId && igToken(a), "Add the Instagram account ID and an access token"),
     x: need(a.x?.token && a.x?.secret, "Add the account's access token and secret") ?? need(env("X_API_KEY") && env("X_API_SECRET"), "Set X_API_KEY and X_API_SECRET in .env"),
     youtube: need(a.youtube?.refreshToken, "Add a refresh token") ?? need(env("YOUTUBE_CLIENT_ID") && env("YOUTUBE_CLIENT_SECRET"), "Set YOUTUBE_CLIENT_ID and YOUTUBE_CLIENT_SECRET in .env"),
+    // The Google connection lives on client.gbp.auth (portal, G4), not in client.accounts.
+    google: need(gbpApiEnabled(), "Google API access is not approved yet") ?? googleMissing(client),
   };
   return Object.fromEntries(Object.entries(out).map(([pf, missing]) => [pf, missing ? { ready: false, missing } : { ready: true }]));
 }
@@ -89,6 +102,55 @@ export function textFor(item, platform, lang) {
     if (t.length + tag.length + 1 <= 280) t += (t.includes("#") ? " " : "\n\n") + tag;
   }
   return t;
+}
+
+// ---------- Google local posts ----------
+
+/** Google's limit for a local post's summary. */
+export const GBP_SUMMARY_MAX = 1500;
+/** A run of digits that could be dialled: at least 9 digits, so prices and postcodes survive. */
+const PHONE_RE = /\+?\d[\d\s().-]{7,}\d/g;
+
+/**
+ * Google's local post policy forbids phone numbers in the text (the profile's own phone is shown on
+ * the listing). Removing them silently is worse than saying so, and a caption that was only a phone
+ * number is refused: publishing it would either be rejected by Google or leak a number we stripped
+ * half of.
+ */
+export function sanitiseGbpPost(text) {
+  let removed = 0;
+  const clean = String(text ?? "").replace(/\r\n/g, "\n").replace(PHONE_RE, (m) => {
+    const digits = m.replace(/\D/g, "");
+    if (digits.length < 9 || digits.length > 15) return m;
+    removed += 1;
+    return " ";
+  }).replace(/[ \t]{2,}/g, " ").replace(/[ \t]+\n/g, "\n").replace(/\n{3,}/g, "\n\n").trim().slice(0, GBP_SUMMARY_MAX);
+  if (!clean) throw new Error("Google does not allow phone numbers in posts, and nothing else was left.");
+  return { text: clean, removed };
+}
+
+/** Create a local post. The photo must be publicly reachable; without that the post is text-only. */
+async function gbpLocalPost(client, item, lang) {
+  const g = ensureGoogle(client);
+  if (!g.account || !g.location) throw new Error("Connect the Google profile first");
+  const { text } = sanitiseGbpPost(textFor(item, "google", lang));
+  // The button goes to the post's own link when it has one, else to the client's website.
+  const site = String(client.websiteUrl || client.domain || "");
+  const cta = [item.ctaUrl, site].find((u) => /^https:\/\//.test(String(u ?? ""))) ?? "";
+  const withPhoto = Boolean(item.imageFile) && isPublic();
+  const api = gbpClient({ accessToken: await accessToken(client) });
+  const created = await api.posts.create(g.account, g.location, {
+    languageCode: lang === "en" ? "en" : "es",
+    summary: text,
+    topicType: "STANDARD",
+    ...(withPhoto ? { media: [{ mediaFormat: "PHOTO", sourceUrl: `${publicUrl()}/media/${item.imageFile}` }] } : {}),
+    ...(cta ? { callToAction: { actionType: "LEARN_MORE", url: cta } } : {}),
+  });
+  return {
+    url: created?.searchUrl ?? "",
+    id: created?.name ?? "",
+    ...(item.imageFile && !withPhoto ? { note: "photo skipped: PUBLIC_URL is not public" } : {}),
+  };
 }
 
 /** YouTube title: max 100 characters, no angle brackets, tagged #Shorts. */
@@ -272,10 +334,14 @@ export async function shareItem(client, item, platform, { kind = "post", lang } 
     const text = textFor(item, platform, l);
     let out;
     if (kind === "post") {
-      if (!item.imageFile) throw new Error("This post has no image yet");
-      if (platform === "facebook") out = await facebookPhoto(a, item.imageFile, text);
-      else if (platform === "instagram") out = await instagramPhoto(a, item.imageFile, text, item.altText);
-      else out = await xPhoto(a, item.imageFile, text, item.altText);
+      // A local post is text; the photo is optional and only possible with a public URL.
+      if (platform === "google") out = await gbpLocalPost(client, item, l);
+      else {
+        if (!item.imageFile) throw new Error("This post has no image yet");
+        if (platform === "facebook") out = await facebookPhoto(a, item.imageFile, text);
+        else if (platform === "instagram") out = await instagramPhoto(a, item.imageFile, text, item.altText);
+        else out = await xPhoto(a, item.imageFile, text, item.altText);
+      }
     } else {
       const file = item.renders?.[l]?.file;
       if (!file) throw new Error(`No ${l.toUpperCase()} video rendered yet`);
@@ -304,6 +370,12 @@ export async function checkAccounts(client) {
     run("facebook", async () => (await meta("GET", `/${a.facebook.pageId}`, { fields: "name", access_token: a.facebook.token })).name),
     run("instagram", async () => "@" + (await meta("GET", `/${a.instagram.userId}`, { fields: "username", access_token: igToken(a) })).username),
     run("x", async () => "@" + (await x("GET", "/2/users/me", a)).data.username),
+    run("google", async () => {
+      const g = ensureGoogle(client);
+      const api = gbpClient({ accessToken: await accessToken(client) });
+      const r = await api.accounts.list({ pageSize: 1 });
+      return r?.accounts?.[0]?.accountName || g.title || "connected";
+    }),
     run("youtube", async () => {
       const r = await fetch(`${YT_API()}/youtube/v3/channels?part=snippet&mine=true`, { headers: { Authorization: `Bearer ${await googleAccess(a)}` }, signal: AbortSignal.timeout(30e3) });
       const j = await r.json().catch(() => ({}));

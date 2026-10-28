@@ -1,7 +1,7 @@
 // Types and API helpers shared by the Content Studio screens (see server/index.mjs).
 import { toast } from "../core/ui";
 
-export type Platform = "instagram" | "facebook" | "x" | "youtube";
+export type Platform = "instagram" | "facebook" | "x" | "youtube" | "google";
 export interface Site {
   status: "building" | "waiting" | "ready" | "failed"; url?: string; path?: string; builtAt?: string; error?: string; models?: unknown;
   step?: string; kind?: "ai" | "template" | "upload"; design?: string; directionName?: string; editedAt?: string; note?: string; languages?: string[];
@@ -33,7 +33,7 @@ export interface SClient {
 }
 export interface Brief { id: string; clientId: string; text: string; createdAt: string; imageFile?: string; imageDescription?: string; archived?: boolean }
 export type PostStatus = "generating" | "waiting" | "ready" | "published" | "failed";
-export interface ShareResult { platform: Platform; lang: string; at: string; ok: boolean; url?: string; id?: string; error?: string }
+export interface ShareResult { platform: Platform; lang: string; at: string; ok: boolean; url?: string; id?: string; note?: string; error?: string }
 type LangText = Record<string, string>;
 export interface Post {
   id: string; clientId: string; briefId?: string; createdAt: string; status: PostStatus; reason?: string; concept?: string;

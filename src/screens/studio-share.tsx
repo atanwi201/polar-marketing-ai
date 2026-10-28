@@ -7,8 +7,8 @@ import {
   assetUrl, mediaUrl, download, copyText, fullText, xText, tagLine, fmtSize,
 } from "./studio-api";
 
-const LABEL: Record<Platform, string> = { instagram: "Instagram", facebook: "Facebook", x: "X", youtube: "YouTube Shorts" };
-const POST_TARGETS: Platform[] = ["instagram", "facebook", "x"];
+const LABEL: Record<Platform, string> = { instagram: "Instagram", facebook: "Facebook", x: "X", youtube: "YouTube Shorts", google: "Google" };
+const POST_TARGETS: Platform[] = ["instagram", "facebook", "x", "google"];
 const VIDEO_TARGETS: Platform[] = ["instagram", "facebook", "youtube"];
 
 type Props =
@@ -98,7 +98,7 @@ export function ShareModal(props: Props) {
             ? <video src={mediaUrl(file)} poster={render ? mediaUrl(render.cover) : undefined} controls playsInline style={{ width: 150, aspectRatio: "9 / 16", borderRadius: 8, background: "#000", flex: "none" }} />
             : <img src={mediaUrl(file)} alt={props.item.altText || props.item.concept || "Post image"} style={{ width: 150, aspectRatio: "1 / 1", objectFit: "cover", borderRadius: 8, flex: "none" }} />)}
           <div className="stack-sm" style={{ minWidth: 0, flex: 1 }}>
-            <span className="small muted">Caption for Instagram and Facebook</span>
+            <span className="small muted">Caption for Instagram, Facebook and Google</span>
             <div className="pre small box" style={{ maxHeight: 170, overflow: "auto" }}>{caption || <span className="faint">No caption</span>}</div>
             {kind === "post" && <><span className="small muted">Text for X ({xText(item, lang).length}/280)</span><div className="pre small box">{xText(item, lang)}</div></>}
             {render && <span className="small faint">{render.duration.toFixed(0)} s · 1080×1920 · MP4 · {fmtSize(render.size)}</span>}
@@ -118,9 +118,10 @@ export function ShareModal(props: Props) {
                     {c?.ready ? <Badge tone="good">connected</Badge> : <Badge>not connected</Badge>}</span>
                   {!c?.ready && c?.missing && <span className="small faint">{c.missing}</span>}
                   {last?.ok && <span className="small">Posted {fmtDate(last.at)}{last.url && <> · <a href={last.url} target="_blank" rel="noreferrer">open</a></>}</span>}
+                  {last?.ok && last.note && <span className="small faint">{last.note}</span>}
                   {last && !last.ok && <span className="small" style={{ color: "var(--bad)" }}>{last.error}</span>}
                 </span>
-                <Button small kind="primary" disabled={!c?.ready || !file || !!busy} busy={busy === pf} onClick={() => void direct(pf)}>
+                <Button small kind="primary" disabled={!c?.ready || (pf !== "google" && !file) || !!busy} busy={busy === pf} onClick={() => void direct(pf)}>
                   {last?.ok ? "Post again" : `Post to ${LABEL[pf]}`}
                 </Button>
               </div>

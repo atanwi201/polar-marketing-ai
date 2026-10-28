@@ -609,6 +609,13 @@ const ACCOUNT_HELP: Record<Platform, { title: string; help: string; fields: { k:
     help: "Set YOUTUBE_CLIENT_ID and YOUTUBE_CLIENT_SECRET in .env, then get a refresh token with the youtube.upload scope (for example in Google's OAuth Playground with your own client).",
     fields: [{ k: "refreshToken", label: "Refresh token", secret: true }],
   },
+  // Google is not edited here: the owner connects it in their own portal, and the tokens stay encrypted
+  // on the server (server/gbp-auth.mjs). This row only reports whether the connection works.
+  google: {
+    title: "Google Business Profile",
+    help: "Connected from the client's portal (Ficha de Google), not here: the owner signs in with Google and the tokens stay encrypted on your server. Needs GBP_API_ENABLED and the Google OAuth keys in .env.",
+    fields: [],
+  },
 };
 
 export function AccountsEditor({ c, setC, data, act, saved }: {
@@ -629,7 +636,7 @@ export function AccountsEditor({ c, setC, data, act, saved }: {
     <div className="stack">
       <div className="stack-sm">
         <strong>Social accounts</strong>
-        <span className="small muted">Connect the client's accounts so posts and videos go straight to Instagram, Facebook, X and YouTube Shorts. Tokens stay on your server; only the last 4 characters are shown here.</span>
+        <span className="small muted">Connect the client's accounts so posts and videos go straight to Instagram, Facebook, X, Google and YouTube Shorts. Tokens stay on your server; only the last 4 characters are shown here.</span>
       </div>
       {(Object.keys(ACCOUNT_HELP) as Platform[]).map((pf) => {
         const h = ACCOUNT_HELP[pf];

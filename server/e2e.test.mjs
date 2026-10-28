@@ -213,7 +213,10 @@ test("accounts are stored masked and posts go to Facebook, Instagram and X", asy
     accounts: { facebook: { pageId: "PAGE1", token: "PAGETOKEN" }, instagram: { userId: "IG1", token: "" }, x: { token: "xt", secret: "xs" }, youtube: { refreshToken: "1//refresh" } },
   });
   assert.equal(saved.data.accounts.facebook.token, "••••OKEN");
-  assert.deepEqual(Object.values(saved.data.connections).map((c) => c.ready), [true, true, true, true]);
+  const conns = saved.data.connections;
+  assert.deepEqual([conns.facebook.ready, conns.instagram.ready, conns.x.ready, conns.youtube.ready], [true, true, true, true]);
+  // Google is never edited from the admin screen: it needs the API flag and the owner's own OAuth.
+  assert.equal(conns.google.ready, false);
   // Saving the masked value back keeps the real token.
   await api("POST", "/api/studio/clients", { id: clientId, accounts: saved.data.accounts });
   const check = (await api("POST", `/api/studio/clients/${clientId}/accounts`)).data;
