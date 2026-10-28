@@ -2,7 +2,7 @@
 // Durability: every save writes a temp file in the same directory, fsyncs it, keeps the previous good copy as
 // studio.json.bak and renames over the main file. A corrupt main file at boot falls back to the .bak. Saves are
 // serialised (one write at a time, callers that arrive during a write share the next one) and failures reject.
-import { readFileSync, existsSync, mkdirSync, chmodSync, statSync, renameSync, openSync, writeSync, fsyncSync, closeSync, copyFileSync } from "node:fs";
+import { readFileSync, existsSync, mkdirSync, chmodSync, statSync, renameSync, openSync, writeSync, fsyncSync, closeSync, copyFileSync, readdirSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { randomBytes } from "node:crypto";
 import { execFileSync } from "node:child_process";
@@ -45,6 +45,45 @@ export function healMask(path) {
   } catch { /* no acl tool here: the mode is still tight */ }
 }
 
+/** Does the folder's default ACL let a named group read? That is the operator's read-only ACL for the
+ *  backup user. New files inherit it, but only as far as their own mode allows: a file created 0600 gets
+ *  the named entry with its mask off, so the backup can read the folder and none of the files in it. */
+function folderSharesRead(dir) {
+  try {
+    const out = execFileSync("getfacl", ["-c", "-p", dir], { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] });
+    return /^default:group:[^:]+:[rwx-]*r/m.test(out) && /^default:mask::[rwx-]*r/m.test(out);
+  } catch { return false; }
+}
+
+/** Group read for the ACL, when the operator granted it on the folder; nothing at all otherwise. */
+const SHARED_READ = folderSharesRead(DATA_DIR) ? 0o040 : 0;
+const FILE_MODE = 0o600 | SHARED_READ;
+
+/** Make one of our files readable through that ACL. chmod sets the mask from the group bits, so 0640
+ *  makes the inherited named entry work again; it never touches a file we do not own. */
+function healRead(path) {
+  if (!SHARED_READ) return;
+  try {
+    const st = statSync(path);
+    if (st.uid !== process.getuid?.() || !st.isFile() || (st.mode & 0o040)) return;
+    chmodSync(path, 0o640);
+  } catch { /* missing or not ours */ }
+}
+
+/** Files written before the ACL existed are still 0600, and the backup's rsync fails on the first file it
+ *  cannot read. Run at boot, when the ACL is known; it only ever adds group read to our own files. */
+function healReadTree(dir) {
+  if (!SHARED_READ) return;
+  try {
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      const path = join(dir, entry.name);
+      if (entry.isSymbolicLink()) continue;
+      if (entry.isDirectory()) { healMask(path); healReadTree(path); }
+      else if (entry.isFile()) healRead(path);
+    }
+  } catch { /* not ours, or it vanished */ }
+}
+
 /** Tighten a path that is looser than `mode` (only when we own it; never fails the boot). */
 function tighten(path, mode) {
   try {
@@ -63,8 +102,9 @@ function tighten(path, mode) {
 }
 tighten(DATA_DIR, 0o700);
 tighten(MEDIA_DIR, 0o700);
-tighten(FILE, 0o600);
-tighten(BAK, 0o600);
+tighten(FILE, FILE_MODE);
+tighten(BAK, FILE_MODE);
+healReadTree(DATA_DIR);
 
 const empty = () => ({ clients: [], briefs: [], posts: [], videos: [], messages: [] });
 
@@ -104,10 +144,10 @@ function fsyncDir(dir) {
 function writeOnce() {
   const tmp = `${FILE}.${process.pid}.${randomBytes(4).toString("hex")}.tmp`;
   const data = JSON.stringify(db, null, 1);
-  const fd = openSync(tmp, "w", 0o600);
+  const fd = openSync(tmp, "w", FILE_MODE);
   try { writeSync(fd, data); fsyncSync(fd); } finally { closeSync(fd); }
   try {
-    if (existsSync(FILE)) { copyFileSync(FILE, BAK); try { chmodSync(BAK, 0o600); } catch { /* best effort */ } }
+    if (existsSync(FILE)) { copyFileSync(FILE, BAK); try { chmodSync(BAK, FILE_MODE); } catch { /* best effort */ } }
     renameSync(tmp, FILE);
   } catch (e) {
     try { renameSync(tmp, tmp + ".failed"); } catch { /* ignore */ }

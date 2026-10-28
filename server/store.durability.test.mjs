@@ -89,3 +89,28 @@ test("a dead access mask is put back to the default one", { skip: !aclTools() ||
   assert.match(after, /^mask::r-x$/m, "the mask is back to the default one");
   assert.doesNotMatch(after, /#effective:---/, "and the named entry works again");
 });
+
+// A file created 0600 inherits the folder's default ACL with the mask off, and the backup's rsync fails on
+// the first file it cannot read. Files the app writes (and the ones it wrote before the ACL) must be readable.
+test("files in the folder are readable through the backup ACL", { skip: !aclTools() || !aclGroup() }, () => {
+  const aclDir = join(mkdtempSync(join(tmpdir(), "acl3-")), "data");
+  mkdirSync(aclDir, { recursive: true });
+  chmodSync(aclDir, 0o700);
+  const group = aclGroup().split(":")[0];
+  spawnSync("setfacl", ["-m", `g:${group}:r-x`, aclDir]);
+  spawnSync("setfacl", ["-d", "-m", `g:${group}:r-x,m::r-x`, aclDir]);
+  const old = join(aclDir, "studio.json");
+  writeFileSync(old, JSON.stringify({ clients: [] }));
+  chmodSync(old, 0o600);                          // what the app wrote before the folder got the ACL
+
+  const boot = spawnSync(process.execPath, ["--input-type=module", "-e", `const { db, save } = await import("./store.mjs"); db.clients.push({ id: "one" }); await save();`], { cwd: import.meta.dirname, env: { PATH: process.env.PATH, DATA_DIR: aclDir } });
+  assert.equal(boot.status, 0, boot.stderr);
+
+  const fresh = join(aclDir, "studio.json.bak");
+  for (const file of [old, fresh]) {
+    assert.equal(statSync(file).mode & 0o777, 0o640, `${file} is group readable`);
+    const acl = spawnSync("getfacl", ["-c", "-p", file], { encoding: "utf8" }).stdout;
+    assert.doesNotMatch(acl, /#effective:---/, `${file} is readable by the backup user`);
+  }
+  assert.match(readFileSync(old, "utf8"), /"one"/);
+});
