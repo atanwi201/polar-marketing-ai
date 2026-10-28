@@ -6,8 +6,9 @@ import { save, now } from "./store.mjs";
 import { limiter } from "./auth.mjs";
 import { approval } from "./limits.mjs";
 import { ensureGbp, gbpView, setStatus, buildKit } from "./gbp-kit.mjs";
+import { connectUrl, finishConnect, disconnect, pendingClient, gbpAuthView, redirectUri } from "./gbp-auth.mjs";
 
-export const limits = { read: limiter(180, 60e3), ai: limiter(6, 3600e3), write: limiter(60, 60e3) };
+export const limits = { read: limiter(180, 60e3), ai: limiter(6, 3600e3), write: limiter(60, 60e3), connect: limiter(20, 15 * 60e3), callback: limiter(60, 15 * 60e3) };
 const hit = (lim, ip) => { if (lim.blocked(ip)) return false; lim.fail(ip); return true; };
 
 const ES = {
@@ -17,10 +18,25 @@ const ES = {
   "Notes must be text.": "Las notas deben ser texto.",
   "Something went wrong. Please try again.": "Algo ha ido mal. Inténtalo de nuevo.",
   "This link is not active.": "Este enlace no está activo.",
+  "Google access is not configured yet.": "El acceso a Google todavía no está configurado.",
+  "This connection link has expired. Start again.": "Este enlace de conexión ha caducado. Empieza de nuevo.",
+  "Google did not accept the connection. Try again.": "Google no ha aceptado la conexión. Inténtalo de nuevo.",
+  "Could not reach Google. Try again.": "No se pudo conectar con Google. Inténtalo de nuevo.",
+  "Google did not send an authorisation code.": "Google no ha enviado el código de autorización.",
+  "This business no longer exists.": "Este negocio ya no existe.",
 };
 
+/** The state cookie is only valid for the callback path, and only sent on a top-level GET from Google. */
+const COOKIE_PATH = "Path=/api/gbp";
+const secure = () => redirectUri().startsWith("https:");
+const stateCookie = (state) => `gbp_oauth=${state}; ${COOKIE_PATH}; HttpOnly; SameSite=Lax; Max-Age=600${secure() ? "; Secure" : ""}`;
+const clearCookie = () => `gbp_oauth=; ${COOKIE_PATH}; HttpOnly; SameSite=Lax; Max-Age=0${secure() ? "; Secure" : ""}`;
+const cookie = (header, name) => String(header ?? "").split(/;\s*/).map((p) => p.split("=")).find(([k]) => k === name)?.[1] ?? "";
+
+/** Everything a portal response may carry: the manual kit plus the connection state, never tokens. */
+const view = (c) => ({ ...gbpView(c), api: gbpAuthView(c) });
+
 export async function handleGbp(req, res, url, seg, ctx) {
-  if (!(seg[0] === "api" && seg[1] === "portal" && seg[2] && seg[3] === "gbp")) return false;
   const ip = ctx.clientIp(req);
   const say = (text) => (req.headers["x-lang"] === "es" ? ES[text] ?? text : text);
   const out = (code, body) => (ctx.send(res, code, body), true);
@@ -29,6 +45,31 @@ export async function handleGbp(req, res, url, seg, ctx) {
     const msg = e.status ? e.message : "Something went wrong. Please try again.";
     return out(e.status ?? 500, { error: say(msg), ...(e.code ? { code: e.code } : {}) });
   };
+
+  // The OAuth callback has no portal token: the single-use state plus its cookie are the proof, and the
+  // state remembers which business started it. Errors here never redirect, since we cannot trust the URL.
+  if (seg[0] === "api" && seg[1] === "gbp" && seg[2] === "callback" && seg.length === 3 && req.method === "GET") {
+    if (!hit(limits.callback, ip)) return out(429, { error: say("Too many tries. Please wait a few minutes.") });
+    const state = url.searchParams.get("state") ?? "";
+    const jar = cookie(req.headers.cookie, "gbp_oauth");
+    try {
+      if (url.searchParams.get("error")) {                    // the owner pressed cancel on Google's screen
+        const c = pendingClient(state, jar);
+        if (!c) return out(400, { error: say("This connection link has expired. Start again.") });
+        res.writeHead(302, { Location: `/portal/${c.token}#/gbp`, "Set-Cookie": clearCookie(), "Cache-Control": "no-store" });
+        res.end();
+        return true;
+      }
+      const c = await finishConnect({ state, code: url.searchParams.get("code") ?? "", cookieState: jar });
+      res.writeHead(302, { Location: `/portal/${c.token}#/gbp`, "Set-Cookie": clearCookie(), "Cache-Control": "no-store" });
+      res.end();
+      return true;
+    } catch (e) {
+      return fail(e);
+    }
+  }
+
+  if (!(seg[0] === "api" && seg[1] === "portal" && seg[2] && seg[3] === "gbp")) return false;
   try {
     if (!hit(limits.read, ip)) return out(429, { error: say("Too many tries. Please wait a few minutes.") });
     const c = ctx.clientByToken(seg[2]);
@@ -39,14 +80,29 @@ export async function handleGbp(req, res, url, seg, ctx) {
     const rest = seg.slice(4);
     const m = req.method;
 
-    if (rest.length === 0 && m === "GET") return out(200, { gbp: gbpView(c) });
+    if (rest.length === 0 && m === "GET") return out(200, { gbp: view(c) });
+
+    // Start the Google flow. A browser link, so it redirects; the state also goes into an HttpOnly cookie.
+    if (rest.length === 1 && rest[0] === "connect" && m === "GET") {
+      if (!hit(limits.connect, ip)) return out(429, { error: say("Too many tries. Please wait a few minutes.") });
+      const { url: target, state } = connectUrl(c);
+      res.writeHead(302, { Location: target, "Set-Cookie": stateCookie(state), "Cache-Control": "no-store" });
+      res.end();
+      return true;
+    }
+
+    if (rest.length === 1 && rest[0] === "disconnect" && m === "POST") {
+      if (!hit(limits.write, ip)) return out(429, { error: say("Too many tries. Please wait a few minutes.") });
+      await disconnect(c);
+      return out(200, { gbp: view(c) });
+    }
 
     if (rest.length === 0 && (m === "PATCH" || m === "PUT")) {
       if (!hit(limits.write, ip)) return out(429, { error: say("Too many tries. Please wait a few minutes.") });
       const b = await ctx.readBody(req, 50e3);
       setStatus(c, { status: b.status, notes: b.notes });
       await save();
-      return out(200, { gbp: gbpView(c) });
+      return out(200, { gbp: view(c) });
     }
 
     if (rest.length === 1 && rest[0] === "kit" && m === "POST") {
@@ -57,7 +113,7 @@ export async function handleGbp(req, res, url, seg, ctx) {
       g.kit = await buildKit(c, { lang });
       g.updatedAt = now();
       await save();
-      return out(200, { gbp: gbpView(c) });
+      return out(200, { gbp: view(c) });
     }
 
     return out(404, { error: "Not found" });

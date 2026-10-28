@@ -114,6 +114,11 @@ The token is the credential. Unknown token: 404 JSON on API, the portal HTML she
 | GET/PUT/PATCH/POST | `/api/portal/<token>/menu/...` (config, photo, import, translate) | `menu-routes.mjs` `manage()` | token; 403 `disabled` until the owner enables it | `manage` 600/min, `photo` 120/h, `ai` 30/h |
 | GET/PUT/PATCH/POST/DELETE | `/api/portal/<token>/expenses/...` (config, scan, export, items, photo, ask, dictate, parse) | `expenses-routes.mjs` `manage()` | token; 403 `disabled` until the owner enables it; expense must belong to the business | `manage` 600/min, `scan` 30/h, `ask` 20/h |
 | GET/PATCH/POST | `/api/portal/<token>/gbp` and `/gbp/kit` (manual Google Business Profile kit and status) | `gbp-routes.mjs` `handleGbp()` | token; 403 for pending/declined businesses; only the caller's own `client.gbp` is ever read or written | `read` 180/min per IP, `write` 60/min, `ai` 6/h (kit generation) |
+| GET | `/api/portal/<token>/gbp/connect` | `gbp-routes.mjs` + `gbp-auth.mjs` | token; 403 for pending/declined; 503 `not_configured` until the OAuth client exists | `connect` 20/15 min per IP |
+| POST | `/api/portal/<token>/gbp/disconnect` | same | token; 403 for pending/declined; revokes the grant at Google and clears the local copy | `write` 60/min |
+| GET | `/api/gbp/callback` (public, Google redirects here) | `gbp-routes.mjs` + `gbp-auth.mjs` | no portal token: a single-use `state` (10 min) that must match its `gbp_oauth` HttpOnly cookie, bound to the business that started it; PKCE S256 | `callback` 60/15 min per IP |
+
+Google tokens: stored per business on `client.gbp.auth` (AES-256-GCM, `TOKEN_ENC_KEY`, client id as AAD) and **never** returned by any route; `gbpAuthView()` exposes only `configured`, `connected`, timestamps, scope and `lastError`. A refresh with `invalid_grant` clears the connection and shows "reconnect"; the OAuth app is in Testing until G2, so refresh tokens expire after 7 days.
 
 Client session (convenience only, not an API credential): after a correct code, `POST /api/client-login` sets `isla_client` (`<clientId>.<random>`, 90-day sliding, HttpOnly, SameSite=Lax) and `/login` uses it to redirect to `/portal/<token>`. API calls still need the token in the path.
 
